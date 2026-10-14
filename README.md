@@ -73,3 +73,17 @@ halaman `tidak_dikenal` (saat ini ditandai dan dilewati; `ai_classify` belum dip
 
 Belum termasuk (tahap berikutnya): A · Kepatuhan, D · CaLK, C · Rasio, dan Kesimpulan & Rekomendasi.
 Tabel `teks_pdf`, `lokasi_seksi`, dan `angka_combined` sudah disiapkan sebagai input notebook tersebut.
+
+## Situs dokumentasi (Render Static Site)
+
+`scripts/build_site.py` membangun situs statis ke `site/`: ringkasan, file yang perlu disediakan, tabel rules
+(dengan unduhan CSV), dan hasil tes saat build. Pengaturan di Render (New → Static Site, pilih repo ini dan
+branch yang dipakai):
+
+| Isian | Nilai |
+|-------|-------|
+| Build Command | `pip install -r requirements.txt && python scripts/build_site.py` |
+| Publish Directory | `site` |
+
+Build gagal bila ada tes yang gagal, sehingga situs yang tampil selalu dari kode yang lulus tes.
+Situs ini publik dan hanya memuat dokumentasi serta rules, tanpa data laporan keuangan.

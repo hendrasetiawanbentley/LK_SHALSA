@@ -9,3 +9,4 @@ excel/
 *.pdf
 *.xlsx
 !rules/**/*.xlsx
+site/
