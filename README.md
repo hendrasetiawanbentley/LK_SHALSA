@@ -1,119 +1,154 @@
-# SIKULI: analisis laporan keuangan (parsing sampai komparasi)
+# SIKULI: komparasi laporan keuangan PDF vs Excel
 
 Implementasi alur di deck *SIKULI: alur analisis laporan keuangan*, mulai dari **parse PDF** sampai
-**B · Analisis_Komparasi** (PDF vs Excel). Jalan **tanpa Databricks**: sebagai web app (Render) untuk upload
-file dan melihat hasil, atau lewat command line.
+**B · Analisis_Komparasi**. Analisis dijalankan oleh **GitHub Actions**, tanpa aplikasi front end.
 
 ```
-LK PDF ──► parse (pdfplumber) ─► deteksi entitas + seksi ─► ekstraksi akun per seksi ─► angka PDF ──┐
-LK Excel ─► baca (openpyxl, sheet_config) ─► mapping label → kode_akun ─────────────► angka Excel ─┴─► komparasi ─► hasil_komparasi.xlsx
-rules/ (kertas kerja): mapping_seksi, rules_akun, sheet_config, mapping_akun_excel, daftar_entitas
+input/pdf/*.pdf   ─► parse (pdfplumber) ─► deteksi entitas + seksi ─► ekstraksi akun per seksi ─► angka PDF ──┐
+input/excel/*.xlsx ─► baca sheet (sheet_config) ─► mapping label → kode_akun ──────────────────► angka Excel ─┴─► komparasi ─► hasil/
+rules/*.csv (kertas kerja) dipakai di setiap langkah
 ```
 
-## Cara pakai
+## Cara menjalankan di GitHub
 
-### Web app (Render)
-1. Di Render: **New → Web Service** (bukan Static Site), pilih repo ini dan branch-nya. Atau **New → Blueprint**
-   supaya isian diambil dari `render.yaml`.
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `gunicorn webapp.app:app --workers 1 --threads 4 --timeout 300 --bind 0.0.0.0:$PORT`
-   - Environment variable **`APP_PASSWORD`**: wajib diisi supaya data LK tidak bisa dibuka publik
-     (login: username bebas, password sesuai isian).
-2. Buka URL Render → upload PDF dan Excel → **Jalankan analisis** → lihat hasil dan **Unduh hasil (.xlsx)**.
-3. Setiap push ke GitHub, Render deploy ulang otomatis, dan GitHub Actions menjalankan tes.
+1. **Isi rules** di folder `rules/` (lihat tabel di bawah), commit dan push.
+2. **Upload file LK** ke repo:
+   - PDF ke `input/pdf/`, misalnya `AAAA_LK_2024.pdf`
+   - Excel ke `input/excel/`, misalnya `AAAA_2024.xlsx`
 
-### Command line
+   Lewat web GitHub: buka folder → **Add file → Upload files** → **Commit changes**. PDF dan Excel dipasangkan
+   dari prefiks nama file (`AAAA`), dan tahun dari angka 4 digit di nama file.
+3. **Workflow `analisis` jalan otomatis** setiap ada perubahan di `input/`, `rules/`, atau `config/`.
+   Untuk menjalankan ulang manual: tab **Actions → analisis → Run workflow**.
+4. **Lihat hasil:** tab **Actions** → klik run teratas.
+   - Halaman run menampilkan ringkasan per entitas, daftar akun yang perlu ditinjau, dan peringatan.
+   - Bagian **Artifacts** di bawah halaman run berisi `hasil-komparasi` (zip): `hasil_komparasi.xlsx` + CSV.
+     Artifact disimpan 30 hari.
+
+Menjalankan di komputer sendiri (opsional):
 ```bash
 pip install -r requirements.txt
-PYTHONPATH=src python -m sikuli.lokal --pdf folder_pdf --excel folder_excel --out hasil_komparasi.xlsx
+PYTHONPATH=src python -m sikuli.lokal          # baca input/pdf dan input/excel, tulis ke hasil/
 ```
 
-Hasil `.xlsx` berisi sheet Ringkasan, Komparasi (status + catatan), Angka_PDF, Angka_Excel, Lokasi_Seksi, Peringatan.
+> **Repo ini publik.** File di `input/` dan artifact hasil bisa dilihat orang lain. Ubah repo menjadi
+> private (Settings → General → Danger Zone → Change visibility) sebelum mengunggah LK asli.
 
-### Batasan saat ini
+## Tabel rules yang harus diisi
+
+Semua file CSV UTF-8 di `rules/` dengan baris judul (bisa disusun di Excel lalu *Save As → CSV UTF-8*).
+Kolom `aktif` opsional (`1`/`0`) untuk menonaktifkan baris. Isi sekarang adalah **contoh**, kecuali
+`mapping_seksi.csv` yang diambil dari slide 6. Jika rules tidak valid, workflow gagal dan menyebut baris yang salah.
+
+### 1. `rules_akun.csv` (wajib): akun yang dibandingkan
+
+| Kolom | Wajib | Isi | Contoh |
+|-------|:-----:|-----|--------|
+| `doc_type` | ya | `EPP`, `MI`, `RD`, gabungan `EPP,MI`, atau `Semua` | `EPP,MI` |
+| `seksi` | ya | kode seksi dari `mapping_seksi.csv` | `financial_position` |
+| `kode_akun` | ya | kode unik per doc_type; kunci pasangan PDF ↔ Excel | `FP_KAS` |
+| `nama_akun` | ya | nama baris seperti tertulis di laporan | `Kas dan setara kas` |
+| `sinonim` | | nama lain dipisah `\|` (Inggris, label Excel, variasi) | `Kas dan bank\|Cash and cash equivalents` |
+| `deskripsi` | | catatan bebas | |
+
+Baris PDF dicocokkan dengan `nama_akun`/`sinonim` (huruf besar-kecil dan tanda baca diabaikan). Akun yang
+tidak ketemu di PDF tercantum di Peringatan; tambahkan sinonimnya di sini.
+
+### 2. `sheet_config.csv` (wajib): letak angka di Excel
+
+| Kolom | Wajib | Isi | Contoh |
+|-------|:-----:|-----|--------|
+| `doc_type` | ya | jenis entitas pemilik format | `EPP,MI` |
+| `sheet` | ya | nama sheet, atau regex diawali `re:` | `Posisi Keuangan` |
+| `seksi` | ya | kode seksi | `financial_position` |
+| `kolom_label` | ya | huruf kolom nama akun | `A` |
+| `kolom_nilai` | ya | huruf kolom tahun berjalan | `B` |
+| `kolom_nilai_lalu` | | huruf kolom tahun pembanding | `C` |
+| `baris_mulai` | ya | baris pertama data | `5` |
+| `baris_akhir` | | baris terakhir (kosong = sampai habis) | |
+| `skala` | | pengali bila Excel dalam ribuan/jutaan (bawaan 1) | `1000` |
+
+### 3. `mapping_seksi.csv` (sudah terisi): pola judul laporan
+
+| Kolom | Wajib | Isi | Contoh |
+|-------|:-----:|-----|--------|
+| `no` | | nomor urut seksi | `1` |
+| `kode` | ya | kode seksi | `financial_position` |
+| `seksi` | ya | nama seksi | `Laporan Posisi Keuangan` |
+| `entitas` | ya | `Semua` atau jenis entitas tertentu | `RD` |
+| `pola` | ya | satu frasa judul per baris | `statement of financial position` |
+| `maks_halaman` | | batas halaman seksi sejak judul (kosong = tanpa batas) | |
+
+Seksi dikenali dari baris teratas halaman: halaman dengan ≥3 judul cocok dianggap daftar isi, halaman tanpa
+judul ikut seksi sebelumnya. Untuk MKBD atau penanda akhir CaLK (lampiran), cukup tambah baris.
+
+### 4. `daftar_entitas.csv` (wajib bila jenis entitas tidak ada di nama file)
+
+| Kolom | Wajib | Isi | Contoh |
+|-------|:-----:|-----|--------|
+| `entity_id` | ya | prefiks nama file | `AAAA` |
+| `nama_entitas` | | nama lengkap | `PT Contoh Emiten Tbk` |
+| `doc_type` | ya | `EPP` / `MI` / `RD` | `EPP` |
+
+### 5. `mapping_akun_excel.csv` (opsional): label Excel yang tidak sama dengan nama/sinonim
+
+| Kolom | Wajib | Isi | Contoh |
+|-------|:-----:|-----|--------|
+| `doc_type` | ya | jenis entitas | `EPP,MI` |
+| `sheet` | | nama sheet (kosong = semua) | `Posisi Keuangan` |
+| `label_excel` | ya | label persis di Excel | `Kas dan setara kas - bersih` |
+| `kode_akun` | ya | kode di `rules_akun.csv` | `FP_KAS` |
+
+Pengaturan lain (pola nama file, toleransi selisih, periode yang dibandingkan) ada di `config/pipeline.yaml`.
+
+## Struktur hasil
+
+Artifact `hasil-komparasi` berisi `hasil_komparasi.xlsx` (satu sheet per tabel di bawah), CSV dengan isi sama,
+dan `ringkasan.md`.
+
+**Komparasi** (`komparasi.csv`): satu baris per entitas × akun × periode, urut dari yang perlu ditinjau.
+
+| Kolom | Arti |
+|-------|------|
+| `entity_key` | prefiks nama file \| doc_type \| tahun, mis. `AAAA\|EPP\|2024` |
+| `seksi`, `kode_akun`, `nama_akun`, `periode` | akun yang dibandingkan; `periode` = `berjalan` / `lalu` |
+| `nilai_pdf`, `nilai_excel` | nilai dalam Rupiah penuh (PDF "dalam jutaan" sudah dikalikan) |
+| `selisih`, `selisih_persen` | `nilai_pdf − nilai_excel`, dan persentasenya terhadap Excel |
+| `status` | `MATCH` (sama dalam toleransi), `DIFFERENT`, `PDF_ONLY`, `EXCEL_ONLY` |
+| `indikasi` | petunjuk penyebab DIFFERENT: `BEDA_TANDA`, `BEDA_SKALA` |
+| `catatan` | penjelasan otomatis per status |
+| `halaman_pdf`, `sumber_pdf`, `sumber_excel` | jejak sumber; Excel ditulis `file.xlsx!sheet!baris` |
+| `label_pdf`, `label_excel` | nama baris persis di masing-masing sumber |
+
+**Ringkasan** (`ringkasan.csv`): per `entity_key`, jumlah baris tiap status dan `persen_match`.
+
+**Angka_PDF** (`angka_pdf.csv`): angka yang terbaca dari PDF: `sumber_file`, `entity_key`, `seksi`,
+`kode_akun`, `label_di_dokumen`, `periode`, `nilai`, `nilai_asli` (seperti tertulis), `skala`, `halaman`.
+
+**Angka_Excel** (`angka_excel.csv`): angka dari Excel: `sumber_file`, `entity_key`, `sheet`, `baris`,
+`seksi`, `label_asli`, `kode_akun` (kosong = label belum terpetakan), `cara_pemetaan`, `periode`, `nilai`,
+`nilai_asli`.
+
+**Lokasi_Seksi** (`lokasi_seksi.csv`): seksi per dokumen: `nama_file`, `entity_key`, `seksi`,
+`halaman_mulai`, `halaman_akhir`, `judul_cocok`.
+
+**Peringatan** (`peringatan.csv`): akun tidak ditemukan, sheet tidak ada, nama file tidak dikenali, PDF tanpa teks.
+
+## Batasan
+
 - PDF harus punya lapisan teks; PDF hasil scan perlu OCR dulu.
-- Ekstraksi akun PDF memakai pencocokan label baris dengan `nama_akun`/`sinonim` di `rules_akun.csv` (tanpa AI).
-  Akun yang tidak ditemukan dicantumkan di Peringatan; tambahkan sinonimnya di rules.
-- Catatan per baris dibuat otomatis dari status dan indikasi (`BEDA_TANDA`, `BEDA_SKALA`), bukan oleh LLM.
-
-**Daftar file yang perlu Anda sediakan ada di [docs/FILE_YANG_PERLU_DISEDIAKAN.md](docs/FILE_YANG_PERLU_DISEDIAKAN.md).**
+- Ekstraksi PDF berbasis baris teks: label akun yang terpotong ke dua baris belum terbaca.
+- Batas ukuran file GitHub 100 MB per file.
 
 ## Struktur repo
 
 | Path | Isi |
 |------|-----|
-| `webapp/` | Web app Flask: upload, hasil, unduh .xlsx, lihat rules |
-| `src/sikuli/lokal.py` | Pipeline lengkap tanpa Databricks + CLI + penulisan .xlsx |
-| `render.yaml` | Konfigurasi deploy Render (Web Service) |
-| `notebooks/00_Muat_Rules.py` | (opsional, Databricks) Stage 0: validasi rules dan simpan ke tabel Delta, buat tabel hasil |
-| `notebooks/01_Ingest_PDF.py` | Parse PDF 1× per dokumen, deteksi seksi, ekstraksi akun |
-| `notebooks/02_Ingest_Excel.py` | Baca Excel tanpa AI, mapping akun, daftar label belum terpetakan |
-| `notebooks/03_Analisis_Komparasi.py` | Full outer join, status, catatan `ai_gen`, ringkasan untuk pengawas |
-| `notebooks/99_Jalankan_Semua.py` | Menjalankan 00 → 01 → 02 → 03 berurutan |
-| `src/sikuli/` | Logika inti Python murni (bisa diuji tanpa Databricks) |
-| `rules/` | Kertas kerja: `mapping_seksi` (dari slide 6) dan **contoh** rules lain yang perlu diganti |
-| `config/pipeline.yaml` | Catalog/schema, path Volume, pola nama file, toleransi komparasi |
-| `sql/ddl.sql` | Definisi semua tabel (referensi) |
-| `tests/` | Uji unit dan uji end-to-end lokal (AI Functions diganti tiruan) |
-
-| Modul `src/sikuli/` | Langkah di deck |
-|---------------------|-----------------|
-| `pdf_lokal.py`, `ekstraksi_lokal.py` | Parse PDF dengan pdfplumber; ekstraksi akun dari baris teks tanpa AI |
-| `parse_pdf.py` | Output `ai_parse_document` → teks per halaman + zona atas (footer dikecualikan) |
-| `entitas.py` | Entitas dari prefiks nama file (+ `daftar_entitas`) |
-| `seksi.py` | Deteksi seksi slide 5: daftar isi (≥3 cocok), mulai seksi baru, lanjutkan, `tidak_dikenal` |
-| `ekstraksi.py` | Skema `ai_extract` dari `rules_akun`; angka disalin apa adanya lalu dikonversi deterministik |
-| `normalisasi.py` | Angka format Indonesia `(1.234)`, `-`, skala "dalam jutaan Rupiah" |
-| `excel.py`, `akun.py` | SHEET_CONFIG dan mapping label → `kode_akun` |
-| `komparasi.py` | entity_key, full outer join, MATCH/DIFFERENT/PDF_ONLY/EXCEL_ONLY, prompt catatan |
-| `tabel.py` | Skema tabel Delta (satu sumber untuk notebook dan DDL) |
-
-## Opsional: menjalankan di Databricks
-
-1. Hubungkan repo ini sebagai **Git folder** di workspace.
-2. Sesuaikan `config/pipeline.yaml` (catalog, schema, `path_pdf`, `path_excel`, `pola_nama_file`).
-3. Unggah PDF ke `path_pdf` dan Excel ke `path_excel` (Volume Unity Catalog).
-4. Isi file di `rules/` (lihat dokumen file yang perlu disediakan).
-5. Jalankan `notebooks/99_Jalankan_Semua` di Serverless (atau cluster DBR terbaru dengan AI Functions).
-   - `01_Ingest_PDF` hanya mem-parse PDF baru dan hanya mengekstraksi dokumen yang belum ada di `angka_pdf`.
-     Set widget `parse_ulang` / `ekstraksi_ulang` = `ya` untuk mengulang semuanya.
-   - Deteksi seksi selalu dibangun ulang dari `pdf_parsed`, jadi perubahan `mapping_seksi` tidak perlu parse ulang.
-
-## Uji lokal
-
-```bash
-pip install -r requirements.txt
-python -m pytest
-```
-
-Uji end-to-end (`tests/test_end_to_end.py`) menjalankan dokumen tiruan 9 halaman (sampul, daftar isi, laporan
-utama, CaLK) dan file Excel tiruan melalui kode yang sama dengan notebook, sampai status komparasi.
-Bagian yang memanggil Spark dan AI Functions hanya bisa diuji di Databricks.
-
-## Keputusan desain yang diterapkan (slide 13)
-
-1. **Parse PDF cukup sekali**: hasil mentah di `pdf_parsed`, teks per halaman di `teks_pdf`.
-2. **Satu cara deteksi entitas dan seksi**: prefiks nama file + judul zona atas lewat `mapping_seksi`.
-3. **Excel dibaca tanpa AI**: SHEET_CONFIG + mapping akun.
-4. **Tabel sementara tidak disimpan**: input AI memakai temp view.
-5. **Rules dipisah per jenis** (`rules_akun`, `sheet_config`, ...) sehingga tidak saling menimpa.
-
-Masih terbuka (perlu keputusan Anda): arti `maks_halaman`, MKBD, penanda akhir CaLK/lampiran, dan penanganan
-halaman `tidak_dikenal` (saat ini ditandai dan dilewati; `ai_classify` belum dipakai).
-
-Belum termasuk (tahap berikutnya): A · Kepatuhan, D · CaLK, C · Rasio, dan Kesimpulan & Rekomendasi.
-Tabel `teks_pdf`, `lokasi_seksi`, dan `angka_combined` sudah disiapkan sebagai input notebook tersebut.
-
-## Opsional: situs dokumentasi statis
-
-`scripts/build_site.py` membangun situs statis ke `site/`: ringkasan, file yang perlu disediakan, tabel rules
-(dengan unduhan CSV), dan hasil tes saat build. Pengaturan di Render (New → Static Site, pilih repo ini dan
-branch yang dipakai):
-
-| Isian | Nilai |
-|-------|-------|
-| Build Command | `pip install -r requirements.txt && python scripts/build_site.py` |
-| Publish Directory | `site` |
-
-Build gagal bila ada tes yang gagal, sehingga situs yang tampil selalu dari kode yang lulus tes.
-Situs ini publik dan hanya memuat dokumentasi serta rules, tanpa data laporan keuangan.
+| `.github/workflows/analisis.yml` | Menjalankan analisis dan menyimpan hasil sebagai artifact |
+| `.github/workflows/tests.yml` | Menjalankan tes setiap push |
+| `input/` | Tempat upload LK PDF dan Excel |
+| `rules/` | Kertas kerja (tabel rules di atas) |
+| `config/pipeline.yaml` | Pola nama file, deteksi seksi, toleransi komparasi |
+| `src/sikuli/` | Kode pipeline (`lokal.py` = titik masuk) |
+| `tests/` | Tes unit dan end-to-end dengan PDF/Excel contoh |
+| `notebooks/`, `sql/` | Versi Databricks dari alur yang sama (opsional, tidak dipakai workflow) |

@@ -1,13 +1,14 @@
-"""Pipeline lengkap tanpa Databricks: PDF + Excel -> hasil komparasi (.xlsx).
+"""Pipeline lengkap: PDF + Excel -> hasil komparasi (.xlsx, .csv, ringkasan.md).
 
-    python -m sikuli.lokal --pdf folder_pdf --excel folder_excel --out hasil.xlsx
+    PYTHONPATH=src python -m sikuli.lokal            # baca input/pdf dan input/excel, tulis ke hasil/
 
-Dipakai juga oleh web app (webapp/app.py).
+Dijalankan oleh GitHub Actions (.github/workflows/analisis.yml).
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 from pathlib import Path
 
@@ -22,7 +23,7 @@ from .excel import baca_excel
 from .komparasi import MATCH, bandingkan
 from .pdf_lokal import halaman_dari_pdf
 from .pipeline import buat_permintaan_ekstraksi, konteks_permintaan, proses_halaman
-from .rules import Rules, muat_rules
+from .rules import Rules, muat_rules, validasi_rules
 from .seksi import kompilasi_pola
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -157,22 +158,87 @@ def _kumpulkan(folder: str | None, akhiran: tuple[str, ...]) -> list[str]:
                   if p.suffix.lower() in akhiran and not p.name.startswith("~$"))
 
 
+def tulis_csv(hasil: dict, folder: Path) -> None:
+    sumber = {"ringkasan": "Ringkasan", "komparasi": "Komparasi", "angka_pdf": "Angka_PDF",
+              "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi"}
+    for kunci, sheet in sumber.items():
+        with open(folder / f"{kunci}.csv", "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(KOLOM[sheet])
+            w.writerows([b.get(k) for k in KOLOM[sheet]] for b in hasil[kunci])
+    with open(folder / "peringatan.csv", "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["peringatan"])
+        w.writerows([p] for p in hasil["peringatan"])
+
+
+def ringkasan_markdown(hasil: dict, jumlah_pdf: int, jumlah_excel: int) -> str:
+    """Ringkasan untuk halaman run GitHub Actions (GITHUB_STEP_SUMMARY)."""
+    def angka(x):
+        return "-" if x is None else f"{x:,.0f}"
+
+    def sel(x):
+        return "" if x is None else str(x).replace("|", "\\|")
+
+    k = hasil["komparasi"]
+    status = {s: sum(1 for b in k if b["status"] == s) for s in ("MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY")}
+    md = [f"## Hasil komparasi SIKULI", "",
+          f"{jumlah_pdf} PDF, {jumlah_excel} Excel, {len(k)} baris akun. "
+          + ", ".join(f"**{v}** {s}" for s, v in status.items()), "",
+          "### Ringkasan per entitas", "",
+          "| entity_key | MATCH | DIFFERENT | PDF_ONLY | EXCEL_ONLY | % match |", "|---|--:|--:|--:|--:|--:|"]
+    md += [f"| {sel(r['entity_key'])} | {r['MATCH']} | {r['DIFFERENT']} | {r['PDF_ONLY']} | {r['EXCEL_ONLY']} | "
+           f"{r['persen_match']} |" for r in hasil["ringkasan"]]
+    perlu = [b for b in k if b["status"] != MATCH]
+    md += ["", f"### Perlu ditinjau ({len(perlu)} baris)", ""]
+    if perlu:
+        md += ["| entitas | akun | periode | nilai PDF | nilai Excel | selisih | status | catatan |",
+               "|---|---|---|--:|--:|--:|---|---|"]
+        md += [f"| {sel(b['entity_key'])} | {sel(b['kode_akun'])} | {b['periode']} | {angka(b['nilai_pdf'])} | "
+               f"{angka(b['nilai_excel'])} | {angka(b['selisih'])} | {b['status']} | {sel(b['catatan'])} |"
+               for b in perlu[:200]]
+        if len(perlu) > 200:
+            md.append(f"\n_{len(perlu) - 200} baris lain ada di file hasil._")
+    else:
+        md.append("Semua akun MATCH.")
+    if hasil["peringatan"]:
+        md += ["", f"### Peringatan ({len(hasil['peringatan'])})", ""] + [f"- {p}" for p in hasil["peringatan"]]
+    md += ["", "File lengkap (`hasil_komparasi.xlsx` dan CSV) ada di **Artifacts** di bawah halaman run ini."]
+    return "\n".join(md) + "\n"
+
+
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="SIKULI: komparasi LK PDF vs Excel tanpa Databricks")
-    ap.add_argument("--pdf", help="folder berisi LK PDF")
-    ap.add_argument("--excel", help="folder berisi LK Excel")
+    ap = argparse.ArgumentParser(description="SIKULI: komparasi LK PDF vs Excel")
+    ap.add_argument("--pdf", default=str(ROOT / "input" / "pdf"), help="folder berisi LK PDF")
+    ap.add_argument("--excel", default=str(ROOT / "input" / "excel"), help="folder berisi LK Excel")
     ap.add_argument("--rules", default=str(ROOT / "rules"))
     ap.add_argument("--config", default=str(ROOT / "config" / "pipeline.yaml"))
-    ap.add_argument("--out", default="hasil_komparasi.xlsx")
+    ap.add_argument("--out-dir", default=str(ROOT / "hasil"), help="folder hasil (xlsx, csv, md)")
     args = ap.parse_args(argv)
 
-    hasil = jalankan(_kumpulkan(args.pdf, (".pdf",)), _kumpulkan(args.excel, (".xlsx", ".xlsm")),
-                     muat_config(args.config), muat_rules(args.rules))
-    tulis_excel(hasil, args.out)
-    for r in hasil["ringkasan"]:
-        print(r)
-    print("\n".join(hasil["peringatan"]))
-    print(f"Hasil: {args.out}")
+    rules = muat_rules(args.rules)
+    masalah = validasi_rules(rules)
+    if masalah:
+        print("Rules tidak valid:\n" + "\n".join(f"- {m}" for m in masalah))
+        return 1
+    pdf = _kumpulkan(args.pdf, (".pdf",))
+    excel = _kumpulkan(args.excel, (".xlsx", ".xlsm"))
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    if not pdf and not excel:
+        pesan = (f"## Hasil komparasi SIKULI\n\nBelum ada file: unggah PDF ke `input/pdf/` dan "
+                 f"Excel ke `input/excel/`.\n")
+        (out / "ringkasan.md").write_text(pesan, encoding="utf-8")
+        print(pesan)
+        return 0
+
+    hasil = jalankan(pdf, excel, muat_config(args.config), rules)
+    tulis_excel(hasil, out / "hasil_komparasi.xlsx")
+    tulis_csv(hasil, out)
+    md = ringkasan_markdown(hasil, len(pdf), len(excel))
+    (out / "ringkasan.md").write_text(md, encoding="utf-8")
+    print(md)
+    print(f"Hasil ditulis ke {out}")
     return 0
 
 

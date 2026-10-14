@@ -71,6 +71,17 @@ def test_cli(tmp_path, capsys):
     (tmp_path / "xls").mkdir()
     buat_pdf(tmp_path / "pdf" / "AAAA_LK_2024.pdf")
     buat_excel(tmp_path / "xls" / "AAAA_2024.xlsx")
-    out = tmp_path / "hasil.xlsx"
-    assert main(["--pdf", str(tmp_path / "pdf"), "--excel", str(tmp_path / "xls"), "--out", str(out)]) == 0
-    assert out.exists()
+    out = tmp_path / "hasil"
+    assert main(["--pdf", str(tmp_path / "pdf"), "--excel", str(tmp_path / "xls"), "--out-dir", str(out)]) == 0
+    assert {p.name for p in out.iterdir()} == {
+        "hasil_komparasi.xlsx", "ringkasan.md", "ringkasan.csv", "komparasi.csv", "angka_pdf.csv",
+        "angka_excel.csv", "lokasi_seksi.csv", "peringatan.csv"}
+    md = (out / "ringkasan.md").read_text()
+    assert "| AAAA\\|EPP\\|2024 | 3 | 1 | 2 | 0 | 50.0 |" in md
+    assert "IS_LABA_TAHUN_BERJALAN" in md
+    assert (out / "komparasi.csv").read_text(encoding="utf-8-sig").startswith("entity_key,seksi,kode_akun")
+
+
+def test_cli_tanpa_file(tmp_path):
+    assert main(["--pdf", str(tmp_path / "x"), "--excel", str(tmp_path / "y"), "--out-dir", str(tmp_path / "o")]) == 0
+    assert "Belum ada file" in (tmp_path / "o" / "ringkasan.md").read_text()

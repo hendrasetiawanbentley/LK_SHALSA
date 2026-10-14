@@ -85,7 +85,7 @@ menampilkan label yang belum terpetakan; label itulah yang ditambahkan ke sini.
 | 7 | **1–2 PDF LK per jenis entitas** (EPP, MI, RD) beserta Excel pasangannya | Kalibrasi deteksi seksi (jumlah baris zona atas) dan uji ekstraksi |
 | 8 | Notebook lama `Analisis_Komparasi` dan ekspor tabel `extraction_rules` | Menyamakan kode akun dan kolom output dengan yang sudah dipakai |
 
-File PDF/Excel **tidak** disimpan di git (ada di `.gitignore`); unggah lewat web app; file dihapus setelah analisis selesai.
+File PDF/Excel diunggah ke `input/pdf/` dan `input/excel/`. Repo ini publik, jadi ubah menjadi private sebelum mengunggah LK asli.
 
 ## C. Bentuk output yang perlu disepakati
 
@@ -111,9 +111,3 @@ Mohon konfirmasi atau kirim contoh format yang diharapkan pengawas, terutama:
    `BEDA_TANDA`. Apakah seharusnya dianggap MATCH?
 4. Bila ada **template laporan** (Excel/PDF) yang biasa dibaca pengawas, kirim contohnya supaya kolom
    hasil disesuaikan dengan format itu.
-
-## D. Untuk deploy di Render
-
-- Nilai **`APP_PASSWORD`** yang akan dipakai tim (isi sendiri di dashboard Render, jangan di-commit).
-- Perkiraan ukuran dan jumlah PDF per sekali upload. Paket gratis Render punya RAM terbatas, jadi PDF ratusan
-  halaman sebaiknya diunggah beberapa sekaligus, bukan semuanya dalam satu kali upload.

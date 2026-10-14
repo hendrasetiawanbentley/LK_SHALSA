@@ -1,0 +1,38 @@
+name: analisis
+
+# Menjalankan komparasi LK PDF vs Excel untuk file di input/pdf dan input/excel.
+# Jalan otomatis saat input, rules, atau config berubah; bisa juga dijalankan manual
+# lewat tab Actions → analisis → Run workflow.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "input/**"
+      - "rules/**"
+      - "config/**"
+
+jobs:
+  komparasi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Pasang dependensi
+        run: pip install -r requirements.txt
+      - name: Jalankan analisis
+        run: PYTHONPATH=src python -m sikuli.lokal --out-dir hasil
+      - name: Tampilkan ringkasan di halaman run
+        if: always()
+        run: |
+          if [ -f hasil/ringkasan.md ]; then cat hasil/ringkasan.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Simpan hasil sebagai artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hasil-komparasi
+          path: hasil/
+          retention-days: 30
+          if-no-files-found: warn

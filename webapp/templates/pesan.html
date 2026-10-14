@@ -1,7 +1,0 @@
-{% extends "base.html" %}
-{% block isi %}
-<div class="kartu"><h2 style="margin-top:0">{{ judul }}</h2>
-{% if pesan %}<p>{{ pesan }}</p>{% endif %}
-{% if daftar %}<ul>{% for d in daftar %}<li>{{ d }}</li>{% endfor %}</ul>{% endif %}
-<p><a href="/">Kembali</a></p></div>
-{% endblock %}

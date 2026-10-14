@@ -3,10 +3,5 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 .venv/
-# Data laporan keuangan bersifat rahasia: simpan di Unity Catalog Volume, bukan di git.
-docs/ALL/
-excel/
-*.pdf
-*.xlsx
-!rules/**/*.xlsx
-site/
+# Hasil analisis dibuat oleh workflow dan diunduh sebagai artifact, tidak di-commit.
+hasil/
