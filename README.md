@@ -1,13 +1,38 @@
 # SIKULI: komparasi laporan keuangan PDF vs Excel
 
 Implementasi alur di deck *SIKULI: alur analisis laporan keuangan*, mulai dari **parse PDF** sampai
-**B · Analisis_Komparasi**. Analisis dijalankan oleh **GitHub Actions**, tanpa aplikasi front end.
+**B · Analisis_Komparasi**, ditambah kesimpulan dan rekomendasi. Analisis dijalankan oleh **GitHub Actions**,
+tanpa aplikasi front end, dengan **Claude (Anthropic API)** di hampir setiap tahap.
 
 ```
 input/pdf/*.pdf   ─► parse (pdfplumber) ─► deteksi entitas + seksi ─► ekstraksi akun per seksi ─► angka PDF ──┐
 input/excel/*.xlsx ─► baca sheet (sheet_config) ─► mapping label → kode_akun ──────────────────► angka Excel ─┴─► komparasi ─► hasil/
 rules/*.csv (kertas kerja) dipakai di setiap langkah
 ```
+
+## Penggunaan AI (Claude)
+
+| Tahap | Dengan AI (`ANTHROPIC_API_KEY` tersedia) | Cadangan tanpa AI |
+|-------|------------------------------------------|-------------------|
+| Parsing PDF, seksi, satuan, angka akun | Claude membaca PDF langsung (termasuk PDF hasil scan), menentukan halaman tiap seksi dan satuannya, lalu menyalin angka akun sesuai `rules_akun.csv` | pdfplumber + pola `mapping_seksi` + pencocokan label |
+| Verifikasi angka PDF | Setiap angka dari AI dicek ulang ke teks halaman rujukan (kolom `verifikasi`) | - |
+| Pemetaan label Excel | Label yang tidak dikenali rules dipetakan Claude (`cara_pemetaan = ai`) | Label dibiarkan belum terpetakan |
+| Komparasi dan status | Deterministik (kode), tidak memakai AI | sama |
+| Catatan per baris | Claude menulis catatan analis untuk baris bukan MATCH (`sumber_catatan = ai`) | Catatan template |
+| Kesimpulan dan rekomendasi | Claude, per entitas (sheet **Kesimpulan**) | Tidak dibuat |
+
+**Mengaktifkan:**
+1. Buat API key di [console.anthropic.com](https://console.anthropic.com) (menu API Keys).
+2. Di GitHub: **Settings → Secrets and variables → Actions → New repository secret**, nama
+   `ANTHROPIC_API_KEY`, isi dengan key tersebut.
+3. Atur model dan tahap mana yang memakai AI di bagian `ai:` pada `config/pipeline.yaml`
+   (bawaan: `claude-opus-5-5`, effort `medium`, semua tahap aktif).
+
+Tanpa secret, atau bila panggilan AI gagal untuk satu dokumen, pipeline otomatis memakai jalur aturan dan
+mencatatnya di Peringatan. Mode yang dipakai tertulis di baris pertama ringkasan run.
+
+> Dengan AI aktif, isi PDF dan label Excel dikirim ke Anthropic API. Pastikan ini sesuai kebijakan data
+> instansi Anda sebelum mengunggah LK asli.
 
 ## Cara menjalankan di GitHub
 
@@ -119,14 +144,16 @@ dan `ringkasan.md`.
 | `selisih`, `selisih_persen` | `nilai_pdf − nilai_excel` dalam satuan PDF, dan persentasenya terhadap Excel |
 | `status` | `MATCH` (sama dalam toleransi), `DIFFERENT`, `PDF_ONLY`, `EXCEL_ONLY` |
 | `indikasi` | petunjuk penyebab DIFFERENT: `BEDA_TANDA`, `BEDA_SKALA` |
-| `catatan` | penjelasan otomatis per status |
+| `catatan` | penjelasan per baris (dari AI bila aktif, selain itu template) |
+| `sumber_catatan` | `ai` atau `otomatis` |
+| `verifikasi_pdf` | hasil cek angka PDF ke teks halaman: `cocok`, `tidak_ditemukan_di_halaman`, `tanpa_teks` (PDF scan) |
 | `halaman_pdf`, `sumber_pdf`, `sumber_excel` | jejak sumber; Excel ditulis `file.xlsx!sheet!baris` |
 | `label_pdf`, `label_excel` | nama baris persis di masing-masing sumber |
 
 **Ringkasan** (`ringkasan.csv`): per `entity_key`, jumlah baris tiap status dan `persen_match`.
 
 **Angka_PDF** (`angka_pdf.csv`): angka yang terbaca dari PDF: `sumber_file`, `entity_key`, `seksi`,
-`kode_akun`, `label_di_dokumen`, `periode`, `nilai` (seperti tertulis, tidak dikalikan), `nilai_asli`, `skala` (satuan yang terdeteksi), `halaman`.
+`kode_akun`, `label_di_dokumen`, `periode`, `nilai` (seperti tertulis, tidak dikalikan), `nilai_asli`, `skala` (satuan yang terdeteksi), `halaman`, `sumber_ekstraksi` (`ai`/`aturan`), `verifikasi`.
 
 **Angka_Excel** (`angka_excel.csv`): angka dari Excel: `sumber_file`, `entity_key`, `sheet`, `baris`,
 `seksi`, `label_asli`, `kode_akun` (kosong = label belum terpetakan), `cara_pemetaan`, `periode`, `nilai`,
@@ -135,12 +162,16 @@ dan `ringkasan.md`.
 **Lokasi_Seksi** (`lokasi_seksi.csv`): seksi per dokumen: `nama_file`, `entity_key`, `seksi`,
 `halaman_mulai`, `halaman_akhir`, `judul_cocok`.
 
+**Kesimpulan** (`kesimpulan.csv`): per `entity_key`: `kesimpulan` dan `rekomendasi` dari Claude (kosong bila AI
+tidak aktif).
+
 **Peringatan** (`peringatan.csv`): akun tidak ditemukan, sheet tidak ada, nama file tidak dikenali, PDF tanpa teks.
 
 ## Batasan
 
-- PDF harus punya lapisan teks; PDF hasil scan perlu OCR dulu.
-- Ekstraksi PDF berbasis baris teks: label akun yang terpotong ke dua baris belum terbaca.
+- Tanpa AI: PDF harus punya lapisan teks, dan label akun yang terpotong ke dua baris belum terbaca.
+- Dengan AI: PDF maksimal sekitar 30 MB / 600 halaman per file (batas API); file lebih besar memakai aturan.
+  Angka PDF hasil scan tidak bisa diverifikasi otomatis ke teks halaman (`verifikasi = tanpa_teks`).
 - Batas ukuran file GitHub 100 MB per file.
 
 ## Struktur repo

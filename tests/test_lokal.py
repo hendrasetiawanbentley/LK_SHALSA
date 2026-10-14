@@ -67,7 +67,8 @@ def test_pipeline_lokal_pdf_dan_excel(tmp_path, cfg, rules):
     assert out.stat().st_size > 0
 
 
-def test_cli(tmp_path, capsys):
+def test_cli(tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)  # tes tidak boleh memanggil API sungguhan
     (tmp_path / "pdf").mkdir()
     (tmp_path / "xls").mkdir()
     buat_pdf(tmp_path / "pdf" / "AAAA_LK_2024.pdf")
@@ -76,10 +77,11 @@ def test_cli(tmp_path, capsys):
     assert main(["--pdf", str(tmp_path / "pdf"), "--excel", str(tmp_path / "xls"), "--out-dir", str(out)]) == 0
     assert {p.name for p in out.iterdir()} == {
         "hasil_komparasi.xlsx", "ringkasan.md", "ringkasan.csv", "komparasi.csv", "angka_pdf.csv",
-        "angka_excel.csv", "lokasi_seksi.csv", "peringatan.csv"}
+        "angka_excel.csv", "lokasi_seksi.csv", "kesimpulan.csv", "peringatan.csv"}
     md = (out / "ringkasan.md").read_text()
     assert "| AAAA\\|EPP\\|2024 | 3 | 1 | 2 | 0 | 50.0 |" in md
     assert "IS_LABA_TAHUN_BERJALAN" in md
+    assert "Mode: **aturan (tanpa AI)**" in md
     assert (out / "komparasi.csv").read_text(encoding="utf-8-sig").startswith("entity_key,seksi,kode_akun")
 
 

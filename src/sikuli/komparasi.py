@@ -128,6 +128,7 @@ def bandingkan(angka_pdf: list[dict], angka_excel: list[dict], cfg_komparasi: di
             "nilai_excel_asli": nilai_excel_asli,
             "skala_pdf": skala_pdf,
             "halaman_pdf": (p or {}).get("halaman"),
+            "verifikasi_pdf": (p or {}).get("verifikasi"),
             "sumber_pdf": (p or {}).get("sumber_file"),
             "sumber_excel": f"{e['sumber_file']}!{e['sheet']}!{e['baris']}" if e else None,
             "label_pdf": (p or {}).get("label_di_dokumen"),

@@ -15,6 +15,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
+from . import ai
 from .akun import PemetaAkun
 from .config import muat_config
 from .ekstraksi_lokal import ekstraksi_seksi
@@ -57,21 +58,8 @@ def catatan_otomatis(baris: dict, catatan_match: str = "Nilai sesuai") -> str:
             "perlu konfirmasi ke entitas.").replace("  ", " ")
 
 
-def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules) -> dict:
-    pola = kompilasi_pola(rules.mapping_seksi)
-    teks, lokasi, angka_pdf, peringatan = [], [], [], []
-    for path in pdf_paths:
-        try:
-            halaman = halaman_dari_pdf(path, int(cfg["deteksi_seksi"]["baris_zona_atas"]))
-        except Exception as e:  # PDF rusak / terkunci
-            peringatan.append(f"{Path(path).name}: gagal dibaca ({type(e).__name__}: {e})")
-            continue
-        hasil = proses_halaman(path, halaman, cfg, rules, pola)
-        teks.extend(hasil["teks"])
-        lokasi.extend(hasil["lokasi"])
-        peringatan.extend(hasil["peringatan"])
-
-    # Satu permintaan per (dokumen, seksi); kelompok akun digabung kembali.
+def _ekstraksi_aturan(teks: list[dict], cfg: dict, rules: Rules, peringatan: list[str]) -> list[dict]:
+    """Ekstraksi akun tanpa AI dari baris teks_pdf satu dokumen."""
     per_seksi: dict[tuple, dict] = {}
     for p in buat_permintaan_ekstraksi(teks, cfg, rules):
         kunci = (p["doc_id"], p["seksi"])
@@ -79,12 +67,46 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
             per_seksi[kunci]["akun"].extend(p["akun"])
         else:
             per_seksi[kunci] = {**p, "akun": list(p["akun"])}
+    angka = []
     for (doc_id, seksi), p in per_seksi.items():
         halaman = [t for t in teks if t["doc_id"] == doc_id and t["seksi"] == seksi]
         baris, tidak_ada = ekstraksi_seksi(halaman, p["akun"], konteks_permintaan(p), p["zona_atas"])
-        angka_pdf.extend(baris)
+        for b in baris:
+            b["sumber_ekstraksi"], b["verifikasi"] = "aturan", "cocok"
+        angka.extend(baris)
         if tidak_ada:
             peringatan.append(f"{p['sumber_file']} / {seksi}: akun tidak ditemukan di PDF: {', '.join(tidak_ada)}")
+    return angka
+
+
+def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules,
+             klien: ai.KlienAI | None = None) -> dict:
+    """Pipeline lengkap. `klien` = KlienAI untuk memakai Claude; None = hanya aturan."""
+    cfg_ai = cfg.get("ai") or {}
+    pola = kompilasi_pola(rules.mapping_seksi)
+    teks, lokasi, angka_pdf, peringatan = [], [], [], []
+    for path in pdf_paths:
+        nama = Path(path).name
+        try:
+            halaman = halaman_dari_pdf(path, int(cfg["deteksi_seksi"]["baris_zona_atas"]))
+        except Exception as e:  # PDF rusak / terkunci
+            peringatan.append(f"{nama}: gagal dibaca ({type(e).__name__}: {e})")
+            continue
+        info = info_dari_nama_file(path, cfg, rules)
+        if klien and cfg_ai.get("ekstraksi_pdf", True) and info["entitas_dikenal"]:
+            try:
+                lok, ang, pesan = ai.ekstraksi_pdf(klien, path, info, rules, cfg, [h.teks for h in halaman])
+                lokasi.extend(lok)
+                angka_pdf.extend(ang)
+                peringatan.extend(pesan)
+                continue
+            except Exception as e:  # API error, refusal, PDF terlalu besar: pakai aturan
+                peringatan.append(f"{nama}: ekstraksi AI gagal ({type(e).__name__}: {e}); memakai aturan")
+        hasil = proses_halaman(path, halaman, cfg, rules, pola)
+        teks.extend(hasil["teks"])
+        lokasi.extend(hasil["lokasi"])
+        peringatan.extend(hasil["peringatan"])
+        angka_pdf.extend(_ekstraksi_aturan(hasil["teks"], cfg, rules, peringatan))
 
     angka_excel, pemeta = [], PemetaAkun(rules)
     for path in excel_paths:
@@ -97,6 +119,13 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
         except Exception as e:
             peringatan.append(f"{info['nama_file']}: gagal dibaca ({type(e).__name__}: {e})")
             continue
+        if klien and cfg_ai.get("pemetaan_excel", True):
+            try:
+                n = ai.pemetaan_excel(klien, baris, rules, info["doc_type"])
+                if n:
+                    pesan.append(f"{info['nama_file']}: {n} label dipetakan oleh AI (cara_pemetaan = ai), mohon ditinjau")
+            except Exception as e:
+                pesan.append(f"{info['nama_file']}: pemetaan AI gagal ({type(e).__name__}: {e})")
         angka_excel.extend(baris)
         peringatan.extend(pesan)
 
@@ -106,9 +135,20 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
     komparasi.sort(key=lambda b: (urutan[b["status"]], b["entity_key"], b["kode_akun"]))
     for b in komparasi:
         b["catatan"] = catatan_otomatis(b, cfg["komparasi"].get("catatan_match", "Nilai sesuai"))
+        b["sumber_catatan"] = "otomatis"
+
+    kesimpulan = []
+    if klien and cfg_ai.get("catatan_dan_kesimpulan", True):
+        for entity_key in sorted({b["entity_key"] for b in komparasi}):
+            try:
+                kesimpulan.append(ai.analisis_entitas(
+                    klien, entity_key, [b for b in komparasi if b["entity_key"] == entity_key]))
+            except Exception as e:
+                peringatan.append(f"{entity_key}: analisis AI gagal ({type(e).__name__}: {e})")
     return {"komparasi": komparasi, "angka_pdf": angka_pdf, "angka_excel": angka_excel,
             "lokasi_seksi": lokasi, "teks_pdf": teks, "peringatan": peringatan,
-            "ringkasan": ringkasan(komparasi)}
+            "ringkasan": ringkasan(komparasi), "kesimpulan": kesimpulan,
+            "mode": f"AI ({klien.model})" if klien else "aturan (tanpa AI)"}
 
 
 def ringkasan(komparasi: list[dict]) -> list[dict]:
@@ -126,13 +166,15 @@ def ringkasan(komparasi: list[dict]) -> list[dict]:
 KOLOM = {
     "Ringkasan": ["entity_key", "MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY", "persen_match"],
     "Komparasi": ["entity_key", "seksi", "kode_akun", "nama_akun", "periode", "satuan_pdf", "nilai_pdf",
-                  "nilai_excel", "nilai_excel_asli", "selisih", "selisih_persen", "status", "indikasi", "catatan", "halaman_pdf", "sumber_pdf",
+                  "nilai_excel", "nilai_excel_asli", "selisih", "selisih_persen", "status", "indikasi", "catatan", "sumber_catatan", "halaman_pdf",
+                  "verifikasi_pdf", "sumber_pdf",
                   "sumber_excel", "label_pdf", "label_excel"],
     "Angka_PDF": ["sumber_file", "entity_key", "seksi", "kode_akun", "label_di_dokumen", "periode", "nilai",
-                  "nilai_asli", "skala", "halaman"],
+                  "nilai_asli", "skala", "halaman", "sumber_ekstraksi", "verifikasi"],
     "Angka_Excel": ["sumber_file", "entity_key", "sheet", "baris", "seksi", "label_asli", "kode_akun",
                     "cara_pemetaan", "periode", "nilai", "nilai_asli"],
     "Lokasi_Seksi": ["nama_file", "entity_key", "seksi", "halaman_mulai", "halaman_akhir", "judul_cocok"],
+    "Kesimpulan": ["entity_key", "kesimpulan", "rekomendasi"],
 }
 WARNA = {"MATCH": "D9F2E1", "DIFFERENT": "FBDAD7", "PDF_ONLY": "FFF1C2", "EXCEL_ONLY": "FFF1C2"}
 
@@ -141,13 +183,13 @@ def tulis_excel(hasil: dict, path) -> None:
     wb = Workbook()
     wb.remove(wb.active)
     sumber = {"Ringkasan": "ringkasan", "Komparasi": "komparasi", "Angka_PDF": "angka_pdf",
-              "Angka_Excel": "angka_excel", "Lokasi_Seksi": "lokasi_seksi"}
+              "Angka_Excel": "angka_excel", "Lokasi_Seksi": "lokasi_seksi", "Kesimpulan": "kesimpulan"}
     for sheet, kolom in KOLOM.items():
         ws = wb.create_sheet(sheet)
         ws.append(kolom)
         for c in ws[1]:
             c.font = Font(bold=True)
-        for b in hasil[sumber[sheet]]:
+        for b in hasil.get(sumber[sheet], []):
             ws.append([b.get(k) for k in kolom])
             if sheet == "Komparasi" and b["status"] in WARNA:
                 ws.cell(ws.max_row, kolom.index("status") + 1).fill = PatternFill("solid", fgColor=WARNA[b["status"]])
@@ -168,12 +210,12 @@ def _kumpulkan(folder: str | None, akhiran: tuple[str, ...]) -> list[str]:
 
 def tulis_csv(hasil: dict, folder: Path) -> None:
     sumber = {"ringkasan": "Ringkasan", "komparasi": "Komparasi", "angka_pdf": "Angka_PDF",
-              "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi"}
+              "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi", "kesimpulan": "Kesimpulan"}
     for kunci, sheet in sumber.items():
         with open(folder / f"{kunci}.csv", "w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
             w.writerow(KOLOM[sheet])
-            w.writerows([b.get(k) for k in KOLOM[sheet]] for b in hasil[kunci])
+            w.writerows([b.get(k) for k in KOLOM[sheet]] for b in hasil.get(kunci, []))
     with open(folder / "peringatan.csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow(["peringatan"])
@@ -190,12 +232,19 @@ def ringkasan_markdown(hasil: dict, jumlah_pdf: int, jumlah_excel: int) -> str:
     k = hasil["komparasi"]
     status = {s: sum(1 for b in k if b["status"] == s) for s in ("MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY")}
     md = [f"## Hasil komparasi SIKULI", "",
+          f"Mode: **{hasil.get('mode', 'aturan (tanpa AI)')}**. "
           f"{jumlah_pdf} PDF, {jumlah_excel} Excel, {len(k)} baris akun. "
           + ", ".join(f"**{v}** {s}" for s, v in status.items()), "",
           "### Ringkasan per entitas", "",
           "| entity_key | MATCH | DIFFERENT | PDF_ONLY | EXCEL_ONLY | % match |", "|---|--:|--:|--:|--:|--:|"]
     md += [f"| {sel(r['entity_key'])} | {r['MATCH']} | {r['DIFFERENT']} | {r['PDF_ONLY']} | {r['EXCEL_ONLY']} | "
            f"{r['persen_match']} |" for r in hasil["ringkasan"]]
+    if hasil.get("kesimpulan"):
+        md += ["", "### Kesimpulan dan rekomendasi", ""]
+        for r in hasil["kesimpulan"]:
+            md += [f"**{sel(r['entity_key'])}**", "", r["kesimpulan"], ""]
+            if r["rekomendasi"]:
+                md += [r["rekomendasi"], ""]
     perlu = [b for b in k if b["status"] != MATCH]
     md += ["", f"### Perlu ditinjau ({len(perlu)} baris)", ""]
     if perlu:
@@ -241,7 +290,11 @@ def main(argv=None) -> int:
         print(pesan)
         return 0
 
-    hasil = jalankan(pdf, excel, muat_config(args.config), rules)
+    cfg = muat_config(args.config)
+    klien = ai.buat_klien(cfg)
+    if (cfg.get("ai") or {}).get("aktif") and klien is None:
+        print("AI aktif di config tetapi ANTHROPIC_API_KEY tidak ada; memakai aturan saja.")
+    hasil = jalankan(pdf, excel, cfg, rules, klien)
     tulis_excel(hasil, out / "hasil_komparasi.xlsx")
     tulis_csv(hasil, out)
     md = ringkasan_markdown(hasil, len(pdf), len(excel))

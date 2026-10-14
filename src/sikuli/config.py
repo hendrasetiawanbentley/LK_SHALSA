@@ -30,6 +30,17 @@ BAWAAN: dict = {
         "maks_karakter_per_seksi": 60000,
         "seksi_dilewati": ["calk"],
     },
+    "ai": {
+        "aktif": False,
+        "model": "claude-opus-5-5",
+        "effort": "medium",
+        "fallback_server": True,
+        "maks_token_output": 64000,
+        "maks_mb_pdf": 30,
+        "ekstraksi_pdf": True,
+        "pemetaan_excel": True,
+        "catatan_dan_kesimpulan": True,
+    },
     "komparasi": {
         "periode": ["berjalan"],
         "toleransi_absolut": 1.0,

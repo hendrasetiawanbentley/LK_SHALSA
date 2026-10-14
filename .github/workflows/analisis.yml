@@ -23,6 +23,10 @@ jobs:
       - name: Pasang dependensi
         run: pip install -r requirements.txt
       - name: Jalankan analisis
+        env:
+          # Secret repo (Settings -> Secrets and variables -> Actions). Tanpa secret ini
+          # analisis tetap jalan memakai aturan saja.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: PYTHONPATH=src python -m sikuli.lokal --out-dir hasil
       - name: Tampilkan ringkasan di halaman run
         if: always()
