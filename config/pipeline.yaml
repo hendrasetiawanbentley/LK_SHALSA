@@ -1,0 +1,42 @@
+# Konfigurasi pipeline SIKULI. Nilai yang tidak diisi memakai bawaan di
+# src/sikuli/config.py. Ganti catalog/schema/path sesuai workspace Databricks.
+
+catalog: sikuli
+schema: lk
+
+# Lokasi file sumber di Unity Catalog Volume.
+path_pdf: /Volumes/sikuli/lk/sumber/docs/ALL      # LK PDF
+path_excel: /Volumes/sikuli/lk/sumber/excel       # LK Excel
+# Folder rules relatif terhadap root repo (atau path Volume absolut).
+path_rules: rules
+
+entitas:
+  # Regex atas nama file tanpa ekstensi. Grup bernama:
+  #   entity_id (wajib) - prefiks nama file, kunci untuk memasangkan PDF dan Excel
+  #   doc_type  (opsional) - EPP / MI / RD; bila tidak ada diambil dari rules/daftar_entitas.csv
+  #   tahun     (opsional) - periode laporan, ikut menjadi bagian entity_key
+  # Contoh nama file "AAAA_LK_2024.pdf" dan "AAAA_2024.xlsx" -> entity_id AAAA, tahun 2024.
+  # Bila nama file memuat jenis entitas, misalnya "EPP_AAAA_2024.pdf", pakai:
+  #   '^(?P<doc_type>EPP|MI|RD)_(?P<entity_id>[A-Za-z0-9]+)_(?P<tahun>\d{4})'
+  pola_nama_file: '^(?P<entity_id>[A-Za-z0-9]+)(?:[_\- ].*?(?P<tahun>(?:19|20)\d{2}))?'
+  doc_type_bawaan: null
+
+deteksi_seksi:
+  baris_zona_atas: 8          # jumlah baris teratas halaman yang dicocokkan
+  min_seksi_daftar_isi: 3     # >= 3 seksi cocok di satu halaman = daftar isi
+  label_tidak_dikenal: tidak_dikenal
+  label_daftar_isi: daftar_isi
+
+ekstraksi:
+  ai_extract_version: "2.0"   # versi ai_extract (2.0 / 2.1); skema JSON bersarang butuh >= 2.0
+  maks_akun_per_panggilan: 40
+  maks_karakter_per_seksi: 60000
+  seksi_dilewati: [calk]      # CaLK tidak diekstraksi angkanya (dianalisis notebook D)
+
+komparasi:
+  periode: [berjalan]         # tambah "lalu" untuk ikut membandingkan angka tahun pembanding
+  toleransi_absolut: 1        # selisih <= 1 (Rupiah) dianggap MATCH
+  toleransi_relatif: 0.0      # mis. 0.001 = selisih <= 0,1% dianggap MATCH
+  toleransi_pembulatan_skala: true   # PDF "dalam jutaan": selisih <= 0,5 juta dianggap MATCH
+  ai_gen_hanya_non_match: true       # hemat biaya: ai_gen hanya untuk baris bukan MATCH
+  catatan_match: Nilai sesuai

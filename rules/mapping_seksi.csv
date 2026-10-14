@@ -1,0 +1,19 @@
+no,kode,seksi,entitas,pola,maks_halaman,aktif
+1,financial_position,Laporan Posisi Keuangan,Semua,laporan posisi keuangan,,1
+1,financial_position,Laporan Posisi Keuangan,Semua,statement of financial position,,1
+1,financial_position,Laporan Posisi Keuangan,Semua,neraca,,1
+1,financial_position,Laporan Posisi Keuangan,Semua,balance sheet,,1
+2,equity,Laporan Perubahan Modal,Semua,perubahan ekuitas,,1
+2,equity,Laporan Perubahan Modal,Semua,perubahan modal,,1
+2,equity,Laporan Perubahan Modal,Semua,changes in equity,,1
+3,income,Laporan Laba Rugi,Semua,laba rugi,,1
+3,income,Laporan Laba Rugi,Semua,profit or loss,,1
+3,income,Laporan Laba Rugi,Semua,penghasilan komprehensif,,1
+3,income,Laporan Laba Rugi,Semua,comprehensive income,,1
+4,rd_performance,Kinerja Keuangan Reksa Dana,RD,kinerja keuangan,,1
+5,rd_netassets,Perubahan Aset Bersih Reksa Dana,RD,perubahan aset bersih,,1
+5,rd_netassets,Perubahan Aset Bersih Reksa Dana,RD,changes in net assets,,1
+6,cashflow,Laporan Arus Kas,Semua,arus kas,,1
+6,cashflow,Laporan Arus Kas,Semua,cash flows,,1
+7,calk,Catatan Atas Laporan Keuangan,Semua,catatan atas laporan keuangan,,1
+7,calk,Catatan Atas Laporan Keuangan,Semua,notes to the financial statements,,1

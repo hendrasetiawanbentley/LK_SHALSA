@@ -1,0 +1,75 @@
+# SIKULI: analisis laporan keuangan (parsing sampai komparasi)
+
+Implementasi alur di deck *SIKULI: alur analisis laporan keuangan* untuk Databricks (Unity Catalog, Delta Lake,
+AI Functions), mulai dari **parse PDF** sampai **B · Analisis_Komparasi** (PDF vs Excel).
+
+```
+LK PDF ──► 01 Parse PDF (ai_parse_document) ─► deteksi entitas + seksi ─► ai_extract per seksi ─► angka_pdf ─┐
+                         pdf_parsed             teks_pdf, lokasi_seksi                                     ├─► 03 Komparasi ─► angka_combined
+LK Excel ─► 02 Baca Excel (openpyxl, SHEET_CONFIG) ─► mapping label → kode_akun ─────────────► angka_excel ─┘                 result_komparasi
+Kertas kerja (rules/) ─► 00 Muat rules ─► mapping_seksi, rules_akun, sheet_config, mapping_akun_excel, daftar_entitas
+```
+
+**Daftar file yang perlu Anda sediakan ada di [docs/FILE_YANG_PERLU_DISEDIAKAN.md](docs/FILE_YANG_PERLU_DISEDIAKAN.md).**
+
+## Struktur repo
+
+| Path | Isi |
+|------|-----|
+| `notebooks/00_Muat_Rules.py` | Stage 0: validasi rules dan simpan ke tabel Delta, buat tabel hasil |
+| `notebooks/01_Ingest_PDF.py` | Parse PDF 1× per dokumen, deteksi seksi, ekstraksi akun |
+| `notebooks/02_Ingest_Excel.py` | Baca Excel tanpa AI, mapping akun, daftar label belum terpetakan |
+| `notebooks/03_Analisis_Komparasi.py` | Full outer join, status, catatan `ai_gen`, ringkasan untuk pengawas |
+| `notebooks/99_Jalankan_Semua.py` | Menjalankan 00 → 01 → 02 → 03 berurutan |
+| `src/sikuli/` | Logika inti Python murni (bisa diuji tanpa Databricks) |
+| `rules/` | Kertas kerja: `mapping_seksi` (dari slide 6) dan **contoh** rules lain yang perlu diganti |
+| `config/pipeline.yaml` | Catalog/schema, path Volume, pola nama file, toleransi komparasi |
+| `sql/ddl.sql` | Definisi semua tabel (referensi) |
+| `tests/` | Uji unit dan uji end-to-end lokal (AI Functions diganti tiruan) |
+
+| Modul `src/sikuli/` | Langkah di deck |
+|---------------------|-----------------|
+| `parse_pdf.py` | Output `ai_parse_document` → teks per halaman + zona atas (footer dikecualikan) |
+| `entitas.py` | Entitas dari prefiks nama file (+ `daftar_entitas`) |
+| `seksi.py` | Deteksi seksi slide 5: daftar isi (≥3 cocok), mulai seksi baru, lanjutkan, `tidak_dikenal` |
+| `ekstraksi.py` | Skema `ai_extract` dari `rules_akun`; angka disalin apa adanya lalu dikonversi deterministik |
+| `normalisasi.py` | Angka format Indonesia `(1.234)`, `-`, skala "dalam jutaan Rupiah" |
+| `excel.py`, `akun.py` | SHEET_CONFIG dan mapping label → `kode_akun` |
+| `komparasi.py` | entity_key, full outer join, MATCH/DIFFERENT/PDF_ONLY/EXCEL_ONLY, prompt catatan |
+| `tabel.py` | Skema tabel Delta (satu sumber untuk notebook dan DDL) |
+
+## Menjalankan di Databricks
+
+1. Hubungkan repo ini sebagai **Git folder** di workspace.
+2. Sesuaikan `config/pipeline.yaml` (catalog, schema, `path_pdf`, `path_excel`, `pola_nama_file`).
+3. Unggah PDF ke `path_pdf` dan Excel ke `path_excel` (Volume Unity Catalog).
+4. Isi file di `rules/` (lihat dokumen file yang perlu disediakan).
+5. Jalankan `notebooks/99_Jalankan_Semua` di Serverless (atau cluster DBR terbaru dengan AI Functions).
+   - `01_Ingest_PDF` hanya mem-parse PDF baru dan hanya mengekstraksi dokumen yang belum ada di `angka_pdf`.
+     Set widget `parse_ulang` / `ekstraksi_ulang` = `ya` untuk mengulang semuanya.
+   - Deteksi seksi selalu dibangun ulang dari `pdf_parsed`, jadi perubahan `mapping_seksi` tidak perlu parse ulang.
+
+## Uji lokal
+
+```bash
+pip install -r requirements.txt
+python -m pytest
+```
+
+Uji end-to-end (`tests/test_end_to_end.py`) menjalankan dokumen tiruan 9 halaman (sampul, daftar isi, laporan
+utama, CaLK) dan file Excel tiruan melalui kode yang sama dengan notebook, sampai status komparasi.
+Bagian yang memanggil Spark dan AI Functions hanya bisa diuji di Databricks.
+
+## Keputusan desain yang diterapkan (slide 13)
+
+1. **Parse PDF cukup sekali**: hasil mentah di `pdf_parsed`, teks per halaman di `teks_pdf`.
+2. **Satu cara deteksi entitas dan seksi**: prefiks nama file + judul zona atas lewat `mapping_seksi`.
+3. **Excel dibaca tanpa AI**: SHEET_CONFIG + mapping akun.
+4. **Tabel sementara tidak disimpan**: input AI memakai temp view.
+5. **Rules dipisah per jenis** (`rules_akun`, `sheet_config`, ...) sehingga tidak saling menimpa.
+
+Masih terbuka (perlu keputusan Anda): arti `maks_halaman`, MKBD, penanda akhir CaLK/lampiran, dan penanganan
+halaman `tidak_dikenal` (saat ini ditandai dan dilewati; `ai_classify` belum dipakai).
+
+Belum termasuk (tahap berikutnya): A · Kepatuhan, D · CaLK, C · Rasio, dan Kesimpulan & Rekomendasi.
+Tabel `teks_pdf`, `lokasi_seksi`, dan `angka_combined` sudah disiapkan sebagai input notebook tersebut.

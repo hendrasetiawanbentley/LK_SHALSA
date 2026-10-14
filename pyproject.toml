@@ -1,0 +1,13 @@
+[project]
+name = "sikuli"
+version = "0.1.0"
+description = "SIKULI: pipeline analisis laporan keuangan dari parsing sampai komparasi PDF vs Excel"
+requires-python = ">=3.10"
+dependencies = ["openpyxl>=3.1", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

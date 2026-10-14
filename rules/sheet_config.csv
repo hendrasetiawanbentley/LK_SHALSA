@@ -1,0 +1,6 @@
+doc_type,sheet,seksi,kolom_label,kolom_nilai,kolom_nilai_lalu,baris_mulai,baris_akhir,skala,aktif
+"EPP,MI",Posisi Keuangan,financial_position,A,B,C,5,,1,1
+"EPP,MI",Laba Rugi,income,A,B,C,5,,1,1
+"EPP,MI",Arus Kas,cashflow,A,B,C,5,,1,1
+RD,Posisi Keuangan,financial_position,A,B,C,5,,1,1
+RD,Laba Rugi,income,A,B,C,5,,1,1
