@@ -20,8 +20,18 @@ _CATATAN = re.compile(r"^\d{1,2}[a-z]?(?:[,.]\d{1,2}[a-z]?)*$", re.IGNORECASE)
 
 def pecah_baris(baris: str) -> tuple[str, list[str], str] | None:
     """'Kas dan setara kas 4 1.250 (1.100) Cash' -> ('Kas dan setara kas', ['1.250', '(1.100)'], 'Cash')."""
+    # "(11.967.340.240 )" -> "(11.967.340.240)" supaya angka dalam kurung tetap satu token.
+    baris = re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", baris))
     token = baris.split()
-    mulai = next((i for i, t in enumerate(token) if _ANGKA.match(t) and i > 0), None)
+    def awal_angka(i: int) -> bool:
+        if i == 0 or not _ANGKA.match(token[i]):
+            return False
+        # "-" yang diikuti kata adalah bagian label ("JUMLAH EKUITAS - NETO 17.375"), bukan nihil.
+        if token[i] in "-−–—" and i + 1 < len(token) and not _ANGKA.match(token[i + 1]):
+            return False
+        return True
+
+    mulai = next((i for i in range(len(token)) if awal_angka(i)), None)
     if mulai is None:
         return None
     akhir = mulai
@@ -29,13 +39,16 @@ def pecah_baris(baris: str) -> tuple[str, list[str], str] | None:
         akhir += 1
     label = token[:mulai]
     angka = token[mulai:akhir]
-    # Nomor catatan seperti "4" atau "2c,5" sebelum angka bukan nilai akun.
+    # Nomor catatan ("4", "2c,5", "3,32,37") bisa muncul di depan atau di antara angka
+    # (format bilingual). Buang bila masih ada angka lain yang bukan nomor catatan.
     while label and _CATATAN.match(label[-1]):
         label = label[:-1]
-    if len(angka) > 2:
-        angka = angka[-2:]
-    elif len(angka) == 2 and _CATATAN.match(angka[0]) and len(re.sub(r"\D", "", angka[1])) >= 4:
-        angka = angka[1:]
+    bukan_catatan = [t for t in angka if not _CATATAN.match(t)]
+    if bukan_catatan and len(bukan_catatan) < len(angka):
+        angka = bukan_catatan
+    # Kolom pertama = periode berjalan, kedua = pembanding (kolom berikutnya, mis.
+    # saldo awal tahun pembanding, diabaikan).
+    angka = angka[:2]
     return " ".join(label), angka, " ".join(token[akhir:])
 
 
@@ -46,7 +59,11 @@ def _kunci_akun(akun: dict) -> set[str]:
 def ekstraksi_seksi(halaman: list[dict], akun: list[dict], konteks: dict,
                     zona_atas: str = "") -> tuple[list[dict], list[str]]:
     """halaman = baris teks_pdf satu seksi. Kembalikan (baris angka_pdf, akun_tidak_ditemukan)."""
-    skala = deteksi_skala(zona_atas) or 1
+    # Satuan dibaca per halaman (kepala halaman), karena halaman pertama seksi bisa
+    # berupa laporan auditor tanpa keterangan satuan; cadangan: satuan pertama di seksi.
+    skala_halaman = {h["halaman"]: deteksi_skala("\n".join(h["teks"].splitlines()[:15])) for h in halaman}
+    skala_seksi = deteksi_skala(zona_atas) or next(
+        (v for _, v in sorted(skala_halaman.items()) if v), None) or 1
     kunci = [(a, _kunci_akun(a)) for a in akun]
     ditemukan: dict[str, dict] = {}
     for h in sorted(halaman, key=lambda x: x["halaman"]):
@@ -65,6 +82,7 @@ def ekstraksi_seksi(halaman: list[dict], akun: list[dict], konteks: dict,
         temuan = ditemukan.get(a["kode_akun"])
         if not temuan:
             continue
+        skala = skala_halaman.get(temuan["halaman"]) or skala_seksi
         for periode, mentah in zip(("berjalan", "lalu"), temuan["angka"]):
             nilai = parse_angka(mentah)
             if nilai is None:

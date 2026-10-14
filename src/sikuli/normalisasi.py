@@ -87,7 +87,7 @@ def parse_angka(nilai) -> float | None:
 
 
 _POLA_SKALA = [
-    (re.compile(r"\b(miliar|milyar|billions?)\b"), 1_000_000_000),
+    (re.compile(r"\b(miliar(an)?|milyar(an)?|billions?)\b"), 1_000_000_000),
     (re.compile(r"\b(jutaan|juta|millions?)\b"), 1_000_000),
     (re.compile(r"\b(ribuan|ribu|thousands?)\b"), 1_000),
 ]

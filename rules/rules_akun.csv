@@ -1,16 +1,25 @@
 doc_type,seksi,kode_akun,nama_akun,sinonim,deskripsi,aktif
-"EPP,MI",financial_position,FP_KAS,Kas dan setara kas,Kas dan bank|Cash and cash equivalents,,1
-"EPP,MI",financial_position,FP_JUMLAH_ASET_LANCAR,Jumlah aset lancar,Total aset lancar|Total current assets,,1
+"EPP,MI",financial_position,FP_KAS,Kas dan setara kas,Kas dan bank|Cash and cash equivalents|Cash and banks,,1
+EPP,financial_position,FP_JUMLAH_ASET_LANCAR,Jumlah aset lancar,Total aset lancar|Total current assets,,1
 "EPP,MI",financial_position,FP_JUMLAH_ASET,Jumlah aset,Total aset|Total assets,,1
 "EPP,MI",financial_position,FP_JUMLAH_LIABILITAS,Jumlah liabilitas,Total liabilitas|Total liabilities,,1
-"EPP,MI",financial_position,FP_JUMLAH_EKUITAS,Jumlah ekuitas,Total ekuitas|Total equity,,1
-"EPP,MI",income,IS_PENDAPATAN,Pendapatan,Pendapatan usaha|Jumlah pendapatan|Penjualan|Revenue|Total revenues,,1
-"EPP,MI",income,IS_LABA_SEBELUM_PAJAK,Laba sebelum pajak penghasilan,Laba (rugi) sebelum pajak|Profit before income tax,,1
-"EPP,MI",income,IS_LABA_TAHUN_BERJALAN,Laba tahun berjalan,Laba (rugi) tahun berjalan|Laba bersih|Profit for the year,,1
-"EPP,MI",income,IS_JUMLAH_PENGHASILAN_KOMPREHENSIF,Jumlah penghasilan komprehensif tahun berjalan,Total penghasilan komprehensif|Total comprehensive income for the year,,1
-"EPP,MI",cashflow,CF_ARUS_KAS_OPERASI,Kas bersih diperoleh dari aktivitas operasi,Arus kas bersih dari aktivitas operasi|Net cash provided by operating activities,"Bisa bertanda negatif bila ""digunakan untuk""",1
-"EPP,MI",cashflow,CF_KAS_AKHIR,Kas dan setara kas akhir tahun,Kas dan setara kas pada akhir tahun|Cash and cash equivalents at end of year,,1
+"EPP,MI",financial_position,FP_JUMLAH_EKUITAS,Jumlah ekuitas,Total ekuitas|Jumlah ekuitas - neto|Total ekuitas - neto|Total equity,,1
+"EPP,MI",financial_position,FP_JUMLAH_LIABILITAS_EKUITAS,Jumlah liabilitas dan ekuitas,Total liabilitas dan ekuitas|Total liabilities and equity,,1
+EPP,income,IS_PENDAPATAN,Pendapatan,Penjualan dan pendapatan usaha|Pendapatan usaha|Jumlah pendapatan|Revenues|Revenue,Pendapatan usaha utama (baris pertama laporan laba rugi),1
+MI,income,IS_PENDAPATAN,Jumlah pendapatan usaha,Total pendapatan|Jumlah pendapatan|Total operating revenue,Jumlah seluruh pendapatan usaha,1
+"EPP,MI",income,IS_LABA_SEBELUM_PAJAK,Laba sebelum pajak penghasilan,Laba sebelum pajak|Laba (rugi) sebelum pajak|Laba (rugi) sebelum pajak penghasilan|Jumlah laba (rugi) sebelum pajak penghasilan|Profit before income tax,,1
+"EPP,MI",income,IS_LABA_TAHUN_BERJALAN,Laba tahun berjalan,Laba (rugi) tahun berjalan|Laba (rugi) periode berjalan|Jumlah laba (rugi)|Profit for the year,Laba bersih seluruhnya (bukan yang diatribusikan),1
+"EPP,MI",income,IS_JUMLAH_PENGHASILAN_KOMPREHENSIF,Jumlah laba komprehensif tahun berjalan,Jumlah penghasilan komprehensif tahun berjalan|Jumlah laba komprehensif|Jumlah laba rugi komprehensif|Total penghasilan komprehensif periode berjalan|Total comprehensive income for the year,Total seluruhnya (bukan yang diatribusikan),1
+"EPP,MI",cashflow,CF_ARUS_KAS_OPERASI,Kas bersih diperoleh dari aktivitas operasi,Arus kas bersih dari aktivitas operasi|Arus kas neto dari (untuk) aktivitas operasi|Jumlah arus kas bersih yang diperoleh dari (digunakan untuk) aktivitas operasi|Kas bersih yang diperoleh dari aktivitas operasi|Net cash provided by operating activities,Bisa negatif bila digunakan untuk aktivitas operasi,1
+"EPP,MI",cashflow,CF_KAS_AKHIR,Kas dan setara kas pada akhir tahun,Kas dan setara kas akhir tahun|Kas dan setara kas akhir periode|Kas dan setara kas pada akhir periode|Kas dan setara kas arus kas akhir periode|Cash and cash equivalents at end of year,,1
+RD,financial_position,RD_KAS,Kas di bank,Kas|Cash in banks,,1
 RD,financial_position,RD_JUMLAH_ASET,Jumlah aset,Total aset|Total assets,,1
 RD,financial_position,RD_JUMLAH_LIABILITAS,Jumlah liabilitas,Total liabilitas|Total liabilities,,1
-RD,financial_position,RD_NILAI_ASET_BERSIH,Nilai aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan,Jumlah nilai aset bersih|Net assets attributable to the holders of investment units,,1
-RD,income,RD_LABA_TAHUN_BERJALAN,Laba tahun berjalan,Laba (rugi) tahun berjalan|Profit for the year,,1
+RD,financial_position,RD_NILAI_ASET_BERSIH,Nilai aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan,Aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan|Jumlah nilai aset bersih|Net assets attributable to the holders of investment units,,1
+RD,financial_position,RD_UNIT_BEREDAR,Jumlah unit penyertaan beredar,Outstanding investment units,,1
+RD,financial_position,RD_NAB_PER_UNIT,Nilai aset bersih per unit penyertaan,Net asset value per investment unit,,1
+RD,income,RD_PENDAPATAN_INVESTASI,Jumlah pendapatan investasi,,Pendapatan investasi (bunga/dividen/bagi hasil); bukan total yang mencakup keuntungan investasi,1
+RD,income,RD_LABA_SEBELUM_PAJAK,Laba (rugi) sebelum pajak,Laba sebelum pajak|(Penurunan)/Kenaikan aset yang dapat diatribusikan kepada pemegang unit penyertaan dari operasi sebelum beban pajak penghasilan|Profit (loss) before tax,,1
+RD,income,RD_LABA_TAHUN_BERJALAN,Laba (rugi) tahun berjalan,Laba tahun berjalan|(Penurunan)/Kenaikan aset yang dapat diatribusikan kepada pemegang unit penyertaan dari operasi setelah beban pajak penghasilan|Profit (loss) for the year,,1
+RD,cashflow,RD_ARUS_KAS_OPERASI,Kas bersih yang dihasilkan dari aktivitas operasi,Kas bersih (digunakan untuk)/diterima dari aktivitas operasi|Kas bersih diperoleh dari aktivitas operasi|Kas bersih digunakan untuk aktivitas operasi|Net cash provided by operating activities,Bisa negatif bila digunakan untuk aktivitas operasi,1
+RD,cashflow,RD_KAS_AKHIR,Kas dan setara kas pada akhir tahun,Kas dan setara kas akhir tahun|Cash and cash equivalents at end of year,,1

@@ -38,11 +38,12 @@ mencatatnya di Peringatan. Mode yang dipakai tertulis di baris pertama ringkasan
 
 1. **Isi rules** di folder `rules/` (lihat tabel di bawah), commit dan push.
 2. **Upload file LK** ke repo:
-   - PDF ke `input/pdf/`, misalnya `AAAA_LK_2024.pdf`
-   - Excel ke `input/excel/`, misalnya `AAAA_2024.xlsx`
+   - PDF ke `input/pdf/`, misalnya `MI_CC002_LK_Tahunan_Audited_2025.pdf`
+   - Excel ke `input/excel/` dengan **nama file yang sama**, misalnya `MI_CC002_LK_Tahunan_Audited_2025.xlsx`
 
    Lewat web GitHub: buka folder → **Add file → Upload files** → **Commit changes**. PDF dan Excel dipasangkan
-   dari prefiks nama file (`AAAA`), dan tahun dari angka 4 digit di nama file.
+   dari nama file yang sama persis (selain ekstensi). Format nama: `JENIS_KODE_keterangan`, dengan JENIS =
+   `EPP` / `MI` / `RD` dan KODE = kode perusahaan/manajer investasi.
 3. **Workflow `analisis` jalan otomatis** setiap ada perubahan di `input/`, `rules/`, atau `config/`.
    Untuk menjalankan ulang manual: tab **Actions → analisis → Run workflow**.
 4. **Lihat hasil:** tab **Actions** → klik run teratas.
@@ -62,8 +63,9 @@ PYTHONPATH=src python -m sikuli.lokal          # baca input/pdf dan input/excel,
 ## Tabel rules yang harus diisi
 
 Semua file CSV UTF-8 di `rules/` dengan baris judul (bisa disusun di Excel lalu *Save As → CSV UTF-8*).
-Kolom `aktif` opsional (`1`/`0`) untuk menonaktifkan baris. Isi sekarang adalah **contoh**, kecuali
-`mapping_seksi.csv` yang diambil dari slide 6. Jika rules tidak valid, workflow gagal dan menyebut baris yang salah.
+Kolom `aktif` opsional (`1`/`0`) untuk menonaktifkan baris. Rules saat ini sudah disesuaikan dengan template
+Excel OJK (MI, RD) dan XBRL IDX (EPP) dari file yang diunggah, dan daftar akunnya masih bisa ditambah.
+`mapping_seksi.csv` diambil dari slide 6. Jika rules tidak valid, workflow gagal dan menyebut baris yang salah.
 
 ### 1. `rules_akun.csv` (wajib): akun yang dibandingkan
 
@@ -91,7 +93,7 @@ tidak ketemu di PDF tercantum di Peringatan; tambahkan sinonimnya di sini.
 | `kolom_nilai_lalu` | | huruf kolom tahun pembanding | `C` |
 | `baris_mulai` | ya | baris pertama data | `5` |
 | `baris_akhir` | | baris terakhir (kosong = sampai habis) | |
-| `skala` | | pengali bila Excel dalam ribuan/jutaan (bawaan 1) | `1000` |
+| `skala` | | pengali bila Excel dalam ribuan/jutaan (bawaan 1), atau rujukan sel teks pembulatan | `1000` / `1000000!B31` |
 
 ### 3. `mapping_seksi.csv` (sudah terisi): pola judul laporan
 
@@ -111,8 +113,8 @@ judul ikut seksi sebelumnya. Untuk MKBD atau penanda akhir CaLK (lampiran), cuku
 
 | Kolom | Wajib | Isi | Contoh |
 |-------|:-----:|-----|--------|
-| `entity_id` | ya | prefiks nama file | `AAAA` |
-| `nama_entitas` | | nama lengkap | `PT Contoh Emiten Tbk` |
+| `entity_id` | ya | kode di nama file (bagian kedua) | `TLKM` |
+| `nama_entitas` | | nama lengkap | `PT Telkom Indonesia (Persero) Tbk` |
 | `doc_type` | ya | `EPP` / `MI` / `RD` | `EPP` |
 
 ### 5. `mapping_akun_excel.csv` (opsional): label Excel yang tidak sama dengan nama/sinonim
@@ -135,7 +137,7 @@ dan `ringkasan.md`.
 
 | Kolom | Arti |
 |-------|------|
-| `entity_key` | prefiks nama file \| doc_type \| tahun, mis. `AAAA\|EPP\|2024` |
+| `entity_key` | nama file tanpa ekstensi (kunci pasangan PDF ↔ Excel), mis. `MI_CC002_LK_Tahunan_Audited_2025` |
 | `seksi`, `kode_akun`, `nama_akun`, `periode` | akun yang dibandingkan; `periode` = `berjalan` / `lalu` |
 | `satuan_pdf` | satuan penyajian PDF, mis. `jutaan Rupiah`; semua nilai di baris ini memakai satuan ini |
 | `nilai_pdf` | angka PDF persis seperti tertulis (tidak dikalikan) |

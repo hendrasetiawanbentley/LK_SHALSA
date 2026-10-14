@@ -17,6 +17,7 @@ BAWAAN: dict = {
         # Grup bernama: entity_id (wajib), doc_type dan tahun (opsional).
         "pola_nama_file": r"^(?P<entity_id>[A-Za-z0-9]+)",
         "doc_type_bawaan": None,
+        "kunci_pasangan": "entitas",  # atau "nama_file"
     },
     "deteksi_seksi": {
         "baris_zona_atas": 8,
@@ -46,6 +47,7 @@ BAWAAN: dict = {
         "toleransi_absolut": 1.0,
         "toleransi_relatif": 0.0,
         "toleransi_pembulatan_skala": True,
+        "toleransi_pembulatan_satuan": 1.0,
         "ai_gen_hanya_non_match": True,
         "catatan_match": "Nilai sesuai",
     },

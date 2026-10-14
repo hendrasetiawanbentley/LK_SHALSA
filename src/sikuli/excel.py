@@ -19,6 +19,48 @@ def _cocok_sheet(pola: str, nama_sheet: str) -> bool:
     return pola.lower() == nama_sheet.strip().lower()
 
 
+_ANGKA_POLOS = re.compile(r"^\s*-?\d+(\.\d+)?\s*$")
+
+
+def angka_excel(nilai) -> float | None:
+    """Sel Excel -> float. Teks angka polos ("23602.86", "-969224422") dibaca apa
+    adanya; format lain lewat parse_angka (mis. "(1.234)")."""
+    if isinstance(nilai, str) and _ANGKA_POLOS.match(nilai):
+        return float(nilai)
+    return parse_angka(nilai)
+
+
+def skala_dari_teks(teks) -> float | None:
+    """'Miliaran / In Billion' -> 1e9, 'Jutaan' -> 1e6, 'Ribuan' -> 1e3, 'Satuan penuh' -> 1."""
+    t = str(teks or "").lower()
+    for kata, nilai in (("miliar", 1e9), ("milyar", 1e9), ("billion", 1e9), ("juta", 1e6), ("million", 1e6),
+                        ("ribu", 1e3), ("thousand", 1e3), ("penuh", 1.0), ("full", 1.0)):
+        if kata in t:
+            return nilai
+    return None
+
+
+def baca_skala(wb, isi: str | None, nama_file: str, peringatan: list[str]) -> float:
+    """Kolom skala sheet_config: angka (mis. 1000) atau rujukan sel teks pembulatan,
+    mis. "1000000!B31" (sel berisi "Miliaran / In Billion")."""
+    isi = (isi or "").strip()
+    if not isi:
+        return 1.0
+    if "!" not in isi:
+        return float(isi)
+    sheet, sel = isi.rsplit("!", 1)
+    try:
+        nilai = wb[sheet][sel].value
+    except KeyError:
+        peringatan.append(f"{nama_file}: sel skala '{isi}' tidak ditemukan, skala dianggap 1")
+        return 1.0
+    skala = skala_dari_teks(nilai)
+    if skala is None:
+        peringatan.append(f"{nama_file}: isi sel skala '{isi}' = '{nilai}' tidak dikenali, skala dianggap 1")
+        return 1.0
+    return skala
+
+
 def _sel(baris: tuple, kolom: str | None):
     if not kolom:
         return None
@@ -50,7 +92,7 @@ def baca_excel(path: str, info: dict, rules: Rules, pemeta: PemetaAkun) -> tuple
                 continue
             mulai = int(cfg["baris_mulai"])
             akhir = int(cfg["baris_akhir"]) if cfg.get("baris_akhir") else None
-            skala = float(cfg.get("skala") or 1)
+            skala = baca_skala(wb, cfg.get("skala"), info["nama_file"], peringatan)
             kolom_periode = [("berjalan", cfg["kolom_nilai"]), ("lalu", cfg.get("kolom_nilai_lalu"))]
 
             for ws in sheets:
@@ -64,7 +106,7 @@ def baca_excel(path: str, info: dict, rules: Rules, pemeta: PemetaAkun) -> tuple
                     nilai_periode = []
                     for periode, kolom in kolom_periode:
                         mentah = _sel(baris, kolom)
-                        nilai = parse_angka(mentah)
+                        nilai = angka_excel(mentah)
                         if nilai is not None:
                             nilai_periode.append((periode, nilai * skala, mentah))
                     if not nilai_periode:

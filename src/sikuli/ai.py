@@ -225,7 +225,9 @@ rincian, atau akun lain), isi kode_akun dengan "". Jangan memaksakan kecocokan."
 
 def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_type: str | None) -> int:
     """Isi kode_akun baris Excel yang belum terpetakan. Mengembalikan jumlah label yang dipetakan."""
-    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel if not b.get("kode_akun")})
+    # Baris bernilai 0 (akun template yang tidak dipakai entitas) tidak perlu dipetakan.
+    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel
+                    if not b.get("kode_akun") and b.get("nilai")})
     akun = [a for a in rules.rules_akun if berlaku_untuk(a["doc_type"], doc_type)]
     if not belum or not akun:
         return 0

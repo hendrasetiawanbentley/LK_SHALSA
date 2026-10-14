@@ -83,7 +83,7 @@ class KlienTiruan:
                              {"kode_akun": "FP_JUMLAH_ASET", "label_di_dokumen": "Jumlah aset",
                               "nilai_berjalan": "99.999", "nilai_lalu": "", "halaman": 3},   # halusinasi
                              {"kode_akun": "IS_LABA_TAHUN_BERJALAN", "label_di_dokumen": "Laba tahun berjalan",
-                              "nilai_berjalan": "701", "nilai_lalu": "650", "halaman": 4}],
+                              "nilai_berjalan": "703", "nilai_lalu": "650", "halaman": 4}],
                     "catatan": ""}
         if system == ai.SYSTEM_EXCEL:
             label = konten[0]["text"].split("dipetakan:\n")[1].splitlines()
@@ -105,7 +105,7 @@ def siapkan(tmp_path):
 def test_ekstraksi_pdf_ai_dan_verifikasi(tmp_path, cfg, rules):
     pdf, _ = siapkan(tmp_path)
     info = info_dari_nama_file(pdf, cfg, rules)
-    teks = ["", "", "Kas dan setara kas 4 1.250 1.100\nJumlah aset 12.000 11.000", "Laba 701 650", ""]
+    teks = ["", "", "Kas dan setara kas 4 1.250 1.100\nJumlah aset 12.000 11.000", "Laba 703 650", ""]
     lokasi, angka, pesan = ai.ekstraksi_pdf(KlienTiruan(), pdf, info, rules, cfg, teks)
     assert [(l["seksi"], l["halaman_mulai"], l["satuan"]) for l in lokasi] == [
         ("financial_position", 3, "jutaan"), ("income", 4, "jutaan")]

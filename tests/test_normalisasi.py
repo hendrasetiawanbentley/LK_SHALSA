@@ -36,6 +36,7 @@ def test_normalisasi_teks():
     ("(Dinyatakan dalam jutaan Rupiah, kecuali dinyatakan lain)", 1_000_000),
     ("(Expressed in thousands of Rupiah)", 1_000),
     ("(Disajikan dalam miliar Rupiah)", 1_000_000_000),
+    ("(Angka dalam tabel disajikan dalam miliaran Rupiah, kecuali dinyatakan lain)", 1_000_000_000),
     ("(Dinyatakan dalam Rupiah penuh)", 1),
     ("(Dinyatakan dalam Rupiah, kecuali dinyatakan lain)", None),
     ("Pendapatan sewa ribuan unit", None),

@@ -11,15 +11,15 @@ path_excel: /Volumes/sikuli/lk/sumber/excel       # LK Excel
 path_rules: rules
 
 entitas:
-  # Regex atas nama file tanpa ekstensi. Grup bernama:
-  #   entity_id (wajib) - prefiks nama file, kunci untuk memasangkan PDF dan Excel
-  #   doc_type  (opsional) - EPP / MI / RD; bila tidak ada diambil dari rules/daftar_entitas.csv
-  #   tahun     (opsional) - periode laporan, ikut menjadi bagian entity_key
-  # Contoh nama file "AAAA_LK_2024.pdf" dan "AAAA_2024.xlsx" -> entity_id AAAA, tahun 2024.
-  # Bila nama file memuat jenis entitas, misalnya "EPP_AAAA_2024.pdf", pakai:
-  #   '^(?P<doc_type>EPP|MI|RD)_(?P<entity_id>[A-Za-z0-9]+)_(?P<tahun>\d{4})'
-  pola_nama_file: '^(?P<entity_id>[A-Za-z0-9]+)(?:[_\- ].*?(?P<tahun>(?:19|20)\d{2}))?'
+  # Nama file: JENIS_KODE_keterangan.pdf / .xlsx, mis. "RD_MEES2_1_BNP_Paribas_Obligasi_Kejora_31.12.25.pdf".
+  #   doc_type  = bagian pertama (EPP / MI / RD)
+  #   entity_id = bagian kedua (kode perusahaan / manajer investasi)
+  #   tahun     = angka 4 digit bila ada (informasi saja)
+  pola_nama_file: '^(?P<doc_type>EPP|MI|RD)_(?P<entity_id>[A-Za-z0-9]+)(?:_.*?(?P<tahun>(?:19|20)\d{2}))?'
   doc_type_bawaan: null
+  # nama_file: PDF dan Excel dengan nama file yang sama (selain ekstensi) dipasangkan.
+  # Diperlukan karena satu kode MI bisa punya beberapa reksa dana (mis. RD_MEES2_1 dan RD_MEES2_18).
+  kunci_pasangan: nama_file
 
 deteksi_seksi:
   baris_zona_atas: 8          # jumlah baris teratas halaman yang dicocokkan
@@ -51,7 +51,8 @@ komparasi:
   toleransi_absolut: 1        # dalam Rupiah: selisih <= Rp1 dianggap MATCH (dikonversi ke satuan PDF)
   toleransi_relatif: 0.0      # mis. 0.001 = selisih <= 0,1% dianggap MATCH
   # Perbandingan memakai satuan PDF: bila PDF "dalam jutaan", angka Excel dibagi 1.000.000.
-  # true = selisih <= 0,5 satuan PDF (pembulatan) dianggap MATCH.
+  # true = selisih sampai toleransi_pembulatan_satuan (dalam satuan PDF) dianggap pembulatan (MATCH).
   toleransi_pembulatan_skala: true
+  toleransi_pembulatan_satuan: 1     # mis. PDF "dalam jutaan": selisih <= 1 juta dianggap MATCH
   ai_gen_hanya_non_match: true       # hemat biaya: ai_gen hanya untuk baris bukan MATCH
   catatan_match: Nilai sesuai

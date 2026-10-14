@@ -45,7 +45,8 @@ def test_sql_literal():
     (1000.0, 1000.4, 1, "MATCH", None),
     (1000.0, 1002.0, 1, "DIFFERENT", None),
     (1250, 1250.4, 1_000_000, "MATCH", None),        # satuan PDF jutaan: Excel 1.250.400.000 / 1 juta
-    (1250, 1251.0, 1_000_000, "DIFFERENT", None),
+    (1250, 1251.0, 1_000_000, "MATCH", None),        # 1 satuan: pembulatan total
+    (1250, 1251.5, 1_000_000, "DIFFERENT", None),
     (-500.0, 500.0, 1, "DIFFERENT", "BEDA_TANDA"),
     (1250.0, 1_250_000.0, 1, "DIFFERENT", "BEDA_SKALA"),
     (5.0, None, 1, "PDF_ONLY", None),

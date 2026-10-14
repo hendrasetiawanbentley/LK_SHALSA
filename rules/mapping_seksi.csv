@@ -17,3 +17,5 @@ no,kode,seksi,entitas,pola,maks_halaman,aktif
 6,cashflow,Laporan Arus Kas,Semua,cash flows,,1
 7,calk,Catatan Atas Laporan Keuangan,Semua,catatan atas laporan keuangan,,1
 7,calk,Catatan Atas Laporan Keuangan,Semua,notes to the financial statements,,1
+7,calk,Catatan Atas Laporan Keuangan,Semua,notes to the consolidated financial statements,,1
+7,calk,Catatan Atas Laporan Keuangan,Semua,"catatan atas laporan( \w+){0,6} keuangan",,1

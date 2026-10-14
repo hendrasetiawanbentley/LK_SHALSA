@@ -24,14 +24,16 @@ def toleransi(nilai_pdf: float, nilai_excel: float, skala_pdf: float, cfg: dict)
     """Selisih maksimum (dalam satuan PDF) yang masih dianggap sama.
 
     Bila PDF disajikan dalam ribuan/jutaan, Excel yang sudah dibagi skala
-    hampir selalu berkoma; selisih sampai 0,5 satuan adalah pembulatan wajar
-    (toleransi_pembulatan_skala).
+    hampir selalu berkoma; selisih sampai `toleransi_pembulatan_satuan` (bawaan
+    1 satuan) dianggap pembulatan wajar.
     """
     # toleransi_absolut ditulis dalam Rupiah, dikonversi ke satuan PDF.
     tol = float(cfg.get("toleransi_absolut", 0) or 0) / (skala_pdf or 1)
     tol = max(tol, float(cfg.get("toleransi_relatif", 0) or 0) * max(abs(nilai_pdf), abs(nilai_excel)))
     if cfg.get("toleransi_pembulatan_skala", True) and (skala_pdf or 1) > 1:
-        tol = max(tol, 0.5)
+        # Jumlah/total di PDF dibulatkan dari komponen yang sudah dibulatkan, jadi
+        # selisih sampai 1 satuan penyajian masih wajar (bisa diubah di config).
+        tol = max(tol, float(cfg.get("toleransi_pembulatan_satuan", 1.0)))
     return tol
 
 

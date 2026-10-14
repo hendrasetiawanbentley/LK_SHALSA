@@ -41,10 +41,12 @@ def _aktif(baris: dict) -> bool:
 
 def baca_csv(path: str | Path) -> list[dict]:
     with open(path, encoding="utf-8-sig", newline="") as f:
-        baris = [
-            {(k or "").strip(): (v or "").strip() for k, v in r.items()}
-            for r in csv.DictReader(f)
-        ]
+        baris = []
+        for no, r in enumerate(csv.DictReader(f), start=2):
+            if None in r:  # kolom lebih banyak dari judul
+                raise ValueError(f"{Path(path).name} baris {no}: jumlah kolom melebihi judul; "
+                                 "isi yang mengandung koma harus diapit tanda kutip")
+            baris.append({(k or "").strip(): (v or "").strip() for k, v in r.items()})
     return [r for r in baris if any(r.values()) and _aktif(r)]
 
 
@@ -119,7 +121,9 @@ def validasi_rules(rules: Rules) -> list[str]:
             )
 
     for i, s in enumerate(rules.sheet_config, start=2):
-        for kolom in ("baris_mulai", "baris_akhir", "skala"):
+        if s.get("skala") and "!" not in s["skala"] and not s["skala"].replace(".", "", 1).isdigit():
+            masalah.append(f"sheet_config.csv baris {i}: skala harus angka atau rujukan sel (mis. 1000000!B31)")
+        for kolom in ("baris_mulai", "baris_akhir"):
             if s.get(kolom) and not s[kolom].replace(".", "", 1).isdigit():
                 masalah.append(f"sheet_config.csv baris {i}: {kolom} harus angka, isinya '{s[kolom]}'")
     return masalah
