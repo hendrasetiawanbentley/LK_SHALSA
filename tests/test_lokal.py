@@ -101,7 +101,7 @@ def test_cli(tmp_path, capsys, monkeypatch):
     assert main(["--pdf", str(tmp_path / "pdf"), "--excel", str(tmp_path / "xls"), "--out-dir", str(out),
                  "--rules", str(fx / "rules"), "--config", str(fx / "pipeline.yaml")]) == 0
     assert {p.name for p in out.iterdir()} == {
-        "hasil_komparasi.xlsx", "ringkasan.md", "ringkasan.csv", "komparasi.csv", "angka_pdf.csv",
+        "hasil_komparasi.xlsx", "hasil.json", "ringkasan.md", "ringkasan.csv", "komparasi.csv", "angka_pdf.csv",
         "angka_excel.csv", "lokasi_seksi.csv", "kesimpulan.csv", "peringatan.csv"}
     md = (out / "ringkasan.md").read_text()
     assert "| AAAA\\|EPP\\|2024 | 3 | 1 | 2 | 0 | 50.0 |" in md

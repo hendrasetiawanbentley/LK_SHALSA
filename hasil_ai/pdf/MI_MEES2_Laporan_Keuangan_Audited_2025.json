@@ -1,0 +1,30 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "LAPORAN POSISI KEUANGAN", "halaman_mulai": 13, "halaman_akhir": 13, "satuan": "jutaan"},
+    {"kode": "income", "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN", "halaman_mulai": 14, "halaman_akhir": 14, "satuan": "jutaan"},
+    {"kode": "equity", "judul": "LAPORAN PERUBAHAN EKUITAS", "halaman_mulai": 15, "halaman_akhir": 15, "satuan": "jutaan"},
+    {"kode": "cashflow", "judul": "LAPORAN ARUS KAS", "halaman_mulai": 16, "halaman_akhir": 16, "satuan": "jutaan"},
+    {"kode": "calk", "judul": "CATATAN ATAS LAPORAN KEUANGAN", "halaman_mulai": 17, "halaman_akhir": 69, "satuan": "jutaan"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "JUMLAH ASET", "nilai_berjalan": "241.340", "nilai_lalu": "155.098", "halaman": 13},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "JUMLAH LIABILITAS", "nilai_berjalan": "91.216", "nilai_lalu": "66.764", "halaman": 13},
+    {"kode_akun": "modal_disetor", "label_di_dokumen": "Modal saham - modal dasar, ditempatkan dan disetor penuh", "nilai_berjalan": "100.000", "nilai_lalu": "50.000", "halaman": 13},
+    {"kode_akun": "saldo_laba_defisit", "label_di_dokumen": "Saldo laba: ditentukan penggunaannya 20.000 + tidak ditentukan penggunaannya 30.124", "nilai_berjalan": "50.124", "nilai_lalu": "38.334", "halaman": 13},
+    {"kode_akun": "total_ekuitas", "label_di_dokumen": "JUMLAH EKUITAS", "nilai_berjalan": "150.124", "nilai_lalu": "88.334", "halaman": 13},
+    {"kode_akun": "pendapatan", "label_di_dokumen": "JUMLAH PENDAPATAN", "nilai_berjalan": "256.084", "nilai_lalu": "246.201", "halaman": 14},
+    {"kode_akun": "beban", "label_di_dokumen": "BEBAN USAHA", "nilai_berjalan": "(244.431)", "nilai_lalu": "(232.175)", "halaman": 14},
+    {"kode_akun": "laba_bruto", "label_di_dokumen": "LABA USAHA", "nilai_berjalan": "11.653", "nilai_lalu": "14.026", "halaman": 14},
+    {"kode_akun": "pendapatan_lainnya", "label_di_dokumen": "Pendapatan lainnya - bersih", "nilai_berjalan": "5.976", "nilai_lalu": "6.438", "halaman": 14},
+    {"kode_akun": "beban_lainnya", "label_di_dokumen": "Jumlah rugi pelepasan aset tetap (176) + rugi selisih kurs (715) + beban pajak lainnya (285)", "nilai_berjalan": "(1.176)", "nilai_lalu": "(301)", "halaman": 14},
+    {"kode_akun": "laba_rugi_sebelum_pajak", "label_di_dokumen": "LABA SEBELUM BEBAN PAJAK PENGHASILAN", "nilai_berjalan": "16.199", "nilai_lalu": "19.116", "halaman": 14},
+    {"kode_akun": "laba_rugi_periode_berjalan", "label_di_dokumen": "LABA TAHUN BERJALAN", "nilai_berjalan": "12.430", "nilai_lalu": "15.104", "halaman": 14},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak", "label_di_dokumen": "Jumlah (beban) penghasilan komprehensif lain tahun berjalan, setelah pajak", "nilai_berjalan": "(640)", "nilai_lalu": "606", "halaman": 14},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan", "label_di_dokumen": "JUMLAH LABA KOMPREHENSIF TAHUN BERJALAN", "nilai_berjalan": "11.790", "nilai_lalu": "15.710", "halaman": 14},
+    {"kode_akun": "arus_kas_neto_dari_untuk_aktivitas_operasi", "label_di_dokumen": "Arus kas bersih diperoleh dari aktivitas operasi", "nilai_berjalan": "20.558", "nilai_lalu": "3.293", "halaman": 16},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_investasi", "label_di_dokumen": "Arus kas bersih diperoleh dari aktivitas investasi", "nilai_berjalan": "986", "nilai_lalu": "4.512", "halaman": 16},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_pendanaan", "label_di_dokumen": "Arus kas bersih diperoleh dari (digunakan untuk) aktivitas pendanaan", "nilai_berjalan": "47.115", "nilai_lalu": "(42.249)", "halaman": 16},
+    {"kode_akun": "kas_dan_setara_kas_akhir_periode", "label_di_dokumen": "KAS DAN SETARA KAS PADA AKHIR TAHUN", "nilai_berjalan": "178.867", "nilai_lalu": "110.206", "halaman": 16}
+  ],
+  "catatan": "Disajikan dalam jutaan Rupiah. Tidak ada klasifikasi lancar/jangka pendek. Beban lainnya tidak disajikan sebagai satu baris; nilainya dijumlahkan dari rugi pelepasan aset tetap, rugi selisih kurs, dan beban pajak lainnya (sesuai alias Master). 'Pendapatan lainnya - bersih' 5.976 = pendapatan bunga 7.152 dikurangi beban lain 1.176. Catatan 25 hanya menyatakan MKBD di atas minimum tanpa angka."
+}

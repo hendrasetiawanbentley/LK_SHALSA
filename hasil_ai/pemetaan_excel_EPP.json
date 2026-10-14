@@ -1,0 +1,60 @@
+{
+ "label": {
+  "Persediaan lancar": "persediaan",
+  "Uang muka lancar": "uang_muka",
+  "Saham biasa": "modal_disetor",
+  "Penjualan dan pendapatan usaha": "pendapatan",
+  "Beban bunga dan keuangan": "beban_bunga",
+  "Jumlah laba (rugi) sebelum pajak penghasilan": "laba_rugi_sebelum_pajak",
+  "Jumlah laba (rugi)": "laba_rugi_periode_berjalan",
+  "Jumlah laba rugi komprehensif": "total_laba_rugi_komprehensif_periode_berjalan",
+  "Laba (rugi) yang dapat diatribusikan ke entitas induk": "laba_rugi_selama_periode_berjalan_yang_diatribusikan_kepada_pemilik_entitas_induk",
+  "Laba (rugi) yang dapat diatribusikan ke kepentingan non-pengendali": "laba_rugi_selama_periode_berjalan_yang_diatribusikan_kepada_kepentingan_non_pengendali",
+  "Laba rugi komprehensif yang dapat diatribusikan ke entitas induk": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_pemilik_entitas_induk",
+  "Laba rugi komprehensif yang dapat diatribusikan ke kepentingan non-pengendali": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_kepentingan_non_pengendali",
+  "Laba (rugi) per saham dasar dari operasi yang dilanjutkan": "laba_rugi_per_saham",
+  "Distribusi dividen kas": "dividen"
+ },
+ "turunan": [
+  {
+   "kode_akun": "piutang_usaha",
+   "label": [
+    "Piutang usaha pihak ketiga",
+    "Piutang usaha pihak berelasi"
+   ]
+  },
+  {
+   "kode_akun": "pokok_utang_jatuh_tempo_dalam_satu_tahun",
+   "label": [
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang bank",
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas liabilitas sewa pembiayaan",
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang obligasi"
+   ]
+  },
+  {
+   "kode_akun": "total_liabilitas_berbunga",
+   "label": [
+    "Utang bank jangka pendek",
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang bank",
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas liabilitas sewa pembiayaan",
+    "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang obligasi",
+    "Liabilitas jangka panjang atas utang bank",
+    "Liabilitas jangka panjang atas liabilitas sewa pembiayaan",
+    "Liabilitas jangka panjang atas utang obligasi"
+   ]
+  },
+  {
+   "kode_akun": "saldo_laba_awal",
+   "label": [
+    {
+     "label": "Posisi ekuitas, awal periode",
+     "seksi": "equity:saldo_laba_ditentukan"
+    },
+    {
+     "label": "Posisi ekuitas, awal periode",
+     "seksi": "equity:saldo_laba_belum_ditentukan"
+    }
+   ]
+  }
+ ]
+}

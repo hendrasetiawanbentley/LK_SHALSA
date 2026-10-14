@@ -1,0 +1,10 @@
+{
+ "catatan": {
+  "penghasilan_kena_pajak/berjalan": "Taksiran penghasilan kena pajak USD 144,187.36 tersaji di CaLK hal. 39; Excel tidak memuat baris ini."
+ },
+ "kesimpulan": "Reksa Dana Syariah STAR Global Sharia Equity USD konsisten untuk seluruh akun utama: NAB 1,035,605.95, unit 987,036.1167, laba periode berjalan 130,064.80 dan pembelian kembali unit (680,016.20). Kas awal tahun berbeda 0,38 USD (dalam toleransi). PDF memuat inkonsistensi internal NAB 2024 (1,585,557.73 vs 1,585,557.35).",
+ "rekomendasi": [
+  "Minta manajer investasi mengoreksi inkonsistensi NAB 31 Desember 2024 di laporan posisi keuangan (1,585,557.73 vs 1,585,557.35).",
+  "Tambahkan penghasilan kena pajak dari CaLK untuk perhitungan rasio PKP."
+ ]
+}

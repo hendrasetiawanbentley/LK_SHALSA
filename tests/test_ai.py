@@ -68,7 +68,7 @@ class KlienTiruan:
     def __init__(self, gagal_pdf=False):
         self.gagal_pdf, self.panggilan = gagal_pdf, []
 
-    def minta_json(self, system, konten, skema):
+    def minta_json(self, system, konten, skema, kunci=None):
         self.panggilan.append(system)
         if system == ai.SYSTEM_PDF:
             if self.gagal_pdf:

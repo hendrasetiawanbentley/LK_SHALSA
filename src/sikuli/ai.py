@@ -42,7 +42,8 @@ class KlienAI:
         self.model = cfg_ai.get("model", "claude-opus-5-5")
         self.client = client or anthropic.Anthropic()
 
-    def minta_json(self, system: str, konten: list[dict], skema: dict) -> dict:
+    def minta_json(self, system: str, konten: list[dict], skema: dict, kunci: dict | None = None) -> dict:
+        # `kunci` hanya dipakai KlienRekaman (identitas permintaan); API tidak membutuhkannya.
         kwargs = dict(
             model=self.model,
             max_tokens=int(self.cfg.get("maks_token_output", 64000)),
@@ -72,6 +73,59 @@ class KlienAI:
         return json.loads(teks)
 
 
+class KlienRekaman:
+    """Memutar ulang jawaban AI yang sudah direkam sebagai file JSON (tanpa memanggil API).
+
+    Dipakai bila ekstraksi/pemetaan/analisis sudah dikerjakan model di luar pipeline
+    (mis. di sesi Claude Code) dan hasilnya disimpan di folder `folder`:
+      pdf/<nama file PDF tanpa ekstensi>.json   format sama dengan keluaran SYSTEM_PDF
+      pemetaan_excel_<doc_type>.json           {"label": {"label Excel": "kode_akun"},
+                                                "turunan": [{"kode_akun": "...", "label": ["...",
+                                                             {"label": "...", "seksi": "..."}]}]}
+      analisis/<entity_key>.json               {"catatan": {"kode_akun/periode": "..."},
+                                                "kesimpulan": "...", "rekomendasi": ["..."]}
+    Permintaan tanpa rekaman menimbulkan ErrorAI (sama seperti panggilan API yang gagal).
+    """
+
+    def __init__(self, folder, model: str = "rekaman"):
+        self.folder = Path(folder)
+        self.model = model
+
+    def _baca(self, relatif: str) -> dict:
+        path = self.folder / relatif
+        if not path.exists():
+            raise ErrorAI(f"rekaman AI tidak ada: {path}")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def minta_json(self, system: str, konten: list[dict], skema: dict, kunci: dict | None = None) -> dict:
+        tahap = (kunci or {}).get("tahap")
+        if tahap == "pdf":
+            return self._baca(f"pdf/{kunci['nama_file']}.json")
+        if tahap == "excel":
+            rekaman = self._baca(f"pemetaan_excel_{kunci['doc_type']}.json")
+            label = [" ".join(x.split()) for x in kunci["label"]]
+            peta = {" ".join(k.split()): v for k, v in (rekaman.get("label") or {}).items()}
+            seksi = kunci.get("seksi") or [None] * len(label)
+            turunan = []
+            for t in rekaman.get("turunan") or []:
+                # Komponen: "label" atau {"label": ..., "seksi": ...} bila label sama muncul di beberapa seksi.
+                cari = [(" ".join(x.split()), None) if isinstance(x, str) else (" ".join(x["label"].split()), x["seksi"])
+                        for x in t["label"]]
+                no = [i for i, x in enumerate(label) if any(x == c and s in (None, seksi[i]) for c, s in cari)]
+                if no:
+                    turunan.append({"kode_akun": t["kode_akun"], "no": no})
+            return {"pemetaan": [{"no": i, "kode_akun": peta[x]} for i, x in enumerate(label) if peta.get(x)],
+                    "turunan": turunan}
+        if tahap == "analisis":
+            rekaman = self._baca(f"analisis/{kunci['entity_key']}.json")
+            catatan = rekaman.get("catatan") or {}
+            return {"catatan_baris": [{"no": i, "catatan": catatan[k]}
+                                      for i, k in enumerate(kunci["baris"]) if catatan.get(k)],
+                    "kesimpulan": rekaman.get("kesimpulan", ""),
+                    "rekomendasi": rekaman.get("rekomendasi", [])}
+        raise ErrorAI(f"permintaan tanpa kunci rekaman: {kunci}")
+
+
 def buat_klien(cfg: dict) -> KlienAI | None:
     """KlienAI bila AI aktif dan ANTHROPIC_API_KEY tersedia; selain itu None."""
     cfg_ai = cfg.get("ai") or {}
@@ -98,11 +152,15 @@ Tugas:
    Abaikan daftar isi, laporan auditor, dan surat pernyataan direksi.
 2. Untuk setiap akun di daftar, cari barisnya di seksi yang sesuai dan salin angka periode
    berjalan (kolom tahun terbaru) dan periode pembanding PERSIS seperti tertulis, termasuk tanda
-   kurung dan pemisah ribuan, misalnya "(1.234.567)". Jangan menghitung, membulatkan, atau
-   mengubah satuan. Tulis "" bila angka tidak ada.
+   kurung dan pemisah ribuan, misalnya "(1.234.567)". Jangan membulatkan atau mengubah satuan.
+   Tulis "" bila angka tidak ada. Hitung (menjumlahkan/mengurangkan) hanya bila uraian akun
+   memintanya (mis. "jumlahkan seluruh sub baris", "NAB akhir dikurangi NAB awal"); sebutkan
+   komponennya di `label_di_dokumen`.
 3. Hanya laporkan akun yang benar-benar ditemukan. Jangan menebak; akun yang tidak ada
    cukup tidak dicantumkan. Gunakan kode_akun persis dari daftar.
-4. `halaman` adalah nomor halaman PDF tempat angka akun itu ditemukan."""
+4. `halaman` adalah nomor halaman PDF tempat angka akun itu ditemukan.
+5. `satuan_akun`: isi bila satuan angka akun itu berbeda dari satuan seksinya (mis. laba per
+   saham "dalam jumlah penuh" di laporan yang disajikan dalam miliaran); selain itu ""."""
 
 
 def _skema_pdf(kode_seksi: list[str], kode_akun: list[str]) -> dict:
@@ -120,6 +178,7 @@ def _skema_pdf(kode_seksi: list[str], kode_akun: list[str]) -> dict:
             "nilai_berjalan": {"type": "string"},
             "nilai_lalu": {"type": "string"},
             "halaman": {"type": "integer"},
+            "satuan_akun": {"type": "string", "enum": list(SATUAN) + [""]},
         })},
         "catatan": {"type": "string"},
     })
@@ -172,7 +231,8 @@ def ekstraksi_pdf(klien: KlienAI, path: str, info: dict, rules: Rules, cfg: dict
     hasil = klien.minta_json(SYSTEM_PDF, [
         {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": data}},
         {"type": "text", "text": f"Jenis entitas: {doc_type}\n\nSeksi:\n{daftar_seksi}\n\nAkun yang dicari:\n{daftar_akun}"},
-    ], _skema_pdf([k for k, _ in seksi], [a["kode_akun"] for a in akun]))
+    ], _skema_pdf([k for k, _ in seksi], [a["kode_akun"] for a in akun]),
+        kunci={"tahap": "pdf", "nama_file": Path(path).stem})
 
     identitas = {"doc_id": path, "nama_file": info["nama_file"], "entity_key": info["entity_key"],
                  "entity_id": info["entity_id"], "doc_type": doc_type}
@@ -203,7 +263,8 @@ def ekstraksi_pdf(klien: KlienAI, path: str, info: dict, rules: Rules, cfg: dict
                 "entity_id": info["entity_id"], "doc_type": doc_type, "tahun": info.get("tahun"),
                 "seksi": sek, "kode_akun": kode, "label_di_dokumen": item.get("label_di_dokumen"),
                 "periode": periode, "nilai": nilai, "nilai_asli": mentah,
-                "skala": float(satuan_seksi.get(sek, 1)), "halaman": hal,
+                "skala": float(SATUAN.get(item.get("satuan_akun") or "", satuan_seksi.get(sek, 1))),
+                "halaman": hal,
                 "sumber_ekstraksi": "ai", "verifikasi": _cek_di_halaman(mentah, teks),
             })
     tidak_ada = [a["kode_akun"] for a in akun if a["kode_akun"] not in sudah]
@@ -223,25 +284,44 @@ def ekstraksi_pdf(klien: KlienAI, path: str, info: dict, rules: Rules, cfg: dict
 SYSTEM_EXCEL = """Anda memetakan label baris laporan keuangan di file Excel ke kode akun standar.
 Untuk setiap label, pilih kode_akun yang maknanya sama persis dengan label tersebut
 (perhatikan seksi dan sheet). Jika tidak ada yang sama persis (misalnya label adalah subtotal,
-rincian, atau akun lain), isi kode_akun dengan "". Jangan memaksakan kecocokan."""
+rincian, atau akun lain), isi kode_akun dengan "". Jangan memaksakan kecocokan.
+Bila suatu akun tidak punya satu baris total di Excel tetapi nilainya adalah jumlah beberapa
+baris (mis. portofolio efek = efek ekuitas + efek utang + instrumen pasar uang), isi `turunan`
+dengan kode_akun dan daftar `no` baris yang dijumlahkan."""
 
 
 def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_type: str | None) -> int:
-    """Isi kode_akun baris Excel yang belum terpetakan. Mengembalikan jumlah label yang dipetakan."""
-    # Baris bernilai 0 (akun template yang tidak dipakai entitas) tidak perlu dipetakan.
-    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel
-                    if not b.get("kode_akun") and b.get("nilai")})
+    """Isi kode_akun baris Excel yang belum terpetakan. Mengembalikan jumlah label yang dipetakan.
+
+    Selain pemetaan satu label -> satu akun, AI boleh mengusulkan `turunan`: akun yang di Excel
+    tidak punya satu baris total sehingga nilainya = jumlah beberapa baris (mis. portofolio efek =
+    efek ekuitas + efek utang + pasar uang). Baris turunan ditambahkan dengan cara_pemetaan
+    `ai_turunan`; baris yang dipetakan langsung tetap diutamakan saat komparasi.
+    """
+    # Baris bernilai 0 ikut dikirim: akun nihil (mis. penghasilan komprehensif lain "-") tetap
+    # perlu dipasangkan dengan PDF. Komparasi mengutamakan baris bernilai bukan nol.
+    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel if not b.get("kode_akun")})
     akun = [a for a in rules.rules_akun if berlaku_untuk(a["doc_type"], doc_type)]
     if not belum or not akun:
         return 0
-    skema = _objek({"pemetaan": {"type": "array", "items": _objek({
-        "no": {"type": "integer"},
-        "kode_akun": {"type": "string", "enum": [a["kode_akun"] for a in akun] + [""]},
-    })}})
+    enum_akun = [a["kode_akun"] for a in akun]
+    skema = _objek({
+        "pemetaan": {"type": "array", "items": _objek({
+            "no": {"type": "integer"},
+            "kode_akun": {"type": "string", "enum": enum_akun + [""]},
+        })},
+        "turunan": {"type": "array", "items": _objek({
+            "kode_akun": {"type": "string", "enum": enum_akun},
+            "no": {"type": "array", "items": {"type": "integer"}},
+        })},
+    })
     daftar_akun = "\n".join(f"- {a['kode_akun']} (seksi {a['seksi']}): {a['nama_akun']}" for a in akun)
-    daftar_label = "\n".join(f"{i}. [{sheet} / {seksi}] {label}" for i, (label, sheet, seksi) in enumerate(belum))
+    daftar_label = "\n".join(f"{i}. [{sheet} / {seksi}] {' '.join(label.split())}"
+                             for i, (label, sheet, seksi) in enumerate(belum))
     hasil = klien.minta_json(SYSTEM_EXCEL, [{"type": "text", "text":
-        f"Kode akun:\n{daftar_akun}\n\nLabel Excel yang perlu dipetakan:\n{daftar_label}"}], skema)
+        f"Kode akun:\n{daftar_akun}\n\nLabel Excel yang perlu dipetakan:\n{daftar_label}"}], skema,
+        kunci={"tahap": "excel", "doc_type": doc_type, "label": [label for label, _, _ in belum],
+               "seksi": [seksi for _, _, seksi in belum]})
 
     peta = {}
     for p in hasil.get("pemetaan", []):
@@ -251,7 +331,24 @@ def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_ty
         kode = peta.get((b["label_asli"], b["sheet"], b["seksi"]))
         if not b.get("kode_akun") and kode:
             b["kode_akun"], b["cara_pemetaan"] = kode, "ai"
-    return len(peta)
+
+    tambahan = []
+    for t in hasil.get("turunan", []):
+        bagian = {belum[n] for n in t.get("no", []) if 0 <= n < len(belum)}
+        if not t.get("kode_akun") or not bagian:
+            continue
+        per_periode: dict[str, list[dict]] = {}
+        for b in baris_excel:
+            if (b["label_asli"], b["sheet"], b["seksi"]) in bagian and b.get("nilai") is not None:
+                per_periode.setdefault(b["periode"], []).append(b)
+        for periode, isi in per_periode.items():
+            acuan = isi[0]
+            tambahan.append({**acuan, "kode_akun": t["kode_akun"], "cara_pemetaan": "ai_turunan",
+                             "label_asli": " + ".join(" ".join(b["label_asli"].split()) for b in isi),
+                             "nilai": sum(b["nilai"] for b in isi), "nilai_asli": None,
+                             "baris": ",".join(str(b["baris"]) for b in isi)})
+    baris_excel.extend(tambahan)
+    return len(peta) + len(hasil.get("turunan", []))
 
 
 # ---------------------------------------------------------------- 3. Catatan + kesimpulan
@@ -283,7 +380,9 @@ def analisis_entitas(klien: KlienAI, entity_key: str, baris: list[dict]) -> dict
             for i, b in enumerate(perlu)]
     hasil = klien.minta_json(SYSTEM_ANALISIS, [{"type": "text", "text":
         f"Entitas: {entity_key}\nJumlah per status: {json.dumps(ringkas)}\n\n"
-        f"Baris yang perlu ditinjau:\n{json.dumps(data, ensure_ascii=False)}"}], skema)
+        f"Baris yang perlu ditinjau:\n{json.dumps(data, ensure_ascii=False)}"}], skema,
+        kunci={"tahap": "analisis", "entity_key": entity_key,
+               "baris": [f"{b['kode_akun']}/{b['periode']}" for b in perlu]})
 
     for c in hasil.get("catatan_baris", []):
         if 0 <= c.get("no", -1) < len(perlu) and c.get("catatan"):

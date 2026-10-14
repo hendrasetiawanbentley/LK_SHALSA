@@ -1,0 +1,25 @@
+{
+  "label": {
+    "Aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan": "total_nilai_aset_bersih",
+    "Jumlah beban investasi": "total_beban_laporan_kinerja_keuangan",
+    "(Penurunan)/Kenaikan Aset yang dapat diatribusikan kepada pemegang Unit Penyertaan dari Operasi Sebelum Beban Pajak Penghasilan": "laba_rugi_sebelum_pajak_laporan_kinerja_keuangan",
+    "(Penurunan)/Kenaikan Aset yang dapat diatribusikan kepada pemegang Unit Penyertaan dari Operasi Setelah Beban Pajak Penghasilan": "laba_rugi_periode_berjalan_laporan_kinerja_keuangan",
+    "Penghasilan komprehensif lain": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak_laporan_kinerja_keuangan",
+    "(Penurunan)/Kenaikan Aset yang dapat diatribusikan kepada pemegang Unit Penyertaan dari Operasi": "total_penghasilan_komprehensif_periode_berjalan_laporan_kinerja_keuangan",
+    "(Penurunan)/kenaikan aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan": "perubahan_aset_bersih",
+    "Pendapatan yang dapat didistribusikan": "transkasi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_distribusi_kepada_pemegang_unit_penyertaan",
+    "Aset bersih yang dapat diatribusikan kepada pemegang unit penyertaan di awal tahun": "total_nilai_aset_bersih_awal_periode",
+    "Kas bersih (digunakan untuk)/diterima dari aktivitas operasi": "arus_kas_bersih_dari_untuk_aktivitas_operasional",
+    "Kas bersih (digunakan untuk)/diterima dari aktivitas pendanaan": "arus_kas_bersih_dari_untuk_aktivitas_pendanaan",
+    "Kenaikan/(Penurunan) bersih dalam kas dan setara kas": "kenaikan_penurunan_neto_kas",
+    "Pembelian aset keuangan dan penyelesaian liabilitas keuangan": "pembelian_portofolio_efek",
+    "Penjualan dan penerimaan dari penjualan aset keuangan": "penjualan_portofolio_efek"
+  },
+  "turunan": [
+    {"kode_akun": "portofolio_efek",
+     "label": ["Efek Ekuitas", "Efek Utang", "Efek Pasar Uang", "Efek Syariah Berpendapatan Tetap", "Efek Beragun Aset",
+               "Unit Penyertaan Dana Investasi Real Estat", "Efek Derivatif", "Efek lain yang ditetapkan oleh Otoritas Jasa Keuangan"]},
+    {"kode_akun": "total_pendapatan_laporan_kinerja_keuangan",
+     "label": ["Jumlah pendapatan investasi", "Jumlah (Kerugian)/Keuntungan investasi"]}
+  ]
+}

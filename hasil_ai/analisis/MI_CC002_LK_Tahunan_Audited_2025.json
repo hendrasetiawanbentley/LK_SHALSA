@@ -1,0 +1,27 @@
+{
+ "catatan": {
+  "total_aset/berjalan": "PDF konsolidasian Rp460.610.616 ribu; Excel Rp413.872.456 ribu sama persis dengan laporan posisi keuangan ENTITAS INDUK di PDF hal. 93. Excel diisi angka entitas induk, bukan konsolidasian.",
+  "total_liabilitas/berjalan": "Selisih berasal dari perbedaan basis penyajian: Excel memakai angka entitas induk (hal. 93), PDF utama konsolidasian.",
+  "total_ekuitas/berjalan": "Excel Rp320.120.630 ribu adalah ekuitas entitas induk; ekuitas konsolidasian PDF Rp335.188.050 ribu termasuk kepentingan nonpengendali.",
+  "saldo_laba_defisit/berjalan": "Saldo laba entitas induk (Excel) berbeda dengan saldo laba konsolidasian (PDF) karena hasil entitas anak.",
+  "pendapatan/berjalan": "Pendapatan Excel Rp308.970.679 ribu sesuai laporan entitas induk; PDF konsolidasian Rp344.792.266 ribu termasuk pendapatan entitas anak.",
+  "beban/berjalan": "Excel Rp273.832.256 ribu sama dengan 'Jumlah beban usaha' entitas induk (PDF hal. 94).",
+  "laba_bruto/berjalan": "Laba usaha entitas induk (Excel) vs konsolidasian (PDF); selisih karena basis penyajian.",
+  "pendapatan_lainnya/berjalan": "Excel hanya Rp74.741 ribu, jauh di bawah penghasilan lain-lain konsolidasian Rp7.506.938 ribu; basis entitas induk dan kemungkinan klasifikasi berbeda.",
+  "beban_lainnya/berjalan": "PDF 'Lain-lain - bersih' konsolidasian (3.881.837) vs Excel beban lainnya 2.382.276 ribu (entitas induk); basis dan definisi pos berbeda.",
+  "laba_rugi_sebelum_pajak/berjalan": "Laba sebelum pajak entitas induk (Excel) lebih rendah dari konsolidasian (PDF); konsisten dengan temuan basis penyajian.",
+  "laba_rugi_periode_berjalan/berjalan": "Excel Rp27.272.607 ribu sama dengan LABA TAHUN BERJALAN entitas induk (PDF hal. 94); PDF konsolidasian Rp39.993.167 ribu.",
+  "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak/berjalan": "PDF konsolidasian 5.262.137 ribu (positif) vs Excel (755.995) ribu (negatif); perlu dicek apakah Excel memakai angka entitas induk dan tanda yang benar.",
+  "total_penghasilan_komprehensif_periode_berjalan/berjalan": "Penghasilan komprehensif entitas induk (Excel) vs konsolidasian (PDF).",
+  "arus_kas_neto_dari_untuk_aktivitas_operasi/berjalan": "Arus kas operasi Excel mengikuti laporan arus kas entitas induk, bukan konsolidasian.",
+  "arus_kas_neto_dari_untuk_dari_aktivitas_investasi/berjalan": "Arus kas investasi Excel (5.803.085) ribu vs konsolidasian (18.921.523) ribu; basis entitas induk.",
+  "arus_kas_neto_dari_untuk_dari_aktivitas_pendanaan/berjalan": "Arus kas pendanaan Excel (95.804.826) ribu vs konsolidasian (98.170.686) ribu; basis entitas induk.",
+  "kas_dan_setara_kas_akhir_periode/berjalan": "Excel Rp212.255.443 ribu sama persis dengan kas akhir tahun entitas induk (PDF hal. 96); PDF konsolidasian Rp228.886.326 ribu."
+ },
+ "kesimpulan": "Seluruh 16 perbedaan pada PT Mandiri Manajemen Investasi berasal dari satu sebab: Excel diisi dengan laporan keuangan tersendiri entitas induk (PDF hal. 93-98), sedangkan rules Master meminta angka konsolidasian. Angka kunci Excel (total aset 413.872.456, beban usaha 273.832.256, laba 27.272.607, kas akhir 212.255.443 ribu) cocok dengan laporan entitas induk. Modal disetor yang sama di kedua basis menjadi satu-satunya MATCH di laporan utama.",
+ "rekomendasi": [
+  "Minta entitas menyampaikan ulang Excel dengan angka konsolidasian, atau tetapkan secara resmi bahwa pelaporan Excel MI memakai angka entitas induk.",
+  "Bila basis entitas induk diterima, ubah instruksi Master untuk MI_CC002 agar ekstraksi PDF mengambil laporan entitas induk (hal. 93-98).",
+  "Periksa tanda penghasilan komprehensif lain di Excel (negatif) dibandingkan PDF konsolidasian (positif)."
+ ]
+}

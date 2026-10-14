@@ -1,0 +1,314 @@
+<title>SIKULI Komparasi LK 2025</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ledger kerja pengawas. Ringkasan di atas, daftar entitas sebagai indeks, rincian akun di bawah. */
+:root {
+  --bg: #f2f4f6;
+  --panel: #ffffff;
+  --ink: #18212b;
+  --muted: #5b6672;
+  --line: #d8dde3;
+  --accent: #2b4c9b;          /* tinta stempel biru */
+  --accent-soft: #e3e9f7;
+  --ok: #1f7a4d;  --ok-bg: #dcf1e5;
+  --bad: #b3261e; --bad-bg: #fbe1de;
+  --warn: #8a5a00; --warn-bg: #fdefc8;
+  --nil: #5b6672; --nil-bg: #e8ebee;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --panel: #19202a; --ink: #e6eaef; --muted: #9aa5b1; --line: #2c3540;
+  --accent: #8ea8ec; --accent-soft: #233154;
+  --ok: #6fd19c; --ok-bg: #173a29; --bad: #ff9b92; --bad-bg: #4a1f1c;
+  --warn: #f2c35b; --warn-bg: #3d3115; --nil: #9aa5b1; --nil-bg: #262e38; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --panel: #19202a; --ink: #e6eaef; --muted: #9aa5b1; --line: #2c3540;
+  --accent: #8ea8ec; --accent-soft: #233154;
+  --ok: #6fd19c; --ok-bg: #173a29; --bad: #ff9b92; --bad-bg: #4a1f1c;
+  --warn: #f2c35b; --warn-bg: #3d3115; --nil: #9aa5b1; --nil-bg: #262e38; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); margin: 0; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); font-stretch: 82%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+.eyebrow { font: 600 0.72rem/1 var(--f-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+.num, td.n, .mono { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+header { display: grid; gap: 10px; }
+.mode { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.9rem; color: var(--muted); }
+.stamp { border: 1.5px solid var(--accent); color: var(--accent); padding: 2px 8px; border-radius: 3px;
+  font: 600 0.75rem/1.4 var(--f-data); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; }
+.tile .big { font: 700 1.9rem/1.1 var(--f-display); font-stretch: 80%; }
+.tile .lbl { font-size: 0.8rem; color: var(--muted); }
+.tile.ok .big { color: var(--ok); } .tile.bad .big { color: var(--bad); } .tile.warn .big { color: var(--warn); }
+.bar { display: flex; height: 10px; border-radius: 2px; overflow: hidden; background: var(--nil-bg); min-width: 80px; }
+.bar span { display: block; height: 100%; }
+.bar .s-MATCH { background: var(--ok); } .bar .s-DIFFERENT { background: var(--bad); }
+.bar .s-PDF_ONLY, .bar .s-EXCEL_ONLY { background: var(--warn); }
+.totalbar { grid-column: 1 / -1; display: grid; gap: 6px; }
+.totalbar .bar { height: 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+section { display: grid; gap: 12px; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.72rem/1.2 var(--f-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+  background: var(--panel); position: sticky; top: 0; z-index: 1; white-space: nowrap; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+#entitas tbody tr { cursor: pointer; }
+#entitas tbody tr:hover td { background: var(--accent-soft); }
+#entitas tbody tr[aria-selected="true"] td { background: var(--accent-soft); }
+#entitas tbody tr[aria-selected="true"] td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+#entitas tbody tr:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ename { font-weight: 600; } .ekey { font: 0.74rem var(--f-data); color: var(--muted); word-break: break-all; }
+.chip { display: inline-block; font: 600 0.7rem/1.5 var(--f-data); padding: 0 6px; border-radius: 3px;
+  background: var(--accent-soft); color: var(--accent); }
+
+.pill { display: inline-block; font: 600 0.7rem/1.6 var(--f-data); padding: 0 7px; border-radius: 10px; white-space: nowrap; }
+.p-MATCH { background: var(--ok-bg); color: var(--ok); } .p-DIFFERENT { background: var(--bad-bg); color: var(--bad); }
+.p-PDF_ONLY, .p-EXCEL_ONLY { background: var(--warn-bg); color: var(--warn); }
+.ind { display: block; font: 0.68rem var(--f-data); color: var(--muted); margin-top: 2px; }
+tr.r-DIFFERENT td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+tr.r-PDF_ONLY td:first-child, tr.r-EXCEL_ONLY td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+
+.detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .detail { grid-template-columns: minmax(0, 1fr); } }
+.prose { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: grid; gap: 10px; }
+.prose p { margin: 0; max-width: 70ch; }
+.prose ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.side { display: grid; gap: 12px; font-size: 0.86rem; }
+.side .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 6px; }
+.side ul { margin: 0; padding-left: 1.1em; }
+.badge-ai { font: 600 0.66rem var(--f-data); color: var(--accent); margin-left: 4px; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel); }
+.seg button { font: 600 0.82rem var(--f-body); border: 0; background: transparent; color: var(--muted); padding: 7px 12px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+.seg button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type="search"], select { font: 0.88rem var(--f-body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--ink); min-width: 0; }
+input[type="search"] { flex: 1 1 200px; }
+.catatan { max-width: 46ch; min-width: 220px; color: var(--ink); }
+.label-src { font-size: 0.74rem; color: var(--muted); }
+details.warn { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; }
+details.warn summary { cursor: pointer; font-weight: 600; }
+details.warn ol { margin: 8px 0 0; padding-left: 1.4em; display: grid; gap: 4px; color: var(--muted); }
+footer { font-size: 0.8rem; color: var(--muted); max-width: 90ch; }
+@media (prefers-reduced-motion: no-preference) { #entitas tbody tr td { transition: background .12s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">SIKULI · Komparasi LK audited vs Excel · 31 Desember 2025</span>
+    <h1>Rekonsiliasi PDF dan Excel, 10 entitas</h1>
+    <div class="mode" id="mode"></div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <section>
+    <div><h2>Entitas</h2><p class="muted" style="margin:4px 0 0">Urut dari persentase MATCH terendah. Pilih baris untuk melihat rincian akun.</p></div>
+    <div class="scroll"><table id="entitas"><thead><tr>
+      <th>Entitas</th><th>Jenis</th><th>Satuan PDF</th><th style="min-width:120px">Komposisi</th>
+      <th class="n">Match</th><th class="n">Beda</th><th class="n">PDF saja</th><th class="n">Excel saja</th><th class="n">% match</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="rinci">
+    <div><span class="eyebrow" id="d-eyebrow"></span><h2 id="d-nama"></h2><div class="ekey" id="d-key"></div></div>
+    <div class="detail">
+      <div class="prose">
+        <h3>Kesimpulan <span class="badge-ai">AI</span></h3>
+        <p id="d-kesimpulan"></p>
+        <div id="d-rek-wrap"><h3>Rekomendasi tindak lanjut</h3><ul id="d-rek"></ul></div>
+      </div>
+      <div class="side">
+        <div class="box"><h3>Lokasi seksi di PDF</h3><ul id="d-lokasi"></ul></div>
+        <div class="box"><h3>Tidak tersaji di kedua sumber</h3><p class="muted" style="margin:0">Akun Master untuk jenis ini yang tidak ada di PDF maupun Excel.</p><ul id="d-kosong"></ul></div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Filter status">
+        <button type="button" id="f-tinjau" data-f="tinjau" aria-pressed="true">Perlu ditinjau</button>
+        <button type="button" id="f-semua" data-f="semua" aria-pressed="false">Semua akun</button>
+        <button type="button" id="f-match" data-f="match" aria-pressed="false">Match</button>
+      </div>
+      <select id="f-entitas" aria-label="Entitas"></select>
+      <input type="search" id="f-cari" placeholder="Cari akun, label, atau catatan" aria-label="Cari akun">
+    </div>
+    <div class="scroll"><table id="akun"><thead><tr>
+      <th>Akun</th><th>Seksi</th><th class="n">Nilai PDF</th><th class="n">Nilai Excel</th><th class="n">Selisih</th>
+      <th>Status</th><th class="n">Hal.</th><th>Catatan</th>
+    </tr></thead><tbody></tbody></table></div>
+    <p class="muted" id="akun-info" style="margin:0;font-size:.82rem"></p>
+  </section>
+
+  <details class="warn"><summary id="w-sum"></summary><ol id="w-list"></ol></details>
+
+  <footer>
+    Nilai Excel sudah dibagi sesuai satuan PDF (mis. PDF "dalam jutaan Rupiah": Excel ÷ 1.000.000); nilai Excel asli tampil saat kursor di atas angka.
+    MATCH: selisih ≤ toleransi (Rp1 atau 1 satuan PDF untuk pembulatan). BEDA_TANDA: hanya tanda penyajian yang berbeda, dianggap sesuai menurut sheet Master.
+    NIHIL: akun bernilai nol/"-" di satu sisi dan tidak ada di sisi lain. Reksa dana STA01 disajikan dalam Dolar AS.
+  </footer>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const ST = ["MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY"];
+  const NAMA_ST = { MATCH: "Match", DIFFERENT: "Beda", PDF_ONLY: "PDF saja", EXCEL_ONLY: "Excel saja" };
+  const SEKSI = { financial_position: "Posisi keuangan", income: "Laba rugi", equity: "Perubahan ekuitas", cashflow: "Arus kas",
+    calk: "CaLK", rd_performance: "Kinerja (laba rugi)", rd_netassets: "Perubahan aset bersih" };
+  const JENIS = { EPP: "Emiten", MI: "Manajer investasi", RD: "Reksa dana" };
+  const el = (t, a = {}, ...kids) => { const e = document.createElement(t);
+    for (const [k, v] of Object.entries(a)) { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
+    for (const c of kids) if (c != null) e.append(c); return e; };
+  const fmt = (x) => {
+    if (x === null || x === undefined || x === "") return "–";
+    const n = Number(x); const a = Math.abs(n);
+    const s = a.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: a < 10 ? 4 : 2 });
+    return n < 0 ? "(" + s + ")" : s;
+  };
+  const bar = (r) => { const tot = ST.reduce((s, k) => s + r[k], 0) || 1; const b = el("div", { class: "bar", role: "img",
+      "aria-label": ST.map(k => NAMA_ST[k] + " " + r[k]).join(", ") });
+    for (const k of ST) if (r[k]) { const s = el("span", { class: "s-" + k }); s.style.width = (100 * r[k] / tot) + "%"; b.append(s); }
+    return b; };
+
+  // Header + ringkasan
+  const tot = { MATCH: 0, DIFFERENT: 0, PDF_ONLY: 0, EXCEL_ONLY: 0 };
+  D.komparasi.forEach(b => tot[b.status]++);
+  const nCat = D.komparasi.filter(b => b.sumber_catatan === "ai").length;
+  const nKosong = D.entitas.reduce((s, e) => s + e.akun_kosong.length, 0);
+  document.getElementById("mode").append(
+    el("span", { class: "stamp", text: "Diekstraksi oleh Claude" }),
+    el("span", { text: "Mode: " + (D.mode || "-") }),
+    el("span", { text: D.entitas.length + " pasang PDF–Excel · " + D.komparasi.length + " baris akun dibandingkan" }));
+  const sm = document.getElementById("summary");
+  const tile = (cls, big, lbl) => el("div", { class: "tile " + cls }, el("span", { class: "big", text: big }), el("span", { class: "lbl", text: lbl }));
+  sm.append(tile("ok", tot.MATCH, "Match (" + (100 * tot.MATCH / D.komparasi.length).toFixed(1).replace(".", ",") + "%)"),
+    tile("bad", tot.DIFFERENT, "Nilai berbeda"),
+    tile("warn", tot.PDF_ONLY + tot.EXCEL_ONLY, "Hanya di satu sumber"),
+    tile("", nCat, "Baris dengan catatan AI"),
+    tile("", nKosong, "Akun Master tidak tersaji"));
+  const tb = el("div", { class: "totalbar" }, bar(tot), el("div", { class: "legend" },
+    ...[["MATCH", "var(--ok)"], ["DIFFERENT", "var(--bad)"], ["PDF_ONLY", "var(--warn)"]].map(([k, c]) => {
+      const i = el("i"); i.style.background = c; return el("span", {}, i, k === "PDF_ONLY" ? "PDF saja / Excel saja" : NAMA_ST[k]); })));
+  sm.append(tb);
+
+  // Tabel entitas
+  const ent = [...D.entitas].sort((a, b) => a.persen_match - b.persen_match);
+  const tbE = document.querySelector("#entitas tbody");
+  const sel = document.getElementById("f-entitas");
+  sel.append(el("option", { value: "", text: "Semua entitas" }));
+  for (const e of ent) {
+    const tr = el("tr", { tabindex: "0", "data-key": e.entity_key, "aria-selected": "false" },
+      el("td", {}, el("div", { class: "ename", text: e.kode + " · " + e.nama })),
+      el("td", {}, el("span", { class: "chip", text: e.doc_type }), " ", el("span", { class: "muted", text: JENIS[e.doc_type] || "" })),
+      el("td", { class: "muted", text: e.satuan || "–" }),
+      el("td", {}, bar(e)),
+      ...ST.map(k => el("td", { class: "n", text: e[k] })),
+      el("td", { class: "n", text: e.persen_match.toFixed(1).replace(".", ",") }));
+    tr.addEventListener("click", () => pilih(e.entity_key, true));
+    tr.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pilih(e.entity_key, true); } });
+    tbE.append(tr);
+    sel.append(el("option", { value: e.entity_key, text: e.kode + " · " + e.nama }));
+  }
+
+  let state = { key: ent[0] && ent[0].entity_key, f: "tinjau", q: "" };
+  try { const s = JSON.parse(localStorage.getItem("sikuli-dash") || "null"); if (s && (s.key === "" || D.entitas.some(e => e.entity_key === s.key))) state = { ...state, ...s }; } catch (e) {}
+  const simpan = () => { try { localStorage.setItem("sikuli-dash", JSON.stringify({ key: state.key, f: state.f })); } catch (e) {} };
+
+  function pilih(key, gulir) {
+    state.key = key; sel.value = key || ""; simpan(); render();
+    if (gulir) document.getElementById("rinci").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  }
+  sel.addEventListener("change", () => pilih(sel.value, false));
+  document.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { state.f = b.dataset.f; simpan(); render(); }));
+  document.getElementById("f-cari").addEventListener("input", ev => { state.q = ev.target.value.trim().toLowerCase(); renderAkun(); });
+
+  function render() {
+    tbE.querySelectorAll("tr").forEach(tr => tr.setAttribute("aria-selected", String(tr.dataset.key === state.key)));
+    document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.f === state.f)));
+    const e = D.entitas.find(x => x.entity_key === state.key);
+    const kes = document.getElementById("d-kesimpulan"), rek = document.getElementById("d-rek"),
+      lok = document.getElementById("d-lokasi"), kos = document.getElementById("d-kosong");
+    rek.replaceChildren(); lok.replaceChildren(); kos.replaceChildren();
+    if (e) {
+      document.getElementById("d-eyebrow").textContent = (JENIS[e.doc_type] || e.doc_type) + " · " + e.persen_match.toFixed(1).replace(".", ",") + "% match";
+      document.getElementById("d-nama").textContent = e.kode + " · " + e.nama;
+      document.getElementById("d-key").textContent = e.entity_key;
+      kes.textContent = e.kesimpulan || "Belum ada kesimpulan.";
+      e.rekomendasi.forEach(r => rek.append(el("li", { text: r })));
+      document.getElementById("d-rek-wrap").hidden = !e.rekomendasi.length;
+      e.lokasi.forEach(s => lok.append(el("li", {}, el("strong", { text: SEKSI[s.seksi] || s.seksi }), " hal. " + s.mulai + (s.akhir !== s.mulai ? "–" + s.akhir : ""))));
+      if (!e.akun_kosong.length) kos.append(el("li", { class: "muted", text: "Tidak ada" }));
+      e.akun_kosong.forEach(a => kos.append(el("li", { text: a.nama_akun })));
+    } else {
+      document.getElementById("d-eyebrow").textContent = "Seluruh entitas";
+      document.getElementById("d-nama").textContent = "Semua akun dari 10 entitas";
+      document.getElementById("d-key").textContent = "";
+      kes.textContent = "Pilih satu entitas di tabel di atas untuk membaca kesimpulan dan rekomendasinya.";
+      document.getElementById("d-rek-wrap").hidden = true;
+      lok.append(el("li", { class: "muted", text: "Pilih satu entitas" })); kos.append(el("li", { class: "muted", text: "Pilih satu entitas" }));
+    }
+    renderAkun();
+  }
+
+  function renderAkun() {
+    const urut = { DIFFERENT: 0, PDF_ONLY: 1, EXCEL_ONLY: 2, MATCH: 3 };
+    let rows = D.komparasi.filter(b => !state.key || b.entity_key === state.key);
+    if (state.f === "tinjau") rows = rows.filter(b => b.status !== "MATCH");
+    if (state.f === "match") rows = rows.filter(b => b.status === "MATCH");
+    if (state.q) rows = rows.filter(b => [b.kode_akun, b.nama_akun, b.label_pdf, b.label_excel, b.catatan, b.entity_key]
+      .some(x => x && String(x).toLowerCase().includes(state.q)));
+    rows.sort((a, b) => urut[a.status] - urut[b.status] || a.entity_key.localeCompare(b.entity_key));
+    const tbody = document.querySelector("#akun tbody"); tbody.replaceChildren();
+    for (const b of rows) {
+      const akun = el("td", {}, el("div", { class: "ename", text: b.nama_akun || b.kode_akun }),
+        !state.key ? el("div", { class: "ekey", text: b.entity_key }) : null,
+        b.label_pdf ? el("div", { class: "label-src", text: "PDF: " + b.label_pdf }) : null,
+        b.label_excel ? el("div", { class: "label-src", text: "Excel: " + b.label_excel }) : null);
+      const xl = el("td", { class: "n", text: fmt(b.nilai_excel) });
+      if (b.nilai_excel_asli !== null && b.nilai_excel_asli !== undefined) xl.title = "Excel asli: " + Number(b.nilai_excel_asli).toLocaleString("id-ID");
+      const pdf = el("td", { class: "n", text: fmt(b.nilai_pdf) });
+      pdf.title = (b.satuan_pdf || "") + (b.verifikasi_pdf ? " · verifikasi: " + b.verifikasi_pdf : "");
+      const status = el("td", {}, el("span", { class: "pill p-" + b.status, text: NAMA_ST[b.status] }),
+        b.indikasi ? el("span", { class: "ind", text: b.indikasi }) : null);
+      const cat = el("td", { class: "catatan" }, b.catatan || "", b.sumber_catatan === "ai" ? el("span", { class: "badge-ai", text: "AI" }) : null);
+      tbody.append(el("tr", { class: "r-" + b.status }, akun,
+        el("td", { class: "muted", text: (SEKSI[b.seksi] || b.seksi || "–") }), pdf, xl,
+        el("td", { class: "n", text: b.selisih === null || b.selisih === undefined ? "–" : fmt(b.selisih) }),
+        status, el("td", { class: "n", text: b.halaman_pdf || "–" }), cat));
+    }
+    if (!rows.length) tbody.append(el("tr", {}, el("td", { colspan: "8", class: "muted", text:
+      state.f === "tinjau" ? "Tidak ada akun yang perlu ditinjau untuk pilihan ini." : "Tidak ada akun yang cocok dengan filter." })));
+    const e = D.entitas.find(x => x.entity_key === state.key);
+    document.getElementById("akun-info").textContent = rows.length + " baris" + (e && e.satuan ? " · nilai dalam " + e.satuan : " · nilai dalam satuan PDF masing-masing entitas");
+  }
+
+  const wl = document.getElementById("w-list");
+  D.peringatan.forEach(p => wl.append(el("li", { text: p })));
+  document.getElementById("w-sum").textContent = "Catatan proses (" + D.peringatan.length + ")";
+  render();
+})();
+</script>

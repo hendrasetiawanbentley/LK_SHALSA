@@ -57,5 +57,10 @@ komparasi:
   # true = selisih sampai toleransi_pembulatan_satuan (dalam satuan PDF) dianggap pembulatan (MATCH).
   toleransi_pembulatan_skala: true
   toleransi_pembulatan_satuan: 1     # mis. PDF "dalam jutaan": selisih <= 1 juta dianggap MATCH
+  # true = beda tanda saja (PDF (5.206) vs Excel 5.206) dianggap MATCH dengan indikasi BEDA_TANDA,
+  # sesuai instruksi sheet Master. false = tetap DIFFERENT.
+  abaikan_beda_tanda: true
+  # true = akun bernilai nihil di satu sisi dan tidak ada/0 di sisi lain dianggap MATCH (indikasi NIHIL).
+  nihil_dianggap_match: true
   ai_gen_hanya_non_match: true       # hemat biaya: ai_gen hanya untuk baris bukan MATCH
   catatan_match: Nilai sesuai

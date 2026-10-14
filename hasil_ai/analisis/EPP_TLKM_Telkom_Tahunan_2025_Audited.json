@@ -1,0 +1,12 @@
+{
+ "catatan": {
+  "uang_muka/berjalan": "PDF (Catatan 8, rincian aset lancar lainnya) menyajikan uang muka Rp511 miliar, sedangkan XBRL mengisi 'Uang muka lancar' Rp551 miliar. Selisih Rp40 miliar kemungkinan karena XBRL menggabungkan pos lain (mis. bagian uang muka yang di PDF masuk 'lain-lain'); minta rincian penyusun XBRL.",
+  "laba_bruto/berjalan": "PDF menyajikan LABA USAHA Rp34.648 miliar (dipakai sebagai laba bruto sesuai alias Master), tetapi template XBRL laporan laba rugi (3312000) tidak punya baris laba usaha/laba bruto. Bukan selisih nilai; perlu kesepakatan apakah akun ini dihitung dari komponen XBRL.",
+  "laba_sebelum_bunga_dan_pajak_ebit/berjalan": "EBIT diambil dari LABA USAHA PDF Rp34.648 miliar; XBRL tidak menyajikan baris yang setara sehingga tidak bisa dibandingkan langsung."
+ },
+ "kesimpulan": "Laporan konsolidasian Telkom (miliar Rupiah) konsisten dengan XBRL untuk seluruh pos utama: total aset 287.759, liabilitas 137.222, ekuitas 150.537, pendapatan 146.742, laba tahun berjalan 24.458, EPS 179,83, termasuk akun turunan (liabilitas berbunga 74.911, pokok utang jatuh tempo 23.336, saldo laba awal 116.647). Beban bunga, penyusutan, dan dividen hanya berbeda tanda penyajian. Satu selisih nyata ada pada uang muka lancar (511 vs 551), dan dua akun (laba usaha/EBIT) tidak tersedia di template XBRL.",
+ "rekomendasi": [
+  "Konfirmasi ke emiten komposisi 'Uang muka lancar' Rp551 miliar di XBRL dibandingkan Catatan 8 (Rp511 miliar).",
+  "Tetapkan apakah laba usaha/EBIT untuk EPP perlu dihitung dari komponen XBRL karena template 3312000 tidak menyediakan baris tersebut."
+ ]
+}

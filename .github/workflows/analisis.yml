@@ -5,9 +5,16 @@ name: analisis
 # lewat tab Actions → analisis → Run workflow.
 on:
   workflow_dispatch:
+    inputs:
+      sumber_ai:
+        description: "api = panggil Claude lewat ANTHROPIC_API_KEY; rekaman = pakai jawaban AI di folder hasil_ai/"
+        type: choice
+        options: [otomatis, api, rekaman]
+        default: otomatis
   push:
     paths:
       - "input/**"
+      - "hasil_ai/**"
       - "rules/**"
       - "config/**"
 
@@ -27,7 +34,19 @@ jobs:
           # Secret repo (Settings -> Secrets and variables -> Actions). Tanpa secret ini
           # analisis tetap jalan memakai aturan saja.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: PYTHONPATH=src python -m sikuli.lokal --out-dir hasil
+          SUMBER_AI: ${{ inputs.sumber_ai || 'otomatis' }}
+        # otomatis: pakai API bila secret ada, selain itu pakai rekaman hasil_ai/ (ekstraksi oleh Claude
+        # di sesi Claude Code). ai.wajib = true, jadi tanpa keduanya workflow gagal dengan pesan jelas.
+        run: |
+          if [ "$SUMBER_AI" = "rekaman" ] || { [ "$SUMBER_AI" = "otomatis" ] && [ -z "$ANTHROPIC_API_KEY" ] && [ -d hasil_ai ]; }; then
+            PYTHONPATH=src python -m sikuli.lokal --out-dir hasil --ai-rekaman hasil_ai
+          else
+            PYTHONPATH=src python -m sikuli.lokal --out-dir hasil
+          fi
+      - name: Buat dashboard HTML
+        if: always()
+        run: |
+          if [ -f hasil/hasil.json ]; then PYTHONPATH=src python scripts/buat_dashboard.py --hasil hasil; fi
       - name: Tampilkan ringkasan di halaman run
         if: always()
         run: |

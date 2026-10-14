@@ -1,0 +1,10 @@
+{
+ "catatan": {
+  "beban_lainnya/berjalan": "PDF menyajikan 'Beban Lain-lain - Neto' (118.473.390) sebagai total pos lain-lain, sedangkan Excel mengisi Rp147.275.399 yang sama dengan sub-baris 'Lain-lain - neto' di PDF. Excel mengambil rincian, bukan total; konfirmasi definisi beban lainnya."
+ },
+ "kesimpulan": "Laporan PT Kresna Asset Management (Rupiah penuh) sesuai dengan Excel untuk 17 dari 18 akun, termasuk total aset 18.055.031.996, rugi neto (1.966.691.506) dan kas akhir 9.922.670.988. Satu perbedaan pada beban lainnya karena Excel memakai sub-baris, bukan total beban lain-lain - neto. MKBD tidak disajikan dalam angka di CaLK.",
+ "rekomendasi": [
+  "Konfirmasi pengisian 'Beban Lainnya' di Excel: total beban lain-lain neto (118.473.390) atau sub-baris lain-lain (147.275.399).",
+  "Minta angka MKBD per 31 Desember 2025 karena CaLK hanya menyatakan persyaratan terpenuhi."
+ ]
+}

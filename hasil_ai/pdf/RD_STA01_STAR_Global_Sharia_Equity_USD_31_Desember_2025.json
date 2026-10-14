@@ -1,0 +1,37 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "LAPORAN POSISI KEUANGAN", "halaman_mulai": 11, "halaman_akhir": 11, "satuan": "rupiah"},
+    {"kode": "rd_performance", "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN", "halaman_mulai": 12, "halaman_akhir": 12, "satuan": "rupiah"},
+    {"kode": "rd_netassets", "judul": "LAPORAN PERUBAHAN ASET BERSIH", "halaman_mulai": 13, "halaman_akhir": 13, "satuan": "rupiah"},
+    {"kode": "cashflow", "judul": "LAPORAN ARUS KAS", "halaman_mulai": 14, "halaman_akhir": 14, "satuan": "rupiah"},
+    {"kode": "calk", "judul": "CATATAN ATAS LAPORAN KEUANGAN", "halaman_mulai": 15, "halaman_akhir": 41, "satuan": "rupiah"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "TOTAL ASET", "nilai_berjalan": "1,068,697.19", "nilai_lalu": "1,616,231.86", "halaman": 11},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "TOTAL LIABILITAS", "nilai_berjalan": "33,091.24", "nilai_lalu": "30,674.13", "halaman": 11},
+    {"kode_akun": "portofolio_efek", "label_di_dokumen": "Total portofolio", "nilai_berjalan": "959,228.80", "nilai_lalu": "1,128,494.32", "halaman": 11},
+    {"kode_akun": "total_nilai_aset_bersih", "label_di_dokumen": "TOTAL NILAI ASET BERSIH", "nilai_berjalan": "1,035,605.95", "nilai_lalu": "1,585,557.35", "halaman": 11},
+    {"kode_akun": "jumlah_unit_penyertaan_beredar", "label_di_dokumen": "JUMLAH UNIT PENYERTAAN BEREDAR", "nilai_berjalan": "987,036.1167", "nilai_lalu": "1,753,038.1614", "halaman": 11},
+    {"kode_akun": "nilai_aset_bersih_per_unit_penyertaan", "label_di_dokumen": "NILAI ASET BERSIH PER UNIT PENYERTAAN", "nilai_berjalan": "1.0492", "nilai_lalu": "0.9045", "halaman": 11},
+    {"kode_akun": "total_nilai_aset_bersih_awal_periode", "label_di_dokumen": "TOTAL NILAI ASET BERSIH (kolom 2024)", "nilai_berjalan": "1,585,557.35", "nilai_lalu": "926,804.34", "halaman": 11},
+    {"kode_akun": "jumlah_unit_penyertaan_beredar_awal_periode", "label_di_dokumen": "JUMLAH UNIT PENYERTAAN BEREDAR (kolom 2024)", "nilai_berjalan": "1,753,038.1614", "nilai_lalu": "", "halaman": 11},
+    {"kode_akun": "total_pendapatan_laporan_kinerja_keuangan", "label_di_dokumen": "TOTAL PENDAPATAN", "nilai_berjalan": "199,861.27", "nilai_lalu": "291,106.97", "halaman": 12},
+    {"kode_akun": "total_beban_laporan_kinerja_keuangan", "label_di_dokumen": "TOTAL BEBAN", "nilai_berjalan": "41,733.47", "nilai_lalu": "51,908.25", "halaman": 12},
+    {"kode_akun": "laba_rugi_sebelum_pajak_laporan_kinerja_keuangan", "label_di_dokumen": "LABA (RUGI) SEBELUM PAJAK", "nilai_berjalan": "158,127.80", "nilai_lalu": "239,198.72", "halaman": 12},
+    {"kode_akun": "laba_rugi_periode_berjalan_laporan_kinerja_keuangan", "label_di_dokumen": "LABA (RUGI) PERIODE BERJALAN", "nilai_berjalan": "130,064.80", "nilai_lalu": "213,105.82", "halaman": 12},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak_laporan_kinerja_keuangan", "label_di_dokumen": "Penghasilan komprehensif lain", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 12},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan_laporan_kinerja_keuangan", "label_di_dokumen": "PENGHASILAN KOMPREHENSIF PERIODE BERJALAN", "nilai_berjalan": "130,064.80", "nilai_lalu": "213,105.82", "halaman": 12},
+    {"kode_akun": "perubahan_aset_bersih", "label_di_dokumen": "Saldo 31 Des 2025 1,035,605.95 dikurangi saldo 31 Des 2024 1,585,557.35", "nilai_berjalan": "(549,951.40)", "nilai_lalu": "658,753.01", "halaman": 13},
+    {"kode_akun": "transaksi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_penjualan_unit_penyertaan", "label_di_dokumen": "Penjualan unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "549,875.00", "halaman": 13},
+    {"kode_akun": "transkasi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_pembelian_kembali_unit_penyertaan", "label_di_dokumen": "Pembelian kembali unit penyertaan", "nilai_berjalan": "(680,016.20)", "nilai_lalu": "(104,227.81)", "halaman": 13},
+    {"kode_akun": "transkasi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_distribusi_kepada_pemegang_unit_penyertaan", "label_di_dokumen": "Distribusi kepada pemegang unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 13},
+    {"kode_akun": "arus_kas_bersih_dari_untuk_aktivitas_operasional", "label_di_dokumen": "Arus kas bersih diperoleh dari (digunakan untuk) aktivitas operasi", "nilai_berjalan": "282,168.78", "nilai_lalu": "(60,265.91)", "halaman": 14},
+    {"kode_akun": "arus_kas_bersih_dari_untuk_aktivitas_pendanaan", "label_di_dokumen": "Arus kas bersih diperoleh dari (digunakan untuk) aktivitas pendanaan", "nilai_berjalan": "(680,016.20)", "nilai_lalu": "445,647.19", "halaman": 14},
+    {"kode_akun": "kenaikan_penurunan_neto_kas", "label_di_dokumen": "Kenaikan (penurunan) bersih kas", "nilai_berjalan": "(397,847.42)", "nilai_lalu": "385,381.28", "halaman": 14},
+    {"kode_akun": "kas_dan_setara_kas_pada_awal_periode", "label_di_dokumen": "Kas pada awal periode", "nilai_berjalan": "487,368.88", "nilai_lalu": "101,987.60", "halaman": 14},
+    {"kode_akun": "kas_dan_setara_kas_pada_akhir_periode", "label_di_dokumen": "Kas pada akhir periode", "nilai_berjalan": "89,521.08", "nilai_lalu": "487,368.88", "halaman": 14},
+    {"kode_akun": "penjualan_portofolio_efek", "label_di_dokumen": "Pembelian dan penjualan portofolio efek bersih", "nilai_berjalan": "359,984.20", "nilai_lalu": "", "halaman": 14},
+    {"kode_akun": "penghasilan_kena_pajak", "label_di_dokumen": "Taksiran Penghasilan Kena Pajak (PKP)", "nilai_berjalan": "144,187.36", "nilai_lalu": "125,304.36", "halaman": 39}
+  ],
+  "catatan": "Disajikan dalam Dolar Amerika Serikat dengan format angka Inggris. Ketidakkonsistenan internal PDF: NAB 31 Des 2024 tertulis 1,585,557.73 di satu baris dan 1,585,557.35 di baris total (dipakai 1,585,557.35 yang konsisten dengan laporan perubahan aset bersih). Arus kas portofolio disajikan neto (penjualan bersih 359,984.20 pada 2025); pembelian tidak disajikan terpisah. Kas awal periode 487,368.88 (berbeda tipis dengan Excel 487,368.50)."
+}

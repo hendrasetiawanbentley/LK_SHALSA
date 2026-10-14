@@ -202,7 +202,7 @@ def validasi_rules(rules: Rules) -> list[str]:
     kode_seksi = {m["kode"] for m in rules.mapping_seksi}
     for nama in ("rules_akun", "sheet_config"):
         for i, baris in enumerate(getattr(rules, nama), start=2):
-            if baris.get("seksi") and baris["seksi"] not in kode_seksi:
+            if baris.get("seksi") and baris["seksi"].split(":")[0] not in kode_seksi:
                 masalah.append(
                     f"{nama}.csv baris {i}: seksi '{baris['seksi']}' tidak ada di mapping_seksi"
                 )

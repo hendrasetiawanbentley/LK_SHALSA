@@ -1,0 +1,38 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "Laporan Posisi Keuangan", "halaman_mulai": 11, "halaman_akhir": 11, "satuan": "rupiah"},
+    {"kode": "rd_performance", "judul": "Laporan Laba Rugi dan Penghasilan Komprehensif Lain", "halaman_mulai": 12, "halaman_akhir": 12, "satuan": "rupiah"},
+    {"kode": "rd_netassets", "judul": "Laporan Perubahan Aset Bersih", "halaman_mulai": 13, "halaman_akhir": 13, "satuan": "rupiah"},
+    {"kode": "cashflow", "judul": "Laporan Arus Kas", "halaman_mulai": 14, "halaman_akhir": 14, "satuan": "rupiah"},
+    {"kode": "calk", "judul": "Catatan atas Laporan Keuangan", "halaman_mulai": 15, "halaman_akhir": 40, "satuan": "rupiah"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "JUMLAH ASET", "nilai_berjalan": "1.336.272.829.434", "nilai_lalu": "1.281.695.691.650", "halaman": 11},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "JUMLAH LIABILITAS", "nilai_berjalan": "18.509.187.795", "nilai_lalu": "1.302.605.337", "halaman": 11},
+    {"kode_akun": "portofolio_efek", "label_di_dokumen": "Jumlah portofolio efek", "nilai_berjalan": "1.323.055.857.782", "nilai_lalu": "1.269.746.528.260", "halaman": 11},
+    {"kode_akun": "total_nilai_aset_bersih", "label_di_dokumen": "NILAI ASET BERSIH", "nilai_berjalan": "1.317.763.641.639", "nilai_lalu": "1.280.393.086.313", "halaman": 11},
+    {"kode_akun": "jumlah_unit_penyertaan_beredar", "label_di_dokumen": "JUMLAH UNIT PENYERTAAN BEREDAR", "nilai_berjalan": "709.863.919,7765", "nilai_lalu": "709.863.919,7765", "halaman": 11},
+    {"kode_akun": "nilai_aset_bersih_per_unit_penyertaan", "label_di_dokumen": "NILAI ASET BERSIH PER UNIT PENYERTAAN", "nilai_berjalan": "1.856,3609", "nilai_lalu": "1.803,7162", "halaman": 11},
+    {"kode_akun": "total_nilai_aset_bersih_awal_periode", "label_di_dokumen": "NILAI ASET BERSIH (kolom 2024)", "nilai_berjalan": "1.280.393.086.313", "nilai_lalu": "1.353.271.917.083", "halaman": 11},
+    {"kode_akun": "jumlah_unit_penyertaan_beredar_awal_periode", "label_di_dokumen": "JUMLAH UNIT PENYERTAAN BEREDAR (kolom 2024)", "nilai_berjalan": "709.863.919,7765", "nilai_lalu": "", "halaman": 11},
+    {"kode_akun": "total_pendapatan_laporan_kinerja_keuangan", "label_di_dokumen": "JUMLAH PENDAPATAN (RUGI) - BERSIH", "nilai_berjalan": "55.372.233.701", "nilai_lalu": "(36.555.479.004)", "halaman": 12},
+    {"kode_akun": "total_beban_laporan_kinerja_keuangan", "label_di_dokumen": "JUMLAH BEBAN", "nilai_berjalan": "17.804.927.595", "nilai_lalu": "20.382.497.246", "halaman": 12},
+    {"kode_akun": "laba_rugi_sebelum_pajak_laporan_kinerja_keuangan", "label_di_dokumen": "LABA (RUGI) SEBELUM PAJAK", "nilai_berjalan": "37.567.306.106", "nilai_lalu": "(56.937.976.250)", "halaman": 12},
+    {"kode_akun": "laba_rugi_periode_berjalan_laporan_kinerja_keuangan", "label_di_dokumen": "LABA (RUGI) TAHUN BERJALAN", "nilai_berjalan": "37.370.555.326", "nilai_lalu": "(56.978.830.770)", "halaman": 12},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak_laporan_kinerja_keuangan", "label_di_dokumen": "PENGHASILAN KOMPREHENSIF LAIN", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 12},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan_laporan_kinerja_keuangan", "label_di_dokumen": "JUMLAH PENGHASILAN (RUGI) KOMPREHENSIF TAHUN BERJALAN", "nilai_berjalan": "37.370.555.326", "nilai_lalu": "(56.978.830.770)", "halaman": 12},
+    {"kode_akun": "perubahan_aset_bersih", "label_di_dokumen": "Saldo 31 Des 2025 1.317.763.641.639 dikurangi saldo 31 Des 2024 1.280.393.086.313", "nilai_berjalan": "37.370.555.326", "nilai_lalu": "(72.878.830.770)", "halaman": 13},
+    {"kode_akun": "transaksi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_penjualan_unit_penyertaan", "label_di_dokumen": "Penjualan unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 13},
+    {"kode_akun": "transkasi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_pembelian_kembali_unit_penyertaan", "label_di_dokumen": "Pembelian kembali unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 13},
+    {"kode_akun": "transkasi_dengan_pemegang_unit_penyertaan_yang_menunjukkan_distribusi_kepada_pemegang_unit_penyertaan", "label_di_dokumen": "Distribusi kepada pemegang unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "(15.900.000.000)", "halaman": 13},
+    {"kode_akun": "arus_kas_bersih_dari_untuk_aktivitas_operasional", "label_di_dokumen": "Kas Bersih Diperoleh dari (Digunakan untuk) Aktivitas Operasi", "nilai_berjalan": "(265.392.301)", "nilai_lalu": "8.174.613.264", "halaman": 14},
+    {"kode_akun": "arus_kas_bersih_dari_untuk_aktivitas_pendanaan", "label_di_dokumen": "Pembayaran distribusi kepada pemegang unit penyertaan", "nilai_berjalan": "-", "nilai_lalu": "(15.899.942.439)", "halaman": 14},
+    {"kode_akun": "kenaikan_penurunan_neto_kas", "label_di_dokumen": "PENURUNAN BERSIH KAS DI BANK", "nilai_berjalan": "(265.392.301)", "nilai_lalu": "(7.725.329.175)", "halaman": 14},
+    {"kode_akun": "kas_dan_setara_kas_pada_awal_periode", "label_di_dokumen": "KAS DI BANK AWAL TAHUN", "nilai_berjalan": "523.282.110", "nilai_lalu": "8.248.611.285", "halaman": 14},
+    {"kode_akun": "kas_dan_setara_kas_pada_akhir_periode", "label_di_dokumen": "KAS DI BANK AKHIR TAHUN", "nilai_berjalan": "257.889.809", "nilai_lalu": "523.282.110", "halaman": 14},
+    {"kode_akun": "pembelian_portofolio_efek", "label_di_dokumen": "Pembelian portofolio efek ekuitas dan efek utang", "nilai_berjalan": "(638.695.701.910)", "nilai_lalu": "(837.259.778.052)", "halaman": 14},
+    {"kode_akun": "penjualan_portofolio_efek", "label_di_dokumen": "Hasil penjualan portofolio efek ekuitas dan efek utang - bersih", "nilai_berjalan": "683.598.743.644", "nilai_lalu": "789.805.225.622", "halaman": 14},
+    {"kode_akun": "penghasilan_kena_pajak", "label_di_dokumen": "Laba kena pajak (Catatan 20a)", "nilai_berjalan": "5.409.827", "nilai_lalu": "-", "halaman": 35}
+  ],
+  "catatan": "Disajikan dalam Rupiah. Tidak ada transaksi penjualan/pembelian kembali unit pada 2025, sehingga jumlah unit beredar sama dengan 2024. Penempatan instrumen pasar uang (92.500.000.000) disajikan terpisah dari hasil penjualan portofolio efek. Biaya penjualan/pelunasan unit tidak disajikan."
+}

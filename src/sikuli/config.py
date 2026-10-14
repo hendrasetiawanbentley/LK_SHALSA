@@ -49,6 +49,8 @@ BAWAAN: dict = {
         "toleransi_relatif": 0.0,
         "toleransi_pembulatan_skala": True,
         "toleransi_pembulatan_satuan": 1.0,
+        "abaikan_beda_tanda": False,
+        "nihil_dianggap_match": False,
         "ai_gen_hanya_non_match": True,
         "catatan_match": "Nilai sesuai",
     },

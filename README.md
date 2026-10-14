@@ -32,6 +32,26 @@ Dengan `ai.wajib: true` (bawaan di `config/pipeline.yaml`), workflow **gagal den
 belum diisi, dan dokumen yang gagal diproses AI dicatat GAGAL di Peringatan (tidak dialihkan ke mode aturan).
 Set `ai.wajib: false` bila ingin mode aturan sebagai cadangan.
 
+### Tanpa API key: jawaban AI yang direkam (`hasil_ai/`)
+
+Folder `hasil_ai/` berisi jawaban AI yang sudah dikerjakan Claude di sesi Claude Code untuk 10 LK di
+`input/`, dengan format yang sama seperti jawaban API:
+
+| File | Isi |
+|------|-----|
+| `hasil_ai/pdf/<nama file PDF>.json` | seksi + halaman + satuan, dan angka tiap akun Master (format keluaran ekstraksi PDF) |
+| `hasil_ai/pemetaan_excel_<EPP/MI/RD>.json` | `label`: label Excel → kode akun; `turunan`: akun yang di Excel = jumlah beberapa baris |
+| `hasil_ai/analisis/<entity_key>.json` | `catatan` per `kode_akun/periode`, `kesimpulan`, `rekomendasi` |
+
+Jalankan dengan `--ai-rekaman hasil_ai`; tidak ada panggilan API. Workflow `analisis` memakai rekaman ini
+otomatis bila secret `ANTHROPIC_API_KEY` belum diisi (atau pilih `sumber_ai = rekaman` saat Run workflow).
+File LK baru yang belum punya rekaman dicatat GAGAL di Peringatan.
+
+```bash
+PYTHONPATH=src python -m sikuli.lokal --ai-rekaman hasil_ai --out-dir hasil
+PYTHONPATH=src python scripts/buat_dashboard.py --hasil hasil      # hasil/dashboard.html
+```
+
 > Dengan AI aktif, isi PDF dan label Excel dikirim ke Anthropic API. Pastikan ini sesuai kebijakan data
 > instansi Anda sebelum mengunggah LK asli.
 
@@ -49,7 +69,8 @@ Set `ai.wajib: false` bila ingin mode aturan sebagai cadangan.
    Untuk menjalankan ulang manual: tab **Actions → analisis → Run workflow**.
 4. **Lihat hasil:** tab **Actions** → klik run teratas.
    - Halaman run menampilkan ringkasan per entitas, daftar akun yang perlu ditinjau, dan peringatan.
-   - Bagian **Artifacts** di bawah halaman run berisi `hasil-komparasi` (zip): `hasil_komparasi.xlsx` + CSV.
+   - Bagian **Artifacts** di bawah halaman run berisi `hasil-komparasi` (zip): `hasil_komparasi.xlsx`, CSV,
+     `hasil.json`, dan `dashboard.html` (buka di browser; satu file, tanpa server).
      Artifact disimpan 30 hari.
 
 Menjalankan di komputer sendiri (opsional):
@@ -122,7 +143,7 @@ dan `ringkasan.md`.
 | `nilai_excel_asli` | angka Excel asli (Rupiah penuh) |
 | `selisih`, `selisih_persen` | `nilai_pdf − nilai_excel` dalam satuan PDF, dan persentasenya terhadap Excel |
 | `status` | `MATCH` (sama dalam toleransi), `DIFFERENT`, `PDF_ONLY`, `EXCEL_ONLY` |
-| `indikasi` | petunjuk penyebab DIFFERENT: `BEDA_TANDA`, `BEDA_SKALA` |
+| `indikasi` | `BEDA_TANDA` (hanya tanda berbeda; MATCH bila `komparasi.abaikan_beda_tanda: true`, sesuai sheet Master), `BEDA_SKALA`, `NIHIL` (nol/"-" di satu sisi dan tidak ada di sisi lain; MATCH bila `komparasi.nihil_dianggap_match: true`) |
 | `catatan` | penjelasan per baris (dari AI bila aktif, selain itu template) |
 | `sumber_catatan` | `ai` atau `otomatis` |
 | `verifikasi_pdf` | hasil cek angka PDF ke teks halaman: `cocok`, `tidak_ditemukan_di_halaman`, `tanpa_teks` (PDF scan) |
@@ -140,6 +161,9 @@ dan `ringkasan.md`.
 
 **Lokasi_Seksi** (`lokasi_seksi.csv`): seksi per dokumen: `nama_file`, `entity_key`, `seksi`,
 `halaman_mulai`, `halaman_akhir`, `judul_cocok`.
+
+`sheet_config.csv` boleh memakai seksi bertingkat `seksi:nama` untuk membaca kolom lain dari sheet matriks
+yang sama (mis. EPP `3410000` kolom V dan W untuk saldo laba ditentukan/belum ditentukan).
 
 **Kesimpulan** (`kesimpulan.csv`): per `entity_key`: `kesimpulan` dan `rekomendasi` dari Claude (kosong bila AI
 tidak aktif).
@@ -163,5 +187,7 @@ tidak aktif).
 | `rules/` | Satu file rules: `Extraction_Rules.xlsx` (sheet Master) |
 | `config/` | `pipeline.yaml`, `mapping_seksi.csv`, `sheet_config.csv` (konfigurasi teknis) |
 | `src/sikuli/` | Kode pipeline (`lokal.py` = titik masuk) |
+| `hasil_ai/` | Jawaban AI yang direkam (ekstraksi PDF, pemetaan Excel, analisis) untuk `--ai-rekaman` |
+| `scripts/buat_dashboard.py` | Membuat `dashboard.html` dari `hasil/hasil.json` |
 | `tests/` | Tes unit dan end-to-end dengan PDF/Excel contoh |
 | `notebooks/`, `sql/` | Versi Databricks dari alur yang sama (opsional, tidak dipakai workflow) |

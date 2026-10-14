@@ -6,6 +6,9 @@ MI,Laporan Posisi Keuangan,financial_position,D,G,H,16,,,1
 MI,Laporan Laba Rugi,income,C,E,F,15,,,1
 MI,Laporan Arus Kas,cashflow,C,E,F,15,,,1
 RD,Laporan Posisi Keuangan,financial_position,A,B,C,9,,,1
-RD,Laporan Laba Rugi,income,A,B,C,9,,,1
+RD,Laporan Laba Rugi,rd_performance,A,B,C,9,,,1
 RD,Laporan Perubahan Aset Bersih,rd_netassets,A,B,C,9,,,1
 RD,Laporan Arus Kas,cashflow,A,B,C,9,,,1
+EPP,3410000,equity,A,X,,6,,1000000!B31,1
+EPP,3410000,equity:saldo_laba_ditentukan,A,V,,6,,1000000!B31,1
+EPP,3410000,equity:saldo_laba_belum_ditentukan,A,W,,6,,1000000!B31,1

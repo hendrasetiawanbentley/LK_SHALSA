@@ -1,0 +1,31 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "LAPORAN POSISI KEUANGAN", "halaman_mulai": 13, "halaman_akhir": 13, "satuan": "rupiah"},
+    {"kode": "income", "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN", "halaman_mulai": 14, "halaman_akhir": 14, "satuan": "rupiah"},
+    {"kode": "equity", "judul": "LAPORAN PERUBAHAN EKUITAS", "halaman_mulai": 15, "halaman_akhir": 15, "satuan": "rupiah"},
+    {"kode": "cashflow", "judul": "LAPORAN ARUS KAS", "halaman_mulai": 16, "halaman_akhir": 16, "satuan": "rupiah"},
+    {"kode": "calk", "judul": "CATATAN ATAS LAPORAN KEUANGAN", "halaman_mulai": 17, "halaman_akhir": 62, "satuan": "rupiah"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "Jumlah Aset", "nilai_berjalan": "112.546.935.863", "nilai_lalu": "79.850.400.850", "halaman": 13},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "Jumlah Liabilitas", "nilai_berjalan": "32.574.596.020", "nilai_lalu": "13.700.836.503", "halaman": 13},
+    {"kode_akun": "modal_disetor", "label_di_dokumen": "Modal ditempatkan dan disetor penuh 50.000 saham", "nilai_berjalan": "50.000.000.000", "nilai_lalu": "50.000.000.000", "halaman": 13},
+    {"kode_akun": "saldo_laba_defisit", "label_di_dokumen": "Saldo Laba", "nilai_berjalan": "27.757.557.134", "nilai_lalu": "13.832.544.167", "halaman": 13},
+    {"kode_akun": "total_ekuitas", "label_di_dokumen": "Jumlah Ekuitas", "nilai_berjalan": "79.972.339.843", "nilai_lalu": "66.149.564.347", "halaman": 13},
+    {"kode_akun": "pendapatan", "label_di_dokumen": "Pendapatan", "nilai_berjalan": "204.988.250.376", "nilai_lalu": "113.576.348.867", "halaman": 14},
+    {"kode_akun": "beban", "label_di_dokumen": "Beban", "nilai_berjalan": "(186.687.910.548)", "nilai_lalu": "(112.163.704.495)", "halaman": 14},
+    {"kode_akun": "laba_bruto", "label_di_dokumen": "Laba (Rugi) Usaha", "nilai_berjalan": "18.300.339.827", "nilai_lalu": "1.412.644.372", "halaman": 14},
+    {"kode_akun": "pendapatan_lainnya", "label_di_dokumen": "Pendapatan Lainnya", "nilai_berjalan": "46.006.724", "nilai_lalu": "3.445.333.776", "halaman": 14},
+    {"kode_akun": "beban_lainnya", "label_di_dokumen": "Beban Lainnya", "nilai_berjalan": "(106.139.866)", "nilai_lalu": "(8.032.186)", "halaman": 14},
+    {"kode_akun": "laba_rugi_sebelum_pajak", "label_di_dokumen": "Laba (Rugi) Sebelum Pajak Penghasilan", "nilai_berjalan": "18.240.206.685", "nilai_lalu": "4.849.945.962", "halaman": 14},
+    {"kode_akun": "laba_rugi_periode_berjalan", "label_di_dokumen": "Laba (Rugi) Tahun Berjalan", "nilai_berjalan": "13.925.012.967", "nilai_lalu": "2.682.094.954", "halaman": 14},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak", "label_di_dokumen": "Pos-pos yang tidak akan direklasifikasi ke laba rugi", "nilai_berjalan": "(102.237.471)", "nilai_lalu": "905.036.707", "halaman": 14},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan", "label_di_dokumen": "Jumlah Penghasilan Komprehensif Tahun Berjalan", "nilai_berjalan": "13.822.775.496", "nilai_lalu": "3.587.131.661", "halaman": 14},
+    {"kode_akun": "arus_kas_neto_dari_untuk_aktivitas_operasi", "label_di_dokumen": "Kas Bersih Diperoleh dari (Digunakan untuk) Aktivitas Operasi", "nilai_berjalan": "(355.060.644)", "nilai_lalu": "(2.669.499.367)", "halaman": 16},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_investasi", "label_di_dokumen": "Kas Bersih (Digunakan untuk) Aktivitas Investasi", "nilai_berjalan": "(746.536.483)", "nilai_lalu": "218.424.324", "halaman": 16},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_pendanaan", "label_di_dokumen": "Arus Kas Bersih (Digunakan untuk) Aktivitas Pendanaan", "nilai_berjalan": "-", "nilai_lalu": "-", "halaman": 16},
+    {"kode_akun": "kas_dan_setara_kas_akhir_periode", "label_di_dokumen": "Kas dan Setara Kas Akhir Tahun", "nilai_berjalan": "9.182.320.080", "nilai_lalu": "10.283.917.207", "halaman": 16},
+    {"kode_akun": "mkbd", "label_di_dokumen": "MKBD yang dilaporkan kepada OJK per 30 Desember 2025 (CaLK)", "nilai_berjalan": "49.290.886.517", "nilai_lalu": "", "halaman": 57}
+  ],
+  "catatan": "Disajikan dalam Rupiah penuh. Tidak ada klasifikasi lancar/jangka pendek. MKBD Rp49.290.886.517 dilaporkan per 30 Desember 2025 (CaLK hal. 57); Excel tidak memuat baris MKBD."
+}

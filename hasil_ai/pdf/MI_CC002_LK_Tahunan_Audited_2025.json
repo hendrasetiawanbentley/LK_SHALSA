@@ -1,0 +1,30 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "LAPORAN POSISI KEUANGAN KONSOLIDASIAN", "halaman_mulai": 13, "halaman_akhir": 14, "satuan": "ribuan"},
+    {"kode": "income", "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN KONSOLIDASIAN", "halaman_mulai": 15, "halaman_akhir": 16, "satuan": "ribuan"},
+    {"kode": "equity", "judul": "LAPORAN PERUBAHAN EKUITAS KONSOLIDASIAN", "halaman_mulai": 17, "halaman_akhir": 17, "satuan": "ribuan"},
+    {"kode": "cashflow", "judul": "LAPORAN ARUS KAS KONSOLIDASIAN", "halaman_mulai": 18, "halaman_akhir": 19, "satuan": "ribuan"},
+    {"kode": "calk", "judul": "CATATAN ATAS LAPORAN KEUANGAN KONSOLIDASIAN", "halaman_mulai": 20, "halaman_akhir": 92, "satuan": "ribuan"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "JUMLAH ASET", "nilai_berjalan": "460.610.616", "nilai_lalu": "463.343.210", "halaman": 13},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "JUMLAH LIABILITAS", "nilai_berjalan": "125.422.566", "nilai_lalu": "83.410.464", "halaman": 13},
+    {"kode_akun": "saldo_laba_defisit", "label_di_dokumen": "Saldo laba", "nilai_berjalan": "248.890.495", "nilai_lalu": "299.653.322", "halaman": 14},
+    {"kode_akun": "total_ekuitas", "label_di_dokumen": "JUMLAH EKUITAS", "nilai_berjalan": "335.188.050", "nilai_lalu": "379.932.746", "halaman": 14},
+    {"kode_akun": "modal_disetor", "label_di_dokumen": "Modal saham - ditempatkan dan disetor penuh", "nilai_berjalan": "60.000.000", "nilai_lalu": "60.000.000", "halaman": 14},
+    {"kode_akun": "pendapatan", "label_di_dokumen": "Jumlah pendapatan usaha", "nilai_berjalan": "344.792.266", "nilai_lalu": "325.322.369", "halaman": 15},
+    {"kode_akun": "beban", "label_di_dokumen": "Jumlah beban usaha", "nilai_berjalan": "304.124.512", "nilai_lalu": "306.314.776", "halaman": 15},
+    {"kode_akun": "laba_bruto", "label_di_dokumen": "LABA USAHA", "nilai_berjalan": "40.667.754", "nilai_lalu": "19.007.593", "halaman": 15},
+    {"kode_akun": "pendapatan_lainnya", "label_di_dokumen": "Jumlah penghasilan lain-lain - bersih", "nilai_berjalan": "7.506.938", "nilai_lalu": "14.489.689", "halaman": 15},
+    {"kode_akun": "beban_lainnya", "label_di_dokumen": "Lain-lain - bersih", "nilai_berjalan": "(3.881.837)", "nilai_lalu": "(2.383.765)", "halaman": 15},
+    {"kode_akun": "laba_rugi_sebelum_pajak", "label_di_dokumen": "LABA SEBELUM PAJAK PENGHASILAN", "nilai_berjalan": "48.174.692", "nilai_lalu": "33.497.282", "halaman": 15},
+    {"kode_akun": "laba_rugi_periode_berjalan", "label_di_dokumen": "LABA TAHUN BERJALAN", "nilai_berjalan": "39.993.167", "nilai_lalu": "24.415.341", "halaman": 15},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak", "label_di_dokumen": "Jumlah pendapatan komprehensif lainnya, setelah pajak", "nilai_berjalan": "5.262.137", "nilai_lalu": "736.732", "halaman": 16},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan", "label_di_dokumen": "JUMLAH LABA KOMPREHENSIF TAHUN BERJALAN", "nilai_berjalan": "45.255.304", "nilai_lalu": "25.152.073", "halaman": 16},
+    {"kode_akun": "arus_kas_neto_dari_untuk_aktivitas_operasi", "label_di_dokumen": "Kas bersih dihasilkan dari/(digunakan untuk) aktivitas operasi", "nilai_berjalan": "231.990.731", "nilai_lalu": "(128.240.442)", "halaman": 18},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_investasi", "label_di_dokumen": "Kas bersih digunakan untuk aktivitas investasi", "nilai_berjalan": "(18.921.523)", "nilai_lalu": "(14.544.300)", "halaman": 18},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_pendanaan", "label_di_dokumen": "Kas bersih digunakan untuk aktivitas pendanaan", "nilai_berjalan": "(98.170.686)", "nilai_lalu": "(5.277.281)", "halaman": 18},
+    {"kode_akun": "kas_dan_setara_kas_akhir_periode", "label_di_dokumen": "KAS DAN SETARA KAS PADA AKHIR TAHUN", "nilai_berjalan": "228.886.326", "nilai_lalu": "113.987.804", "halaman": 18}
+  ],
+  "catatan": "Dokumen memuat laporan konsolidasian (hal. 13-18) dan laporan entitas induk (hal. 93-98). Sesuai instruksi Master, dipakai angka konsolidasian. Aset dan liabilitas tidak diklasifikasikan lancar/jangka pendek sehingga total_aset_lancar dan total_liabilitas_jangka_pendek tidak diisi."
+}

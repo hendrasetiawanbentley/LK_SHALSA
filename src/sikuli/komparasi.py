@@ -54,6 +54,11 @@ def tentukan_status(nilai_pdf: float | None, nilai_excel: float | None,
                     skala_pdf: float, cfg: dict) -> dict:
     if nilai_pdf is None and nilai_excel is None:
         raise ValueError("minimal salah satu nilai harus ada")
+    # Rules Master: akun nihil ("-" di PDF, 0 di Excel, atau tidak disajikan sama sekali) di kedua
+    # sisi dianggap sesuai (MATCH) dengan indikasi NIHIL, bukan PDF_ONLY/EXCEL_ONLY.
+    if cfg.get("nihil_dianggap_match") and (nilai_pdf or 0) == 0 and (nilai_excel or 0) == 0:
+        return {"status": MATCH, "selisih": None if None in (nilai_pdf, nilai_excel) else 0.0,
+                "selisih_persen": None, "indikasi": "NIHIL"}
     if nilai_excel is None:
         return {"status": PDF_ONLY, "selisih": None, "selisih_persen": None, "indikasi": None}
     if nilai_pdf is None:
@@ -63,19 +68,29 @@ def tentukan_status(nilai_pdf: float | None, nilai_excel: float | None,
     tol = toleransi(nilai_pdf, nilai_excel, skala_pdf, cfg)
     if abs(selisih) <= tol:
         return {"status": MATCH, "selisih": selisih, "selisih_persen": persen, "indikasi": None}
+    # Rules Master: "perbedaan tanda saja dengan Excel (mis. -5.206 vs 5.206) bukan perbedaan nilai".
+    if cfg.get("abaikan_beda_tanda") and abs(nilai_pdf + nilai_excel) <= tol:
+        sisa = abs(nilai_pdf) - abs(nilai_excel)
+        return {"status": MATCH, "selisih": sisa,
+                "selisih_persen": None if nilai_excel == 0 else round(sisa / abs(nilai_excel) * 100, 4),
+                "indikasi": "BEDA_TANDA"}
     return {"status": DIFFERENT, "selisih": selisih, "selisih_persen": persen,
             "indikasi": indikasi_selisih(nilai_pdf, nilai_excel, tol)}
 
 
 def _indeks(baris: list[dict], periode: set[str], sisi: str) -> dict[tuple, dict]:
-    """Kunci join -> baris pertama; duplikat dihitung di kolom jumlah_baris_*."""
+    """Kunci join -> baris pertama bernilai bukan nol (atau baris pertama bila semua nol);
+    duplikat dihitung di kolom jumlah_baris_*."""
     hasil: dict[tuple, dict] = {}
     for b in baris:
         if not b.get("kode_akun") or b.get("periode") not in periode or b.get("nilai") is None:
             continue
         kunci = (b["entity_key"], b["kode_akun"], b["periode"])
         if kunci in hasil:
-            hasil[kunci][f"jumlah_baris_{sisi}"] += 1
+            jumlah = hasil[kunci][f"jumlah_baris_{sisi}"] + 1
+            if hasil[kunci]["nilai"] == 0 and b["nilai"] != 0:
+                hasil[kunci] = {**b}
+            hasil[kunci][f"jumlah_baris_{sisi}"] = jumlah
         else:
             hasil[kunci] = {**b, f"jumlah_baris_{sisi}": 1}
     return hasil

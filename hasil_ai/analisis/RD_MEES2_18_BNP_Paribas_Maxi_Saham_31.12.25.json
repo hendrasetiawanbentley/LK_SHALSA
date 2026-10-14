@@ -1,0 +1,11 @@
+{
+ "catatan": {
+  "penjualan_portofolio_efek/berjalan": "PDF 'Hasil penjualan portofolio efek ekuitas dan efek utang - bersih' Rp683.598.743.644; Excel Rp591.098.743.644. Selisih tepat Rp92.500.000.000 sama dengan penempatan instrumen pasar uang - bersih di arus kas PDF, yang di Excel dinetokan ke penjualan.",
+  "penghasilan_kena_pajak/berjalan": "Laba kena pajak Rp5.409.827 tersaji di rekonsiliasi fiskal (Catatan 20a); Excel tidak punya baris penghasilan kena pajak."
+ },
+ "kesimpulan": "Reksa Dana BNP Paribas Maxi Saham konsisten untuk NAB 1.317.763.641.639, unit beredar, total pendapatan 55.372.233.701, dan arus kas. Tidak ada transaksi unit selama 2025. Selisih penjualan portofolio Rp92,5 miliar murni klasifikasi: Excel menetokan penempatan instrumen pasar uang ke penjualan efek.",
+ "rekomendasi": [
+  "Seragamkan pengisian Excel 'Penjualan dan penerimaan dari penjualan aset keuangan' agar tidak menetokan penempatan/pencairan instrumen pasar uang, atau catat perbedaan ini saat menghitung perputaran portofolio.",
+  "Tambahkan sumber penghasilan kena pajak (CaLK) untuk rasio persentase PKP karena Excel tidak menyediakannya."
+ ]
+}

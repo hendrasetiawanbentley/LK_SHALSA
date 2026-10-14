@@ -1,0 +1,260 @@
+{
+ "seksi": [
+  {
+   "kode": "financial_position",
+   "judul": "LAPORAN POSISI KEUANGAN KONSOLIDASIAN",
+   "halaman_mulai": 9,
+   "halaman_akhir": 9,
+   "satuan": "miliar"
+  },
+  {
+   "kode": "income",
+   "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN KONSOLIDASIAN",
+   "halaman_mulai": 10,
+   "halaman_akhir": 10,
+   "satuan": "miliar"
+  },
+  {
+   "kode": "equity",
+   "judul": "LAPORAN PERUBAHAN EKUITAS KONSOLIDASIAN",
+   "halaman_mulai": 11,
+   "halaman_akhir": 12,
+   "satuan": "miliar"
+  },
+  {
+   "kode": "cashflow",
+   "judul": "LAPORAN ARUS KAS KONSOLIDASIAN",
+   "halaman_mulai": 13,
+   "halaman_akhir": 13,
+   "satuan": "miliar"
+  },
+  {
+   "kode": "calk",
+   "judul": "CATATAN ATAS LAPORAN KEUANGAN KONSOLIDASIAN",
+   "halaman_mulai": 14,
+   "halaman_akhir": 126,
+   "satuan": "miliar"
+  }
+ ],
+ "akun": [
+  {
+   "kode_akun": "kas_dan_setara_kas",
+   "label_di_dokumen": "Kas dan setara kas",
+   "nilai_berjalan": "34.228",
+   "nilai_lalu": "33.905",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "piutang_usaha",
+   "label_di_dokumen": "Piutang usaha - Pihak berelasi 2.040 + Pihak ketiga 9.183 (dijumlahkan)",
+   "nilai_berjalan": "11.223",
+   "nilai_lalu": "12.193",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_aset_lancar",
+   "label_di_dokumen": "Jumlah Aset Lancar",
+   "nilai_berjalan": "61.766",
+   "nilai_lalu": "63.080",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_aset_tidak_lancar",
+   "label_di_dokumen": "Jumlah Aset Tidak Lancar",
+   "nilai_berjalan": "225.993",
+   "nilai_lalu": "228.309",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_aset",
+   "label_di_dokumen": "JUMLAH ASET",
+   "nilai_berjalan": "287.759",
+   "nilai_lalu": "291.389",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_liabilitas_jangka_pendek",
+   "label_di_dokumen": "Jumlah Liabilitas Jangka Pendek",
+   "nilai_berjalan": "73.948",
+   "nilai_lalu": "76.767",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_liabilitas_jangka_panjang",
+   "label_di_dokumen": "Jumlah Liabilitas Jangka Panjang",
+   "nilai_berjalan": "63.274",
+   "nilai_lalu": "60.418",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_liabilitas",
+   "label_di_dokumen": "JUMLAH LIABILITAS",
+   "nilai_berjalan": "137.222",
+   "nilai_lalu": "137.185",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "modal_disetor",
+   "label_di_dokumen": "Modal saham",
+   "nilai_berjalan": "4.953",
+   "nilai_lalu": "4.953",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_ekuitas",
+   "label_di_dokumen": "JUMLAH EKUITAS",
+   "nilai_berjalan": "150.537",
+   "nilai_lalu": "154.204",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "saldo_laba_awal",
+   "label_di_dokumen": "Saldo, 1 Januari 2025: saldo laba ditentukan 15.337 + belum ditentukan 101.310 (dijumlahkan)",
+   "nilai_berjalan": "116.647",
+   "nilai_lalu": "111.401",
+   "halaman": 11
+  },
+  {
+   "kode_akun": "dividen",
+   "label_di_dokumen": "Dividen kas (bagian pemilik entitas induk)",
+   "nilai_berjalan": "(21.047)",
+   "nilai_lalu": "(17.683)",
+   "halaman": 11
+  },
+  {
+   "kode_akun": "pendapatan",
+   "label_di_dokumen": "PENDAPATAN",
+   "nilai_berjalan": "146.742",
+   "nilai_lalu": "149.967",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "beban_bunga",
+   "label_di_dokumen": "Biaya pendanaan",
+   "nilai_berjalan": "(5.206)",
+   "nilai_lalu": "(5.208)",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "laba_bruto",
+   "label_di_dokumen": "LABA USAHA",
+   "nilai_berjalan": "34.648",
+   "nilai_lalu": "41.453",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "laba_rugi_periode_berjalan",
+   "label_di_dokumen": "LABA TAHUN BERJALAN",
+   "nilai_berjalan": "24.458",
+   "nilai_lalu": "29.497",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "laba_rugi_selama_periode_berjalan_yang_diatribusikan_kepada_pemilik_entitas_induk",
+   "label_di_dokumen": "Laba tahun berjalan - Pemilik entitas induk",
+   "nilai_berjalan": "17.814",
+   "nilai_lalu": "22.403",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "laba_rugi_selama_periode_berjalan_yang_diatribusikan_kepada_kepentingan_non_pengendali",
+   "label_di_dokumen": "Laba tahun berjalan - Kepentingan nonpengendali",
+   "nilai_berjalan": "6.644",
+   "nilai_lalu": "7.094",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "total_laba_rugi_komprehensif_periode_berjalan",
+   "label_di_dokumen": "JUMLAH LABA KOMPREHENSIF TAHUN BERJALAN",
+   "nilai_berjalan": "24.584",
+   "nilai_lalu": "30.392",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_pemilik_entitas_induk",
+   "label_di_dokumen": "Jumlah laba komprehensif - Pemilik entitas induk",
+   "nilai_berjalan": "17.954",
+   "nilai_lalu": "23.188",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_kepentingan_non_pengendali",
+   "label_di_dokumen": "Jumlah laba komprehensif - Kepentingan nonpengendali",
+   "nilai_berjalan": "6.630",
+   "nilai_lalu": "7.204",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "laba_rugi_per_saham",
+   "label_di_dokumen": "Laba bersih per saham (dalam jumlah penuh)",
+   "nilai_berjalan": "179,83",
+   "nilai_lalu": "226,15",
+   "halaman": 10,
+   "satuan_akun": "rupiah"
+  },
+  {
+   "kode_akun": "laba_sebelum_bunga_dan_pajak_ebit",
+   "label_di_dokumen": "LABA USAHA",
+   "nilai_berjalan": "34.648",
+   "nilai_lalu": "41.453",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "persediaan",
+   "label_di_dokumen": "Persediaan",
+   "nilai_berjalan": "901",
+   "nilai_lalu": "1.096",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "laba_rugi_sebelum_pajak",
+   "label_di_dokumen": "LABA SEBELUM PAJAK PENGHASILAN",
+   "nilai_berjalan": "31.102",
+   "nilai_lalu": "37.615",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "beban_penyusutan_dan_amortisasi",
+   "label_di_dokumen": "Beban penyusutan dan amortisasi (laporan laba rugi; arus kas metode langsung)",
+   "nilai_berjalan": "(37.649)",
+   "nilai_lalu": "(34.181)",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "pokok_utang_jatuh_tempo_dalam_satu_tahun",
+   "label_di_dokumen": "Pinjaman jangka panjang jatuh tempo 1 tahun 17.746 + liabilitas sewa jatuh tempo 1 tahun 5.590 (dijumlahkan)",
+   "nilai_berjalan": "23.336",
+   "nilai_lalu": "21.357",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_liabilitas_berbunga",
+   "label_di_dokumen": "Utang bank jangka pendek 6.929 + pinjaman jatuh tempo 1 thn 17.746 + sewa jatuh tempo 1 thn 5.590 + pinjaman jangka panjang 26.099 + liabilitas sewa 18.547 (dijumlahkan)",
+   "nilai_berjalan": "74.911",
+   "nilai_lalu": "76.868",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "total_aset_periode_sebelumnya",
+   "label_di_dokumen": "JUMLAH ASET (kolom 2024)",
+   "nilai_berjalan": "291.389",
+   "nilai_lalu": "",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "piutang_usaha_periode_sebelumnya",
+   "label_di_dokumen": "Piutang usaha pihak berelasi + pihak ketiga (kolom 2024)",
+   "nilai_berjalan": "12.193",
+   "nilai_lalu": "",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "uang_muka",
+   "label_di_dokumen": "Uang muka (Catatan 8, bagian dari aset lancar lainnya)",
+   "nilai_berjalan": "511",
+   "nilai_lalu": "451",
+   "halaman": 59
+  }
+ ],
+ "catatan": "Uang muka tidak disajikan sebagai baris tersendiri di aset lancar (termasuk dalam aset lancar lainnya), sehingga tidak diambil. Laba per saham dalam Rupiah penuh, bukan miliar. Uang muka diambil dari rincian aset lancar lainnya (Catatan 8): 511; uang muka tidak lancar 734 ada di Catatan 13."
+}

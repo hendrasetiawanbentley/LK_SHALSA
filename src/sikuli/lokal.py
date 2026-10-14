@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
@@ -24,7 +25,7 @@ from .excel import baca_excel
 from .komparasi import MATCH, bandingkan
 from .pdf_lokal import halaman_dari_pdf
 from .pipeline import buat_permintaan_ekstraksi, konteks_permintaan, proses_halaman
-from .rules import Rules, muat_rules, validasi_rules
+from .rules import Rules, berlaku_untuk, muat_rules, validasi_rules
 from .seksi import kompilasi_pola
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,6 +42,8 @@ def catatan_otomatis(baris: dict, catatan_match: str = "Nilai sesuai") -> str:
     """Catatan deterministik per baris (pengganti ai_gen)."""
     status = baris["status"]
     if status == MATCH:
+        if baris.get("indikasi") == "BEDA_TANDA":
+            return f"{catatan_match} (hanya beda tanda penyajian; sesuai rules Master bukan perbedaan nilai)"
         return catatan_match
     if status == "PDF_ONLY":
         return "Akun ada di PDF tetapi tidak ditemukan di Excel; periksa sheet_config atau mapping label Excel."
@@ -77,6 +80,30 @@ def _ekstraksi_aturan(teks: list[dict], cfg: dict, rules: Rules, peringatan: lis
         if tidak_ada:
             peringatan.append(f"{p['sumber_file']} / {seksi}: akun tidak ditemukan di PDF: {', '.join(tidak_ada)}")
     return angka
+
+
+AKHIRAN_PERIODE_LALU = ("_awal_periode", "_periode_sebelumnya")
+
+
+def turunan_periode_lalu(baris: list[dict], rules: Rules, doc_type: str | None) -> int:
+    """Akun `<akun>_awal_periode` / `<akun>_periode_sebelumnya` (mis. NAB awal periode) diambil
+    dari kolom periode lalu akun dasarnya, bila Excel tidak punya baris sendiri untuk akun itu."""
+    ada = {b["kode_akun"] for b in baris if b.get("kode_akun")}
+    tambahan = []
+    for a in rules.rules_akun:
+        kode = a["kode_akun"]
+        akhiran = next((x for x in AKHIRAN_PERIODE_LALU if kode.endswith(x)), None)
+        if not akhiran or kode in ada or not berlaku_untuk(a["doc_type"], doc_type):
+            continue
+        dasar = kode[: -len(akhiran)]
+        for b in baris:
+            if b.get("kode_akun") == dasar and b["periode"] == "lalu":
+                tambahan.append({**b, "kode_akun": kode, "periode": "berjalan",
+                                 "cara_pemetaan": "turunan_periode_lalu",
+                                 "label_asli": f"{b['label_asli']} (kolom periode lalu)"})
+                break
+    baris.extend(tambahan)
+    return len(tambahan)
 
 
 def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules,
@@ -130,6 +157,7 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
                     pesan.append(f"{info['nama_file']}: {n} label dipetakan oleh AI (cara_pemetaan = ai), mohon ditinjau")
             except Exception as e:
                 pesan.append(f"{info['nama_file']}: pemetaan AI gagal ({type(e).__name__}: {e})")
+        turunan_periode_lalu(baris, rules, info["doc_type"])
         angka_excel.extend(baris)
         peringatan.extend(pesan)
 
@@ -226,6 +254,12 @@ def tulis_csv(hasil: dict, folder: Path) -> None:
         w.writerows([p] for p in hasil["peringatan"])
 
 
+def tulis_json(hasil: dict, path) -> None:
+    """Semua hasil (tanpa teks PDF mentah) dalam satu file JSON, dipakai scripts/buat_dashboard.py."""
+    data = {k: v for k, v in hasil.items() if k != "teks_pdf"}
+    Path(path).write_text(json.dumps(data, ensure_ascii=False, default=str, indent=1), encoding="utf-8")
+
+
 def ringkasan_markdown(hasil: dict, jumlah_pdf: int, jumlah_excel: int) -> str:
     """Ringkasan untuk halaman run GitHub Actions (GITHUB_STEP_SUMMARY)."""
     angka = format_angka
@@ -276,6 +310,8 @@ def main(argv=None) -> int:
     ap.add_argument("--rules", default=str(ROOT / "rules"))
     ap.add_argument("--config", default=str(ROOT / "config" / "pipeline.yaml"))
     ap.add_argument("--out-dir", default=str(ROOT / "hasil"), help="folder hasil (xlsx, csv, md)")
+    ap.add_argument("--ai-rekaman", default=None,
+                    help="folder jawaban AI yang sudah direkam (lihat ai.KlienRekaman); tanpa API key")
     args = ap.parse_args(argv)
 
     rules = muat_rules(args.rules, Path(args.config).parent)
@@ -296,7 +332,10 @@ def main(argv=None) -> int:
 
     cfg = muat_config(args.config)
     cfg_ai = cfg.get("ai") or {}
-    klien = ai.buat_klien(cfg)
+    if args.ai_rekaman:
+        klien = ai.KlienRekaman(args.ai_rekaman, model=f"rekaman {args.ai_rekaman}")
+    else:
+        klien = ai.buat_klien(cfg)
     if cfg_ai.get("aktif") and klien is None:
         if cfg_ai.get("wajib"):
             pesan = ("## Hasil komparasi SIKULI\n\n**Gagal: AI wajib dipakai tetapi secret `ANTHROPIC_API_KEY` "
@@ -310,6 +349,7 @@ def main(argv=None) -> int:
     hasil = jalankan(pdf, excel, cfg, rules, klien)
     tulis_excel(hasil, out / "hasil_komparasi.xlsx")
     tulis_csv(hasil, out)
+    tulis_json(hasil, out / "hasil.json")
     md = ringkasan_markdown(hasil, len(pdf), len(excel))
     (out / "ringkasan.md").write_text(md, encoding="utf-8")
     print(md)

@@ -1,0 +1,30 @@
+{
+  "seksi": [
+    {"kode": "financial_position", "judul": "LAPORAN POSISI KEUANGAN", "halaman_mulai": 8, "halaman_akhir": 9, "satuan": "rupiah"},
+    {"kode": "income", "judul": "LAPORAN LABA RUGI DAN PENGHASILAN KOMPREHENSIF LAIN", "halaman_mulai": 10, "halaman_akhir": 11, "satuan": "rupiah"},
+    {"kode": "equity", "judul": "LAPORAN PERUBAHAN EKUITAS", "halaman_mulai": 12, "halaman_akhir": 12, "satuan": "rupiah"},
+    {"kode": "cashflow", "judul": "LAPORAN ARUS KAS", "halaman_mulai": 13, "halaman_akhir": 13, "satuan": "rupiah"},
+    {"kode": "calk", "judul": "CATATAN ATAS LAPORAN KEUANGAN", "halaman_mulai": 14, "halaman_akhir": 64, "satuan": "rupiah"}
+  ],
+  "akun": [
+    {"kode_akun": "total_aset", "label_di_dokumen": "TOTAL ASET", "nilai_berjalan": "18.055.031.996", "nilai_lalu": "21.774.265.749", "halaman": 8},
+    {"kode_akun": "total_liabilitas", "label_di_dokumen": "TOTAL LIABILITAS", "nilai_berjalan": "679.327.886", "nilai_lalu": "2.547.447.541", "halaman": 9},
+    {"kode_akun": "modal_disetor", "label_di_dokumen": "Modal saham - ditempatkan dan disetor penuh", "nilai_berjalan": "26.000.000.000", "nilai_lalu": "26.000.000.000", "halaman": 9},
+    {"kode_akun": "saldo_laba_defisit", "label_di_dokumen": "Saldo laba (defisit): ditentukan penggunaannya 50.000.000 + belum ditentukan penggunaannya (8.686.880.890)", "nilai_berjalan": "(8.636.880.890)", "nilai_lalu": "(6.785.766.792)", "halaman": 9},
+    {"kode_akun": "total_ekuitas", "label_di_dokumen": "TOTAL EKUITAS", "nilai_berjalan": "17.375.704.110", "nilai_lalu": "19.226.818.208", "halaman": 9},
+    {"kode_akun": "pendapatan", "label_di_dokumen": "Laba (Rugi) Neto (total pendapatan usaha)", "nilai_berjalan": "2.706.673.490", "nilai_lalu": "(10.288.741.259)", "halaman": 10},
+    {"kode_akun": "beban", "label_di_dokumen": "Total Beban Usaha", "nilai_berjalan": "4.557.033.828", "nilai_lalu": "6.249.104.174", "halaman": 10},
+    {"kode_akun": "laba_bruto", "label_di_dokumen": "RUGI USAHA", "nilai_berjalan": "(1.850.360.338)", "nilai_lalu": "(16.537.845.433)", "halaman": 10},
+    {"kode_akun": "pendapatan_lainnya", "label_di_dokumen": "Pendapatan keuangan", "nilai_berjalan": "191.831.904", "nilai_lalu": "390.679.324", "halaman": 10},
+    {"kode_akun": "beban_lainnya", "label_di_dokumen": "Beban Lain-lain - Neto", "nilai_berjalan": "(118.473.390)", "nilai_lalu": "(362.099.351)", "halaman": 10},
+    {"kode_akun": "laba_rugi_sebelum_pajak", "label_di_dokumen": "RUGI SEBELUM MANFAAT (BEBAN) PAJAK PENGHASILAN", "nilai_berjalan": "(1.968.833.728)", "nilai_lalu": "(16.899.944.784)", "halaman": 10},
+    {"kode_akun": "laba_rugi_periode_berjalan", "label_di_dokumen": "RUGI NETO TAHUN BERJALAN", "nilai_berjalan": "(1.966.691.506)", "nilai_lalu": "(16.870.610.833)", "halaman": 10},
+    {"kode_akun": "penghasilan_komprehensif_lain_periode_berjalan_setelah_pajak", "label_di_dokumen": "Penghasilan komprehensif lain - setelah pajak", "nilai_berjalan": "115.577.408", "nilai_lalu": "192.181.786", "halaman": 11},
+    {"kode_akun": "total_penghasilan_komprehensif_periode_berjalan", "label_di_dokumen": "TOTAL RUGI KOMPREHENSIF TAHUN BERJALAN", "nilai_berjalan": "(1.851.114.098)", "nilai_lalu": "(16.678.429.047)", "halaman": 11},
+    {"kode_akun": "arus_kas_neto_dari_untuk_aktivitas_operasi", "label_di_dokumen": "Kas Neto Diperoleh dari (Digunakan untuk) Aktivitas Operasi", "nilai_berjalan": "891.202.081", "nilai_lalu": "(1.647.799.420)", "halaman": 13},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_investasi", "label_di_dokumen": "Kas Neto Diperoleh dari Aktivitas Investasi", "nilai_berjalan": "154.575.637", "nilai_lalu": "360.598.522", "halaman": 13},
+    {"kode_akun": "arus_kas_neto_dari_untuk_dari_aktivitas_pendanaan", "label_di_dokumen": "Kas Neto Digunakan untuk Aktivitas Pendanaan", "nilai_berjalan": "(331.611.137)", "nilai_lalu": "(3.603.321.826)", "halaman": 13},
+    {"kode_akun": "kas_dan_setara_kas_akhir_periode", "label_di_dokumen": "KAS DAN BANK PADA AKHIR TAHUN", "nilai_berjalan": "9.922.670.988", "nilai_lalu": "9.208.504.407", "halaman": 13}
+  ],
+  "catatan": "Disajikan dalam Rupiah penuh. Aset dan liabilitas tidak diklasifikasikan lancar/jangka pendek. Nilai MKBD tidak disebutkan dalam angka (hal. 57-58 hanya menyatakan persyaratan MKBD telah dipenuhi)."
+}

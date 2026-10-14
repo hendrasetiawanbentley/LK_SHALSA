@@ -1,0 +1,9 @@
+{
+ "catatan": {
+  "pembelian_portofolio_efek/berjalan": "PDF 'Pembelian portofolio efek utang dan sukuk' (774.230.959.975); Excel (929.230.959.975). Selisih tepat Rp155.000.000.000 sama dengan penempatan instrumen pasar uang - bersih yang di Excel digabung ke pembelian."
+ },
+ "kesimpulan": "Reksa Dana BNP Paribas Obligasi Kejora konsisten untuk NAB 5.975.374.976.700, unit beredar 5.504.244.269,6125, penjualan/pembelian kembali unit, distribusi 227.977.419.859, dan arus kas. Satu perbedaan pembelian portofolio Rp155 miliar berasal dari klasifikasi penempatan instrumen pasar uang.",
+ "rekomendasi": [
+  "Saat menghitung perputaran portofolio, pakai angka PDF (tanpa instrumen pasar uang) atau minta Excel memisahkan penempatan instrumen pasar uang."
+ ]
+}
