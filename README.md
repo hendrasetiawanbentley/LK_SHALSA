@@ -7,14 +7,14 @@ tanpa aplikasi front end, dengan **Claude (Anthropic API)** di hampir setiap tah
 ```
 input/pdf/*.pdf   ─► parse (pdfplumber) ─► deteksi entitas + seksi ─► ekstraksi akun per seksi ─► angka PDF ──┐
 input/excel/*.xlsx ─► baca sheet (sheet_config) ─► mapping label → kode_akun ──────────────────► angka Excel ─┴─► komparasi ─► hasil/
-rules/*.csv (kertas kerja) dipakai di setiap langkah
+rules/Extraction_Rules.xlsx (sheet Master) dipakai di setiap langkah
 ```
 
 ## Penggunaan AI (Claude)
 
 | Tahap | Dengan AI (`ANTHROPIC_API_KEY` tersedia) | Cadangan tanpa AI |
 |-------|------------------------------------------|-------------------|
-| Parsing PDF, seksi, satuan, angka akun | Claude membaca PDF langsung (termasuk PDF hasil scan), menentukan halaman tiap seksi dan satuannya, lalu menyalin angka akun sesuai `rules_akun.csv` | pdfplumber + pola `mapping_seksi` + pencocokan label |
+| Parsing PDF, seksi, satuan, angka akun | Claude membaca PDF langsung (termasuk PDF hasil scan), menentukan halaman tiap seksi dan satuannya, lalu menyalin angka akun sesuai sheet Master | pdfplumber + pola `mapping_seksi` + pencocokan label |
 | Verifikasi angka PDF | Setiap angka dari AI dicek ulang ke teks halaman rujukan (kolom `verifikasi`) | - |
 | Pemetaan label Excel | Label yang tidak dikenali rules dipetakan Claude (`cara_pemetaan = ai`) | Label dibiarkan belum terpetakan |
 | Komparasi dan status | Deterministik (kode), tidak memakai AI | sama |
@@ -36,7 +36,7 @@ mencatatnya di Peringatan. Mode yang dipakai tertulis di baris pertama ringkasan
 
 ## Cara menjalankan di GitHub
 
-1. **Isi rules** di folder `rules/` (lihat tabel di bawah), commit dan push.
+1. **Isi rules** di `rules/Extraction_Rules.xlsx` sheet Master (lihat tabel di bawah), lalu upload ke GitHub.
 2. **Upload file LK** ke repo:
    - PDF ke `input/pdf/`, misalnya `MI_CC002_LK_Tahunan_Audited_2025.pdf`
    - Excel ke `input/excel/` dengan **nama file yang sama**, misalnya `MI_CC002_LK_Tahunan_Audited_2025.xlsx`
@@ -60,73 +60,49 @@ PYTHONPATH=src python -m sikuli.lokal          # baca input/pdf dan input/excel,
 > **Repo ini publik.** File di `input/` dan artifact hasil bisa dilihat orang lain. Ubah repo menjadi
 > private (Settings → General → Danger Zone → Change visibility) sebelum mengunggah LK asli.
 
-## Tabel rules yang harus diisi
+## Rules: satu file `rules/Extraction_Rules.xlsx` (sheet Master)
 
-Semua file CSV UTF-8 di `rules/` dengan baris judul (bisa disusun di Excel lalu *Save As → CSV UTF-8*).
-Kolom `aktif` opsional (`1`/`0`) untuk menonaktifkan baris. Rules saat ini sudah disesuaikan dengan template
-Excel OJK (MI, RD) dan XBRL IDX (EPP) dari file yang diunggah, dan daftar akunnya masih bisa ditambah.
-`mapping_seksi.csv` diambil dari slide 6. Jika rules tidak valid, workflow gagal dan menyebut baris yang salah.
+Semua rules akun ada di **satu file Excel**, sheet **Master**. Satu baris = satu akun yang diekstrak dan
+dibandingkan. Sheet lain (rasio, Ref) belum dipakai. Jika rules tidak valid, workflow gagal dan menyebut baris
+yang salah.
 
-### 1. `rules_akun.csv` (wajib): akun yang dibandingkan
+| Kolom | Wajib | Isi | Dipakai untuk |
+|-------|:-----:|-----|---------------|
+| `no` | | nomor urut | rujukan |
+| `entitas` | ya | `EPP`, `MI`, `RD` (atau `DES`) | memilih akun sesuai jenis entitas dari nama file |
+| `bagian` | ya | nama laporan, mis. `Laporan Posisi Keuangan` | menentukan seksi tempat akun dicari (lihat tabel di bawah) |
+| `akun` | ya | nama akun, mis. `Kas dan Setara Kas` | nama akun di hasil; dicocokkan dengan label PDF/Excel |
+| `field_key` | ya | kode unik per entitas, mis. `kas_dan_setara_kas` | **kunci pasangan PDF ↔ Excel** (`kode_akun` di hasil) |
+| `dtype` | | `number` | informasi |
+| `description` | ya | `Nama Akun: 'alias 1', 'alias 2', ...` lalu keterangan/instruksi | alias dipakai mencocokkan label PDF dan Excel; **seluruh teks dikirim ke Claude** sebagai instruksi ekstraksi akun itu |
 
-| Kolom | Wajib | Isi | Contoh |
-|-------|:-----:|-----|--------|
-| `doc_type` | ya | `EPP`, `MI`, `RD`, gabungan `EPP,MI`, atau `Semua` | `EPP,MI` |
-| `seksi` | ya | kode seksi dari `mapping_seksi.csv` | `financial_position` |
-| `kode_akun` | ya | kode unik per doc_type; kunci pasangan PDF ↔ Excel | `FP_KAS` |
-| `nama_akun` | ya | nama baris seperti tertulis di laporan | `Kas dan setara kas` |
-| `sinonim` | | nama lain dipisah `\|` (Inggris, label Excel, variasi) | `Kas dan bank\|Cash and cash equivalents` |
-| `deskripsi` | | catatan bebas | |
+Alias dibaca dari bagian awal `description` sampai baris kosong atau kata "Keterangan Akun"/"Penjelasan Akun",
+dengan format `Nama Akun: 'Kas dan Setara Kas', 'Cash and cash equivalents'`.
 
-Baris PDF dicocokkan dengan `nama_akun`/`sinonim` (huruf besar-kecil dan tanda baca diabaikan). Akun yang
-tidak ketemu di PDF tercantum di Peringatan; tambahkan sinonimnya di sini.
+**Nilai kolom `bagian` yang dikenali:**
 
-### 2. `sheet_config.csv` (wajib): letak angka di Excel
+| `bagian` | Seksi |
+|----------|-------|
+| Laporan Posisi Keuangan | `financial_position` |
+| Laporan Laba Rugi | `income` |
+| Laporan Arus Kas | `cashflow` |
+| Laporan Perubahan Aset Bersih | `rd_netassets` |
+| Laporan Kinerja Keuangan | `rd_performance` |
+| Catatan Atas Laporan Keuangan (CaLK) | `calk` |
+| Laporan Perubahan Modal (epp) / Laporan Posisi Keuangan (mi) | EPP: `equity`, MI: `financial_position` |
+| Akun Utang Berbasis Bunga / Akun Pendapatan Non Halal | `financial_position` / `income` (entitas `DES`) |
 
-| Kolom | Wajib | Isi | Contoh |
-|-------|:-----:|-----|--------|
-| `doc_type` | ya | jenis entitas pemilik format | `EPP,MI` |
-| `sheet` | ya | nama sheet, atau regex diawali `re:` | `Posisi Keuangan` |
-| `seksi` | ya | kode seksi | `financial_position` |
-| `kolom_label` | ya | huruf kolom nama akun | `A` |
-| `kolom_nilai` | ya | huruf kolom tahun berjalan | `B` |
-| `kolom_nilai_lalu` | | huruf kolom tahun pembanding | `C` |
-| `baris_mulai` | ya | baris pertama data | `5` |
-| `baris_akhir` | | baris terakhir (kosong = sampai habis) | |
-| `skala` | | pengali bila Excel dalam ribuan/jutaan (bawaan 1), atau rujukan sel teks pembulatan | `1000` / `1000000!B31` |
+Nilai `bagian` baru perlu ditambahkan di `BAGIAN_KE_SEKSI` pada `src/sikuli/rules.py`.
 
-### 3. `mapping_seksi.csv` (sudah terisi): pola judul laporan
+### Konfigurasi teknis (folder `config/`, jarang diubah)
 
-| Kolom | Wajib | Isi | Contoh |
-|-------|:-----:|-----|--------|
-| `no` | | nomor urut seksi | `1` |
-| `kode` | ya | kode seksi | `financial_position` |
-| `seksi` | ya | nama seksi | `Laporan Posisi Keuangan` |
-| `entitas` | ya | `Semua` atau jenis entitas tertentu | `RD` |
-| `pola` | ya | satu frasa judul per baris | `statement of financial position` |
-| `maks_halaman` | | batas halaman seksi sejak judul (kosong = tanpa batas) | |
+Bukan rules akun, melainkan tata letak dokumen:
 
-Seksi dikenali dari baris teratas halaman: halaman dengan ≥3 judul cocok dianggap daftar isi, halaman tanpa
-judul ikut seksi sebelumnya. Untuk MKBD atau penanda akhir CaLK (lampiran), cukup tambah baris.
-
-### 4. `daftar_entitas.csv` (wajib bila jenis entitas tidak ada di nama file)
-
-| Kolom | Wajib | Isi | Contoh |
-|-------|:-----:|-----|--------|
-| `entity_id` | ya | kode di nama file (bagian kedua) | `TLKM` |
-| `nama_entitas` | | nama lengkap | `PT Telkom Indonesia (Persero) Tbk` |
-| `doc_type` | ya | `EPP` / `MI` / `RD` | `EPP` |
-
-### 5. `mapping_akun_excel.csv` (opsional): label Excel yang tidak sama dengan nama/sinonim
-
-| Kolom | Wajib | Isi | Contoh |
-|-------|:-----:|-----|--------|
-| `doc_type` | ya | jenis entitas | `EPP,MI` |
-| `sheet` | | nama sheet (kosong = semua) | `Posisi Keuangan` |
-| `label_excel` | ya | label persis di Excel | `Kas dan setara kas - bersih` |
-| `kode_akun` | ya | kode di `rules_akun.csv` | `FP_KAS` |
-
-Pengaturan lain (pola nama file, toleransi selisih, periode yang dibandingkan) ada di `config/pipeline.yaml`.
+| File | Isi |
+|------|-----|
+| `config/mapping_seksi.csv` | pola judul laporan untuk mengenali seksi PDF tanpa AI (`kode`, `seksi`, `entitas`, `pola`, `maks_halaman`) |
+| `config/sheet_config.csv` | letak angka di Excel per jenis entitas (`doc_type`, `sheet`, `seksi`, `kolom_label`, `kolom_nilai`, `kolom_nilai_lalu`, `baris_mulai`, `baris_akhir`, `skala`) |
+| `config/pipeline.yaml` | pola nama file, AI, toleransi komparasi |
 
 ## Struktur hasil
 
@@ -183,8 +159,8 @@ tidak aktif).
 | `.github/workflows/analisis.yml` | Menjalankan analisis dan menyimpan hasil sebagai artifact |
 | `.github/workflows/tests.yml` | Menjalankan tes setiap push |
 | `input/` | Tempat upload LK PDF dan Excel |
-| `rules/` | Kertas kerja (tabel rules di atas) |
-| `config/pipeline.yaml` | Pola nama file, deteksi seksi, toleransi komparasi |
+| `rules/` | Satu file rules: `Extraction_Rules.xlsx` (sheet Master) |
+| `config/` | `pipeline.yaml`, `mapping_seksi.csv`, `sheet_config.csv` (konfigurasi teknis) |
 | `src/sikuli/` | Kode pipeline (`lokal.py` = titik masuk) |
 | `tests/` | Tes unit dan end-to-end dengan PDF/Excel contoh |
 | `notebooks/`, `sql/` | Versi Databricks dari alur yang sama (opsional, tidak dipakai workflow) |

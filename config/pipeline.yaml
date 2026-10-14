@@ -7,7 +7,8 @@ schema: lk
 # Lokasi file sumber di Unity Catalog Volume.
 path_pdf: /Volumes/sikuli/lk/sumber/docs/ALL      # LK PDF
 path_excel: /Volumes/sikuli/lk/sumber/excel       # LK Excel
-# Folder rules relatif terhadap root repo (atau path Volume absolut).
+# Folder rules: berisi satu file Excel rules (sheet Master). Konfigurasi teknis
+# (mapping_seksi.csv, sheet_config.csv) ada di folder config/ ini.
 path_rules: rules
 
 entitas:
@@ -31,7 +32,7 @@ ekstraksi:
   ai_extract_version: "2.0"   # versi ai_extract (2.0 / 2.1); skema JSON bersarang butuh >= 2.0
   maks_akun_per_panggilan: 40
   maks_karakter_per_seksi: 60000
-  seksi_dilewati: [calk]      # CaLK tidak diekstraksi angkanya (dianalisis notebook D)
+  seksi_dilewati: []          # seksi yang tidak diambil angkanya (CaLK ikut karena Master memuat akun CaLK, mis. MKBD)
 
 ai:
   # Claude (Anthropic API) dipakai bila aktif DAN secret ANTHROPIC_API_KEY tersedia.

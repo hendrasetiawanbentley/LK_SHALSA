@@ -274,7 +274,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out-dir", default=str(ROOT / "hasil"), help="folder hasil (xlsx, csv, md)")
     args = ap.parse_args(argv)
 
-    rules = muat_rules(args.rules)
+    rules = muat_rules(args.rules, Path(args.config).parent)
     masalah = validasi_rules(rules)
     if masalah:
         print("Rules tidak valid:\n" + "\n".join(f"- {m}" for m in masalah))

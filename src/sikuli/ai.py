@@ -161,10 +161,13 @@ def ekstraksi_pdf(klien: KlienAI, path: str, info: dict, rules: Rules, cfg: dict
         return [], [], [f"{info['nama_file']}: tidak ada akun di rules_akun untuk doc_type '{doc_type}'"]
 
     daftar_seksi = "\n".join(f"- {k}: {n}" for k, n in seksi)
-    daftar_akun = "\n".join(
-        f"- {a['kode_akun']} (seksi {a['seksi']}): {a['nama_akun']}"
-        + (f" | sinonim: {a['sinonim'].replace('|', '; ')}" if a.get("sinonim") else "")
-        for a in akun)
+    def uraian(a: dict) -> str:
+        # Kolom description di sheet Master sudah berisi alias + instruksi ekstraksi per akun.
+        if a.get("deskripsi"):
+            return " ".join(a["deskripsi"].split())
+        return a["nama_akun"] + (f" | sinonim: {a['sinonim'].replace('|', '; ')}" if a.get("sinonim") else "")
+
+    daftar_akun = "\n".join(f"- {a['kode_akun']} (seksi {a['seksi']}): {uraian(a)}" for a in akun)
     data = base64.standard_b64encode(Path(path).read_bytes()).decode()
     hasil = klien.minta_json(SYSTEM_PDF, [
         {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": data}},
