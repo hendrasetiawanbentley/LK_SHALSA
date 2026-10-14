@@ -36,8 +36,10 @@ ekstraksi:
 
 ai:
   # Claude (Anthropic API) dipakai bila aktif DAN secret ANTHROPIC_API_KEY tersedia.
-  # Tanpa key, atau bila panggilan gagal, pipeline otomatis memakai aturan (tanpa AI).
   aktif: true
+  # wajib: true = AI harus dipakai. Tanpa ANTHROPIC_API_KEY workflow GAGAL (merah) dengan pesan jelas,
+  # dan dokumen yang gagal diproses AI tidak dialihkan ke mode aturan.
+  wajib: true
   model: claude-opus-5-5      # mis. claude-sonnet-5-5 / claude-haiku-5-5 untuk biaya lebih rendah
   effort: medium              # low / medium / high / xhigh / max
   fallback_server: true       # bila model menolak (refusal), API mencoba model cadangan otomatis

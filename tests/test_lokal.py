@@ -113,3 +113,18 @@ def test_cli(tmp_path, capsys, monkeypatch):
 def test_cli_tanpa_file(tmp_path):
     assert main(["--pdf", str(tmp_path / "x"), "--excel", str(tmp_path / "y"), "--out-dir", str(tmp_path / "o")]) == 0
     assert "Belum ada file" in (tmp_path / "o" / "ringkasan.md").read_text()
+
+
+def test_ai_wajib_tanpa_key_gagal(tmp_path, monkeypatch):
+    import yaml
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    fx = Path(__file__).parent / "fixtures"
+    cfg = yaml.safe_load((fx / "pipeline.yaml").read_text())
+    cfg["ai"].update({"aktif": True, "wajib": True})
+    (tmp_path / "pipeline.yaml").write_text(yaml.safe_dump(cfg))
+    (tmp_path / "pdf").mkdir()
+    buat_pdf(tmp_path / "pdf" / "AAAA_LK_2024.pdf")
+    out = tmp_path / "hasil"
+    assert main(["--pdf", str(tmp_path / "pdf"), "--excel", str(tmp_path / "x"), "--out-dir", str(out),
+                 "--rules", str(fx / "rules"), "--config", str(tmp_path / "pipeline.yaml")]) == 1
+    assert "ANTHROPIC_API_KEY" in (out / "ringkasan.md").read_text()

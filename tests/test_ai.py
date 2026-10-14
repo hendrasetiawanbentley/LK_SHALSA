@@ -145,3 +145,11 @@ def test_ai_gagal_kembali_ke_aturan(tmp_path, cfg, rules):
     assert any("ekstraksi AI gagal" in p and "memakai aturan" in p for p in hasil["peringatan"])
     assert {a["sumber_ekstraksi"] for a in hasil["angka_pdf"]} == {"aturan"}
     assert {b["kode_akun"]: b["status"] for b in hasil["komparasi"]}["FP_KAS"] == "MATCH"
+
+
+def test_ai_wajib_tidak_kembali_ke_aturan(tmp_path, cfg, rules):
+    pdf, xls = siapkan(tmp_path)
+    cfg["ai"]["wajib"] = True
+    hasil = jalankan([pdf], [xls], cfg, rules, KlienTiruan(gagal_pdf=True))
+    assert any("GAGAL" in p and "tidak diproses" in p for p in hasil["peringatan"])
+    assert hasil["angka_pdf"] == []

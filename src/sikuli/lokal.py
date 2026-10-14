@@ -100,7 +100,11 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
                 angka_pdf.extend(ang)
                 peringatan.extend(pesan)
                 continue
-            except Exception as e:  # API error, refusal, PDF terlalu besar: pakai aturan
+            except Exception as e:  # API error, refusal, PDF terlalu besar
+                if cfg_ai.get("wajib"):
+                    peringatan.append(f"{nama}: GAGAL - ekstraksi AI error ({type(e).__name__}: {e}); "
+                                      "dokumen tidak diproses (ai.wajib = true)")
+                    continue
                 peringatan.append(f"{nama}: ekstraksi AI gagal ({type(e).__name__}: {e}); memakai aturan")
         hasil = proses_halaman(path, halaman, cfg, rules, pola)
         teks.extend(hasil["teks"])
@@ -291,8 +295,17 @@ def main(argv=None) -> int:
         return 0
 
     cfg = muat_config(args.config)
+    cfg_ai = cfg.get("ai") or {}
     klien = ai.buat_klien(cfg)
-    if (cfg.get("ai") or {}).get("aktif") and klien is None:
+    if cfg_ai.get("aktif") and klien is None:
+        if cfg_ai.get("wajib"):
+            pesan = ("## Hasil komparasi SIKULI\n\n**Gagal: AI wajib dipakai tetapi secret `ANTHROPIC_API_KEY` "
+                     "belum diisi.**\n\nIsi di GitHub: Settings → Secrets and variables → Actions → "
+                     "New repository secret, nama `ANTHROPIC_API_KEY`. Lalu jalankan ulang workflow "
+                     "(Actions → analisis → Run workflow).\n")
+            (out / "ringkasan.md").write_text(pesan, encoding="utf-8")
+            print(pesan)
+            return 1
         print("AI aktif di config tetapi ANTHROPIC_API_KEY tidak ada; memakai aturan saja.")
     hasil = jalankan(pdf, excel, cfg, rules, klien)
     tulis_excel(hasil, out / "hasil_komparasi.xlsx")

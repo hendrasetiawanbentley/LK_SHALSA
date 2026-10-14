@@ -33,6 +33,7 @@ BAWAAN: dict = {
     },
     "ai": {
         "aktif": False,
+        "wajib": False,
         "model": "claude-opus-5-5",
         "effort": "medium",
         "fallback_server": True,

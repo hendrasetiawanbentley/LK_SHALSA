@@ -28,8 +28,9 @@ rules/Extraction_Rules.xlsx (sheet Master) dipakai di setiap langkah
 3. Atur model dan tahap mana yang memakai AI di bagian `ai:` pada `config/pipeline.yaml`
    (bawaan: `claude-opus-5-5`, effort `medium`, semua tahap aktif).
 
-Tanpa secret, atau bila panggilan AI gagal untuk satu dokumen, pipeline otomatis memakai jalur aturan dan
-mencatatnya di Peringatan. Mode yang dipakai tertulis di baris pertama ringkasan run.
+Dengan `ai.wajib: true` (bawaan di `config/pipeline.yaml`), workflow **gagal dengan pesan jelas** bila secret
+belum diisi, dan dokumen yang gagal diproses AI dicatat GAGAL di Peringatan (tidak dialihkan ke mode aturan).
+Set `ai.wajib: false` bila ingin mode aturan sebagai cadangan.
 
 > Dengan AI aktif, isi PDF dan label Excel dikirim ke Anthropic API. Pastikan ini sesuai kebijakan data
 > instansi Anda sebelum mengunggah LK asli.
