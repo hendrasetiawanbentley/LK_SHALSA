@@ -29,6 +29,13 @@ from .seksi import kompilasi_pola
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def format_angka(x: float | None) -> str:
+    """1250 -> '1,250'; 1250.4 -> '1,250.40'; None -> '-'."""
+    if x is None:
+        return "-"
+    return f"{x:,.0f}" if float(x).is_integer() else f"{x:,.2f}"
+
+
 def catatan_otomatis(baris: dict, catatan_match: str = "Nilai sesuai") -> str:
     """Catatan deterministik per baris (pengganti ai_gen)."""
     status = baris["status"]
@@ -46,7 +53,8 @@ def catatan_otomatis(baris: dict, catatan_match: str = "Nilai sesuai") -> str:
         return "Nilai berbeda kelipatan ribuan/jutaan; periksa satuan penyajian PDF atau skala di sheet_config."
     persen = baris.get("selisih_persen")
     persen_teks = f" ({persen:.2f}%)" if persen is not None else ""
-    return f"Selisih {baris['selisih']:,.0f}{persen_teks}; perlu konfirmasi ke entitas."
+    return (f"Selisih {format_angka(baris['selisih'])} {baris.get('satuan_pdf') or ''}{persen_teks}; "
+            "perlu konfirmasi ke entitas.").replace("  ", " ")
 
 
 def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules) -> dict:
@@ -117,8 +125,8 @@ def ringkasan(komparasi: list[dict]) -> list[dict]:
 
 KOLOM = {
     "Ringkasan": ["entity_key", "MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY", "persen_match"],
-    "Komparasi": ["entity_key", "seksi", "kode_akun", "nama_akun", "periode", "nilai_pdf", "nilai_excel",
-                  "selisih", "selisih_persen", "status", "indikasi", "catatan", "halaman_pdf", "sumber_pdf",
+    "Komparasi": ["entity_key", "seksi", "kode_akun", "nama_akun", "periode", "satuan_pdf", "nilai_pdf",
+                  "nilai_excel", "nilai_excel_asli", "selisih", "selisih_persen", "status", "indikasi", "catatan", "halaman_pdf", "sumber_pdf",
                   "sumber_excel", "label_pdf", "label_excel"],
     "Angka_PDF": ["sumber_file", "entity_key", "seksi", "kode_akun", "label_di_dokumen", "periode", "nilai",
                   "nilai_asli", "skala", "halaman"],
@@ -174,8 +182,7 @@ def tulis_csv(hasil: dict, folder: Path) -> None:
 
 def ringkasan_markdown(hasil: dict, jumlah_pdf: int, jumlah_excel: int) -> str:
     """Ringkasan untuk halaman run GitHub Actions (GITHUB_STEP_SUMMARY)."""
-    def angka(x):
-        return "-" if x is None else f"{x:,.0f}"
+    angka = format_angka
 
     def sel(x):
         return "" if x is None else str(x).replace("|", "\\|")
@@ -192,9 +199,11 @@ def ringkasan_markdown(hasil: dict, jumlah_pdf: int, jumlah_excel: int) -> str:
     perlu = [b for b in k if b["status"] != MATCH]
     md += ["", f"### Perlu ditinjau ({len(perlu)} baris)", ""]
     if perlu:
-        md += ["| entitas | akun | periode | nilai PDF | nilai Excel | selisih | status | catatan |",
-               "|---|---|---|--:|--:|--:|---|---|"]
-        md += [f"| {sel(b['entity_key'])} | {sel(b['kode_akun'])} | {b['periode']} | {angka(b['nilai_pdf'])} | "
+        md += ["Nilai dalam satuan PDF; nilai Excel sudah dibagi sesuai satuan tersebut.", "",
+               "| entitas | akun | periode | satuan | nilai PDF | nilai Excel | selisih | status | catatan |",
+               "|---|---|---|---|--:|--:|--:|---|---|"]
+        md += [f"| {sel(b['entity_key'])} | {sel(b['kode_akun'])} | {b['periode']} | {b['satuan_pdf']} | "
+               f"{angka(b['nilai_pdf'])} | "
                f"{angka(b['nilai_excel'])} | {angka(b['selisih'])} | {b['status']} | {sel(b['catatan'])} |"
                for b in perlu[:200]]
         if len(perlu) > 200:

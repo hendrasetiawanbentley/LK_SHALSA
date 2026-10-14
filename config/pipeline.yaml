@@ -35,8 +35,10 @@ ekstraksi:
 
 komparasi:
   periode: [berjalan]         # tambah "lalu" untuk ikut membandingkan angka tahun pembanding
-  toleransi_absolut: 1        # selisih <= 1 (Rupiah) dianggap MATCH
+  toleransi_absolut: 1        # dalam Rupiah: selisih <= Rp1 dianggap MATCH (dikonversi ke satuan PDF)
   toleransi_relatif: 0.0      # mis. 0.001 = selisih <= 0,1% dianggap MATCH
-  toleransi_pembulatan_skala: true   # PDF "dalam jutaan": selisih <= 0,5 juta dianggap MATCH
+  # Perbandingan memakai satuan PDF: bila PDF "dalam jutaan", angka Excel dibagi 1.000.000.
+  # true = selisih <= 0,5 satuan PDF (pembulatan) dianggap MATCH.
+  toleransi_pembulatan_skala: true
   ai_gen_hanya_non_match: true       # hemat biaya: ai_gen hanya untuk baris bukan MATCH
   catatan_match: Nilai sesuai

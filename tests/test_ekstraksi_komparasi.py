@@ -32,7 +32,7 @@ def test_parse_hasil_ekstraksi(bungkus):
     baris, peringatan = parse_hasil_ekstraksi(json.dumps(hasil), AKUN, {"doc_id": "d"},
                                               zona_atas="(Dinyatakan dalam jutaan Rupiah)")
     assert [(b["kode_akun"], b["periode"], b["nilai"], b["halaman"]) for b in baris] == [
-        ("FP_KAS", "berjalan", 1_250_000_000, 3), ("FP_KAS", "lalu", -1_100_000_000, 3)]
+        ("FP_KAS", "berjalan", 1250, 3), ("FP_KAS", "lalu", -1100, 3)]  # angka PDF apa adanya
     assert baris[0]["doc_id"] == "d" and baris[0]["skala"] == 1_000_000
     assert peringatan == ["1-ASET/lalu: angka tidak terbaca 'n/a'"]
 
@@ -44,8 +44,8 @@ def test_sql_literal():
 @pytest.mark.parametrize("pdf,excel,skala,status,indikasi", [
     (1000.0, 1000.4, 1, "MATCH", None),
     (1000.0, 1002.0, 1, "DIFFERENT", None),
-    (1_250_000_000, 1_250_400_000, 1_000_000, "MATCH", None),       # pembulatan "dalam jutaan"
-    (1_250_000_000, 1_251_000_000, 1_000_000, "DIFFERENT", None),
+    (1250, 1250.4, 1_000_000, "MATCH", None),        # satuan PDF jutaan: Excel 1.250.400.000 / 1 juta
+    (1250, 1251.0, 1_000_000, "DIFFERENT", None),
     (-500.0, 500.0, 1, "DIFFERENT", "BEDA_TANDA"),
     (1250.0, 1_250_000.0, 1, "DIFFERENT", "BEDA_SKALA"),
     (5.0, None, 1, "PDF_ONLY", None),
@@ -79,3 +79,18 @@ def test_bandingkan_full_outer_join():
     assert hasil["K1"]["nama_akun"] == "Kas"
     assert hasil["K1"]["sumber_excel"] == "a.xlsx!S!9"
     assert "EXCEL_ONLY" in prompt_catatan(hasil["K3"])
+
+
+def test_excel_dibagi_satuan_pdf():
+    pdf = [{"entity_key": "A", "kode_akun": "K1", "periode": "berjalan", "nilai": 1250.0, "skala": 1e6, "seksi": "fp"}]
+    excel = [
+        {"entity_key": "A", "kode_akun": "K1", "periode": "berjalan", "nilai": 1_250_400_000.0, "seksi": "fp",
+         "sumber_file": "a.xlsx", "sheet": "S", "baris": 1},
+        {"entity_key": "A", "kode_akun": "K2", "periode": "berjalan", "nilai": 3_000_000.0, "seksi": "fp",
+         "sumber_file": "a.xlsx", "sheet": "S", "baris": 2},
+    ]
+    hasil = {r["kode_akun"]: r for r in bandingkan(pdf, excel, CFG)}
+    assert hasil["K1"]["nilai_excel"] == 1250.4 and hasil["K1"]["nilai_excel_asli"] == 1_250_400_000
+    assert hasil["K1"]["satuan_pdf"] == "jutaan Rupiah" and hasil["K1"]["status"] == "MATCH"
+    # EXCEL_ONLY tetap memakai satuan PDF seksi yang sama
+    assert hasil["K2"]["nilai_excel"] == 3.0 and hasil["K2"]["satuan_pdf"] == "jutaan Rupiah"

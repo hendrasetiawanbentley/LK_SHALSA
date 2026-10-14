@@ -56,9 +56,10 @@ def test_pipeline_lokal_pdf_dan_excel(tmp_path, cfg, rules):
     assert status["FP_JUMLAH_ASET"] == "MATCH"
     assert status["FP_JUMLAH_LIABILITAS"] == "PDF_ONLY"
     assert status["IS_PENDAPATAN"] == "PDF_ONLY"
-    assert status["IS_LABA_TAHUN_BERJALAN"] == "DIFFERENT"   # 701 juta vs 700 juta
+    assert status["IS_LABA_TAHUN_BERJALAN"] == "DIFFERENT"   # 701 vs 700 (jutaan)
     beda = next(b for b in hasil["komparasi"] if b["kode_akun"] == "IS_LABA_TAHUN_BERJALAN")
-    assert beda["selisih"] == 1_000_000 and "Selisih 1,000,000" in beda["catatan"]
+    assert (beda["nilai_pdf"], beda["nilai_excel"], beda["nilai_excel_asli"]) == (701, 700, 700_000_000)
+    assert beda["catatan"].startswith("Selisih 1 jutaan Rupiah")
     assert hasil["ringkasan"][0]["entity_key"] == "AAAA|EPP|2024"
 
     out = tmp_path / "hasil.xlsx"

@@ -116,7 +116,7 @@ def parse_hasil_ekstraksi(hasil_json: str | dict | None, akun: list[dict], konte
                 "kode_akun": a["kode_akun"],
                 "label_di_dokumen": _buka(item.get("label_di_dokumen")),
                 "periode": periode,
-                "nilai": nilai * skala,
+                "nilai": nilai,
                 "nilai_asli": str(mentah),
                 "skala": float(skala),
                 "halaman": halaman,

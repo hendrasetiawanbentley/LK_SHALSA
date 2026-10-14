@@ -95,8 +95,11 @@ Output adalah file `hasil_komparasi.xlsx` (sheet Komparasi) dengan kolom utama:
 |-------|------|
 | `entity_key`, `entity_id`, `doc_type`, `tahun` | identitas entitas (prefiks nama file + doc_type + tahun) |
 | `seksi`, `kode_akun`, `nama_akun`, `periode` | akun yang dibandingkan; `periode` = `berjalan`/`lalu` |
-| `nilai_pdf`, `nilai_excel` | nilai dalam Rupiah penuh (skala PDF "dalam jutaan" sudah dikalikan) |
-| `selisih`, `selisih_persen` | `nilai_pdf - nilai_excel`, dan persentasenya terhadap Excel |
+| `satuan_pdf` | satuan penyajian PDF, mis. `jutaan Rupiah`; semua nilai di baris ini memakai satuan ini |
+| `nilai_pdf` | angka PDF persis seperti tertulis (tidak dikalikan) |
+| `nilai_excel` | angka Excel yang sudah **dibagi** sesuai satuan PDF, mis. 1.250.400.000 → 1.250,4 |
+| `nilai_excel_asli` | angka Excel asli (Rupiah penuh) |
+| `selisih`, `selisih_persen` | `nilai_pdf − nilai_excel` dalam satuan PDF, dan persentasenya terhadap Excel |
 | `status` | `MATCH` / `DIFFERENT` / `PDF_ONLY` / `EXCEL_ONLY` |
 | `indikasi` | petunjuk otomatis untuk DIFFERENT: `BEDA_TANDA`, `BEDA_SKALA` |
 | `halaman_pdf`, `sumber_pdf`, `sumber_excel` | jejak sumber (`file.xlsx!sheet!baris`) |

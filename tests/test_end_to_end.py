@@ -61,7 +61,7 @@ def test_alur_parsing_sampai_komparasi(tmp_path, cfg, rules):
     nama = {a["kode_akun"]: a["nama_akun"] for a in rules.rules_akun}
     hasil = {r["kode_akun"]: r for r in bandingkan(angka_pdf, angka_excel, cfg["komparasi"], nama)}
     assert {k: r["status"] for k, r in hasil.items()} == {
-        "FP_KAS": "MATCH",                       # 1.250 juta vs 1.250.400.000 (pembulatan)
+        "FP_KAS": "MATCH",                       # 1.250 vs 1.250,4 juta (pembulatan)
         "FP_JUMLAH_ASET_LANCAR": "MATCH",
         "FP_JUMLAH_ASET": "MATCH",
         "FP_JUMLAH_LIABILITAS": "PDF_ONLY",
@@ -70,6 +70,7 @@ def test_alur_parsing_sampai_komparasi(tmp_path, cfg, rules):
         "IS_LABA_TAHUN_BERJALAN": "MATCH",
         "CF_ARUS_KAS_OPERASI": "PDF_ONLY",
     }
-    assert hasil["FP_JUMLAH_LIABILITAS"]["nilai_pdf"] == -7_000_000_000
+    assert hasil["FP_JUMLAH_LIABILITAS"]["nilai_pdf"] == -7000          # satuan PDF (jutaan)
+    assert hasil["FP_KAS"]["nilai_excel"] == 1250.4                      # 1.250.400.000 / 1 juta
     assert hasil["FP_JUMLAH_ASET"]["halaman_pdf"] == 4
     assert hasil["FP_KAS"]["entity_key"] == "AAAA|EPP|2024"

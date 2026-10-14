@@ -70,7 +70,7 @@ def ekstraksi_seksi(halaman: list[dict], akun: list[dict], konteks: dict,
             if nilai is None:
                 continue
             hasil.append({**konteks, "kode_akun": a["kode_akun"], "label_di_dokumen": temuan["label"],
-                          "periode": periode, "nilai": nilai * skala, "nilai_asli": mentah,
+                          "periode": periode, "nilai": nilai, "nilai_asli": mentah,
                           "skala": float(skala), "halaman": temuan["halaman"]})
     tidak_ada = [a["kode_akun"] for a in akun if a["kode_akun"] not in ditemukan]
     return hasil, tidak_ada

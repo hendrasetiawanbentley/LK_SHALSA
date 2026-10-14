@@ -48,8 +48,9 @@ SKEMA: dict[str, list[tuple[str, str]]] = {
     # ---- B · Komparasi ----
     "angka_combined": [("entity_key", "STRING"), ("entity_id", "STRING"), ("doc_type", "STRING"),
                        ("tahun", "STRING"), ("kode_akun", "STRING"), ("nama_akun", "STRING"),
-                       ("periode", "STRING"), ("seksi", "STRING"), ("nilai_pdf", "DOUBLE"),
-                       ("nilai_excel", "DOUBLE"), ("skala_pdf", "DOUBLE"), ("halaman_pdf", "INT"),
+                       ("periode", "STRING"), ("seksi", "STRING"), ("satuan_pdf", "STRING"),
+                       ("nilai_pdf", "DOUBLE"), ("nilai_excel", "DOUBLE"),
+                       ("nilai_excel_asli", "DOUBLE"), ("skala_pdf", "DOUBLE"), ("halaman_pdf", "INT"),
                        ("sumber_pdf", "STRING"), ("sumber_excel", "STRING"), ("label_pdf", "STRING"),
                        ("label_excel", "STRING"), ("jumlah_baris_pdf", "INT"),
                        ("jumlah_baris_excel", "INT"), ("status", "STRING"), ("selisih", "DOUBLE"),

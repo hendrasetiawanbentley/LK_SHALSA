@@ -2,8 +2,9 @@
 
 Langkah: bentuk entity_key -> full outer join per entity_key + kode_akun +
 periode -> tentukan status MATCH / DIFFERENT / PDF_ONLY / EXCEL_ONLY.
-Logika status ditulis di Python murni supaya sama persis antara uji lokal dan
-notebook Databricks; catatan AI ditambahkan di notebook (ai_gen).
+Perbandingan dilakukan dalam SATUAN PDF: angka PDF dipakai persis seperti
+tertulis, angka Excel (Rupiah penuh) dibagi skala PDF. Contoh: PDF "dalam
+jutaan Rupiah" menulis 1.250, Excel 1.250.400.000 -> Excel disesuaikan 1.250,4.
 """
 
 from __future__ import annotations
@@ -11,16 +12,26 @@ from __future__ import annotations
 MATCH, DIFFERENT, PDF_ONLY, EXCEL_ONLY = "MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY"
 
 
-def toleransi(nilai_pdf: float, nilai_excel: float, skala_pdf: float, cfg: dict) -> float:
-    """Selisih maksimum yang masih dianggap sama.
+NAMA_SATUAN = {1: "Rupiah", 1_000: "ribuan Rupiah", 1_000_000: "jutaan Rupiah",
+               1_000_000_000: "miliar Rupiah"}
 
-    Bila PDF disajikan dalam ribuan/jutaan, selisih pembulatan sampai setengah
-    satuan penyajian dianggap wajar (toleransi_pembulatan_skala).
+
+def nama_satuan(skala: float | None) -> str:
+    return NAMA_SATUAN.get(int(skala or 1), f"x{skala:,.0f}")
+
+
+def toleransi(nilai_pdf: float, nilai_excel: float, skala_pdf: float, cfg: dict) -> float:
+    """Selisih maksimum (dalam satuan PDF) yang masih dianggap sama.
+
+    Bila PDF disajikan dalam ribuan/jutaan, Excel yang sudah dibagi skala
+    hampir selalu berkoma; selisih sampai 0,5 satuan adalah pembulatan wajar
+    (toleransi_pembulatan_skala).
     """
-    tol = float(cfg.get("toleransi_absolut", 0) or 0)
+    # toleransi_absolut ditulis dalam Rupiah, dikonversi ke satuan PDF.
+    tol = float(cfg.get("toleransi_absolut", 0) or 0) / (skala_pdf or 1)
     tol = max(tol, float(cfg.get("toleransi_relatif", 0) or 0) * max(abs(nilai_pdf), abs(nilai_excel)))
     if cfg.get("toleransi_pembulatan_skala", True) and (skala_pdf or 1) > 1:
-        tol = max(tol, 0.5 * skala_pdf)
+        tol = max(tol, 0.5)
     return tol
 
 
@@ -68,6 +79,19 @@ def _indeks(baris: list[dict], periode: set[str], sisi: str) -> dict[tuple, dict
     return hasil
 
 
+def _skala_pdf(angka_pdf: list[dict]) -> tuple[dict, dict]:
+    """Skala PDF per (entity_key, seksi) dan per entity_key (yang paling sering)."""
+    per_seksi: dict[tuple, float] = {}
+    hitung: dict[str, dict[float, int]] = {}
+    for b in angka_pdf:
+        skala = b.get("skala") or 1.0
+        per_seksi.setdefault((b["entity_key"], b.get("seksi")), skala)
+        c = hitung.setdefault(b["entity_key"], {})
+        c[skala] = c.get(skala, 0) + 1
+    per_entitas = {k: max(c, key=c.get) for k, c in hitung.items()}
+    return per_seksi, per_entitas
+
+
 def bandingkan(angka_pdf: list[dict], angka_excel: list[dict], cfg_komparasi: dict,
                nama_akun: dict[str, str] | None = None) -> list[dict]:
     """Full outer join angka_pdf <-> angka_excel lalu tentukan status per baris."""
@@ -75,14 +99,20 @@ def bandingkan(angka_pdf: list[dict], angka_excel: list[dict], cfg_komparasi: di
     pdf = _indeks(angka_pdf, periode, "pdf")
     excel = _indeks(angka_excel, periode, "excel")
     nama_akun = nama_akun or {}
+    skala_seksi, skala_entitas = _skala_pdf(angka_pdf)
 
     hasil = []
     for kunci in sorted(set(pdf) | set(excel)):
         p, e = pdf.get(kunci), excel.get(kunci)
         acuan = p or e
+        seksi = (p or {}).get("seksi") or (e or {}).get("seksi")
+        if p:
+            skala_pdf = p.get("skala") or 1.0
+        else:  # EXCEL_ONLY: pakai satuan PDF seksi/entitas yang sama
+            skala_pdf = skala_seksi.get((kunci[0], seksi)) or skala_entitas.get(kunci[0]) or 1.0
         nilai_pdf = p["nilai"] if p else None
-        nilai_excel = e["nilai"] if e else None
-        skala_pdf = (p or {}).get("skala") or 1.0
+        nilai_excel_asli = e["nilai"] if e else None
+        nilai_excel = None if e is None else nilai_excel_asli / skala_pdf
         hasil.append({
             "entity_key": kunci[0],
             "entity_id": acuan.get("entity_id"),
@@ -91,10 +121,12 @@ def bandingkan(angka_pdf: list[dict], angka_excel: list[dict], cfg_komparasi: di
             "kode_akun": kunci[1],
             "nama_akun": nama_akun.get(kunci[1]),
             "periode": kunci[2],
-            "seksi": (p or {}).get("seksi") or (e or {}).get("seksi"),
+            "seksi": seksi,
+            "satuan_pdf": nama_satuan(skala_pdf),
             "nilai_pdf": nilai_pdf,
             "nilai_excel": nilai_excel,
-            "skala_pdf": skala_pdf if p else None,
+            "nilai_excel_asli": nilai_excel_asli,
+            "skala_pdf": skala_pdf,
             "halaman_pdf": (p or {}).get("halaman"),
             "sumber_pdf": (p or {}).get("sumber_file"),
             "sumber_excel": f"{e['sumber_file']}!{e['sheet']}!{e['baris']}" if e else None,
@@ -119,8 +151,9 @@ def prompt_catatan(baris: dict) -> str:
         f"Entitas: {baris.get('entity_id')} ({baris.get('doc_type')}), periode: {baris.get('periode')}\n"
         f"Akun: {baris.get('kode_akun')} - {baris.get('nama_akun') or baris.get('label_pdf') or baris.get('label_excel')}\n"
         f"Status: {baris['status']}\n"
+        f"Satuan: {baris.get('satuan_pdf')}\n"
         f"Nilai PDF: {fmt(baris.get('nilai_pdf'))} (halaman {baris.get('halaman_pdf') or '-'})\n"
-        f"Nilai Excel: {fmt(baris.get('nilai_excel'))}\n"
+        f"Nilai Excel (disesuaikan ke satuan PDF): {fmt(baris.get('nilai_excel'))}\n"
         f"Selisih: {fmt(baris.get('selisih'))}\n"
         f"Indikasi otomatis: {baris.get('indikasi') or '-'}"
     )
