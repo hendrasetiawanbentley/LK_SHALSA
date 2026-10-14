@@ -1,14 +1,40 @@
 # SIKULI: analisis laporan keuangan (parsing sampai komparasi)
 
-Implementasi alur di deck *SIKULI: alur analisis laporan keuangan* untuk Databricks (Unity Catalog, Delta Lake,
-AI Functions), mulai dari **parse PDF** sampai **B · Analisis_Komparasi** (PDF vs Excel).
+Implementasi alur di deck *SIKULI: alur analisis laporan keuangan*, mulai dari **parse PDF** sampai
+**B · Analisis_Komparasi** (PDF vs Excel). Jalan **tanpa Databricks**: sebagai web app (Render) untuk upload
+file dan melihat hasil, atau lewat command line.
 
 ```
-LK PDF ──► 01 Parse PDF (ai_parse_document) ─► deteksi entitas + seksi ─► ai_extract per seksi ─► angka_pdf ─┐
-                         pdf_parsed             teks_pdf, lokasi_seksi                                     ├─► 03 Komparasi ─► angka_combined
-LK Excel ─► 02 Baca Excel (openpyxl, SHEET_CONFIG) ─► mapping label → kode_akun ─────────────► angka_excel ─┘                 result_komparasi
-Kertas kerja (rules/) ─► 00 Muat rules ─► mapping_seksi, rules_akun, sheet_config, mapping_akun_excel, daftar_entitas
+LK PDF ──► parse (pdfplumber) ─► deteksi entitas + seksi ─► ekstraksi akun per seksi ─► angka PDF ──┐
+LK Excel ─► baca (openpyxl, sheet_config) ─► mapping label → kode_akun ─────────────► angka Excel ─┴─► komparasi ─► hasil_komparasi.xlsx
+rules/ (kertas kerja): mapping_seksi, rules_akun, sheet_config, mapping_akun_excel, daftar_entitas
 ```
+
+## Cara pakai
+
+### Web app (Render)
+1. Di Render: **New → Web Service** (bukan Static Site), pilih repo ini dan branch-nya. Atau **New → Blueprint**
+   supaya isian diambil dari `render.yaml`.
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `gunicorn webapp.app:app --workers 1 --threads 4 --timeout 300 --bind 0.0.0.0:$PORT`
+   - Environment variable **`APP_PASSWORD`**: wajib diisi supaya data LK tidak bisa dibuka publik
+     (login: username bebas, password sesuai isian).
+2. Buka URL Render → upload PDF dan Excel → **Jalankan analisis** → lihat hasil dan **Unduh hasil (.xlsx)**.
+3. Setiap push ke GitHub, Render deploy ulang otomatis, dan GitHub Actions menjalankan tes.
+
+### Command line
+```bash
+pip install -r requirements.txt
+PYTHONPATH=src python -m sikuli.lokal --pdf folder_pdf --excel folder_excel --out hasil_komparasi.xlsx
+```
+
+Hasil `.xlsx` berisi sheet Ringkasan, Komparasi (status + catatan), Angka_PDF, Angka_Excel, Lokasi_Seksi, Peringatan.
+
+### Batasan saat ini
+- PDF harus punya lapisan teks; PDF hasil scan perlu OCR dulu.
+- Ekstraksi akun PDF memakai pencocokan label baris dengan `nama_akun`/`sinonim` di `rules_akun.csv` (tanpa AI).
+  Akun yang tidak ditemukan dicantumkan di Peringatan; tambahkan sinonimnya di rules.
+- Catatan per baris dibuat otomatis dari status dan indikasi (`BEDA_TANDA`, `BEDA_SKALA`), bukan oleh LLM.
 
 **Daftar file yang perlu Anda sediakan ada di [docs/FILE_YANG_PERLU_DISEDIAKAN.md](docs/FILE_YANG_PERLU_DISEDIAKAN.md).**
 
@@ -16,7 +42,10 @@ Kertas kerja (rules/) ─► 00 Muat rules ─► mapping_seksi, rules_akun, she
 
 | Path | Isi |
 |------|-----|
-| `notebooks/00_Muat_Rules.py` | Stage 0: validasi rules dan simpan ke tabel Delta, buat tabel hasil |
+| `webapp/` | Web app Flask: upload, hasil, unduh .xlsx, lihat rules |
+| `src/sikuli/lokal.py` | Pipeline lengkap tanpa Databricks + CLI + penulisan .xlsx |
+| `render.yaml` | Konfigurasi deploy Render (Web Service) |
+| `notebooks/00_Muat_Rules.py` | (opsional, Databricks) Stage 0: validasi rules dan simpan ke tabel Delta, buat tabel hasil |
 | `notebooks/01_Ingest_PDF.py` | Parse PDF 1× per dokumen, deteksi seksi, ekstraksi akun |
 | `notebooks/02_Ingest_Excel.py` | Baca Excel tanpa AI, mapping akun, daftar label belum terpetakan |
 | `notebooks/03_Analisis_Komparasi.py` | Full outer join, status, catatan `ai_gen`, ringkasan untuk pengawas |
@@ -29,6 +58,7 @@ Kertas kerja (rules/) ─► 00 Muat rules ─► mapping_seksi, rules_akun, she
 
 | Modul `src/sikuli/` | Langkah di deck |
 |---------------------|-----------------|
+| `pdf_lokal.py`, `ekstraksi_lokal.py` | Parse PDF dengan pdfplumber; ekstraksi akun dari baris teks tanpa AI |
 | `parse_pdf.py` | Output `ai_parse_document` → teks per halaman + zona atas (footer dikecualikan) |
 | `entitas.py` | Entitas dari prefiks nama file (+ `daftar_entitas`) |
 | `seksi.py` | Deteksi seksi slide 5: daftar isi (≥3 cocok), mulai seksi baru, lanjutkan, `tidak_dikenal` |
@@ -38,7 +68,7 @@ Kertas kerja (rules/) ─► 00 Muat rules ─► mapping_seksi, rules_akun, she
 | `komparasi.py` | entity_key, full outer join, MATCH/DIFFERENT/PDF_ONLY/EXCEL_ONLY, prompt catatan |
 | `tabel.py` | Skema tabel Delta (satu sumber untuk notebook dan DDL) |
 
-## Menjalankan di Databricks
+## Opsional: menjalankan di Databricks
 
 1. Hubungkan repo ini sebagai **Git folder** di workspace.
 2. Sesuaikan `config/pipeline.yaml` (catalog, schema, `path_pdf`, `path_excel`, `pola_nama_file`).
@@ -74,7 +104,7 @@ halaman `tidak_dikenal` (saat ini ditandai dan dilewati; `ai_classify` belum dip
 Belum termasuk (tahap berikutnya): A · Kepatuhan, D · CaLK, C · Rasio, dan Kesimpulan & Rekomendasi.
 Tabel `teks_pdf`, `lokasi_seksi`, dan `angka_combined` sudah disiapkan sebagai input notebook tersebut.
 
-## Situs dokumentasi (Render Static Site)
+## Opsional: situs dokumentasi statis
 
 `scripts/build_site.py` membangun situs statis ke `site/`: ringkasan, file yang perlu disediakan, tabel rules
 (dengan unduhan CSV), dan hasil tes saat build. Pengaturan di Render (New → Static Site, pilih repo ini dan

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block judul %}Rules · SIKULI{% endblock %}
+{% block isi %}
+<p>Rules bawaan dari repo. Untuk mengganti: unduh, ubah, lalu unggah di halaman Upload (berlaku untuk satu
+analisis), atau commit ke folder <code>rules/</code> di GitHub (berlaku permanen setelah deploy ulang).</p>
+{% for nama, baris in isi.items() %}
+<h2>{{ nama }}.csv <a href="/rules/{{ nama }}.csv" style="font-size:.9rem">unduh</a></h2>
+{% if baris %}
+<div class="tbl"><table>
+<tr>{% for k in baris[0].keys() %}<th>{{ k }}</th>{% endfor %}</tr>
+{% for r in baris %}<tr>{% for v in r.values() %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}
+</table></div>
+{% else %}<p class="muted">(kosong)</p>{% endif %}
+{% endfor %}
+{% endblock %}

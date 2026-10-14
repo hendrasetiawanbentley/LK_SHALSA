@@ -85,12 +85,11 @@ menampilkan label yang belum terpetakan; label itulah yang ditambahkan ke sini.
 | 7 | **1–2 PDF LK per jenis entitas** (EPP, MI, RD) beserta Excel pasangannya | Kalibrasi deteksi seksi (jumlah baris zona atas) dan uji ekstraksi |
 | 8 | Notebook lama `Analisis_Komparasi` dan ekspor tabel `extraction_rules` | Menyamakan kode akun dan kolom output dengan yang sudah dipakai |
 
-File PDF/Excel **tidak** disimpan di git (ada di `.gitignore`); unggah ke Volume Unity Catalog sesuai
-`path_pdf` dan `path_excel`.
+File PDF/Excel **tidak** disimpan di git (ada di `.gitignore`); unggah lewat web app; file dihapus setelah analisis selesai.
 
 ## C. Bentuk output yang perlu disepakati
 
-Output saat ini adalah tabel `result_komparasi` dengan kolom:
+Output adalah file `hasil_komparasi.xlsx` (sheet Komparasi) dengan kolom utama:
 
 | Kolom | Arti |
 |-------|------|
@@ -102,8 +101,7 @@ Output saat ini adalah tabel `result_komparasi` dengan kolom:
 | `indikasi` | petunjuk otomatis untuk DIFFERENT: `BEDA_TANDA`, `BEDA_SKALA` |
 | `halaman_pdf`, `sumber_pdf`, `sumber_excel` | jejak sumber (`file.xlsx!sheet!baris`) |
 | `label_pdf`, `label_excel` | nama baris persis di masing-masing sumber |
-| `catatan_ai` | catatan `ai_gen` (baris bukan MATCH) atau "Nilai sesuai" |
-| `run_id`, `processed_at` | jejak eksekusi |
+| `catatan` | catatan otomatis per status/indikasi, atau "Nilai sesuai" |
 
 Mohon konfirmasi atau kirim contoh format yang diharapkan pengawas, terutama:
 1. **Toleransi MATCH**: bawaan selisih ≤ Rp1, ditambah toleransi pembulatan setengah satuan bila PDF disajikan dalam
@@ -112,11 +110,10 @@ Mohon konfirmasi atau kirim contoh format yang diharapkan pengawas, terutama:
 3. **Tanda**: beban yang ditulis `(xxx)` di PDF tapi positif di Excel saat ini menjadi DIFFERENT dengan indikasi
    `BEDA_TANDA`. Apakah seharusnya dianggap MATCH?
 4. Bila ada **template laporan** (Excel/PDF) yang biasa dibaca pengawas, kirim contohnya supaya kolom
-   `result_komparasi` atau view turunannya disesuaikan.
+   hasil disesuaikan dengan format itu.
 
-## D. Informasi lingkungan Databricks
+## D. Untuk deploy di Render
 
-- Nama `catalog` dan `schema` serta path Volume untuk PDF dan Excel (isi di `config/pipeline.yaml`).
-- Compute yang dipakai: Serverless atau cluster dengan Databricks Runtime yang mendukung `ai_parse_document` dan
-  `ai_extract` versi 2 (DBR terbaru disarankan). Pastikan AI Functions aktif di region workspace.
-- Versi `ai_extract` yang tersedia (`2.0` atau `2.1`), sesuaikan `ekstraksi.ai_extract_version`.
+- Nilai **`APP_PASSWORD`** yang akan dipakai tim (isi sendiri di dashboard Render, jangan di-commit).
+- Perkiraan ukuran dan jumlah PDF per sekali upload. Paket gratis Render punya RAM terbatas, jadi PDF ratusan
+  halaman sebaiknya diunggah beberapa sekaligus, bukan semuanya dalam satu kali upload.

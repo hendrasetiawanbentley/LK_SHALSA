@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from .ekstraksi import kelompokkan_akun, skema_ekstraksi, teks_seksi
 from .entitas import info_dari_nama_file
-from .parse_pdf import error_parse, halaman_dari_parse
+from .parse_pdf import Halaman, error_parse, halaman_dari_parse
 from .rules import Rules
 from .seksi import PolaSeksi, deteksi_seksi
 
@@ -16,9 +16,17 @@ from .seksi import PolaSeksi, deteksi_seksi
 def proses_dokumen_pdf(path: str, parsed, cfg: dict, rules: Rules,
                        pola: list[PolaSeksi]) -> dict:
     """Output ai_parse_document satu dokumen -> baris teks_pdf + lokasi_seksi."""
+    halaman = halaman_dari_parse(parsed, int(cfg["deteksi_seksi"]["baris_zona_atas"]))
+    hasil = proses_halaman(path, halaman, cfg, rules, pola)
+    hasil["peringatan"] = error_parse(parsed) + hasil["peringatan"]
+    return hasil
+
+
+def proses_halaman(path: str, halaman: list[Halaman], cfg: dict, rules: Rules,
+                   pola: list[PolaSeksi]) -> dict:
+    """Halaman satu dokumen (dari parser mana pun) -> baris teks_pdf + lokasi_seksi."""
     info = info_dari_nama_file(path, cfg, rules)
     cfg_deteksi = cfg["deteksi_seksi"]
-    halaman = halaman_dari_parse(parsed, int(cfg_deteksi["baris_zona_atas"]))
     label, lokasi = deteksi_seksi([h.zona_atas for h in halaman], pola, info["doc_type"], cfg_deteksi)
 
     identitas = {
@@ -34,7 +42,9 @@ def proses_dokumen_pdf(path: str, parsed, cfg: dict, rules: Rules,
          "zona_atas": h.zona_atas, "teks": h.teks}
         for h, lb in zip(halaman, label)
     ]
-    peringatan = error_parse(parsed)
+    peringatan = []
+    if not any(h.teks.strip() for h in halaman):
+        peringatan.append(f"{info['nama_file']}: tidak ada teks (PDF hasil scan?), perlu OCR")
     if not info["entitas_dikenal"]:
         peringatan.append(f"{info['nama_file']}: entity_id/doc_type tidak dikenali dari nama file")
     if not lokasi:
