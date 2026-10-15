@@ -52,8 +52,11 @@ def catatan_otomatis(baris: dict, catatan_match: str = "Nilai sesuai") -> str:
         return ("Akun ada di Excel tetapi tidak terbaca di PDF; periksa apakah akun disajikan di laporan "
                 "atau tambahkan sinonim label PDF di rules_akun.")
     indikasi = baris.get("indikasi")
-    if indikasi == "BEDA_TANDA":
-        return "Nilai sama tetapi tanda berlawanan; kemungkinan beda konvensi penyajian (beban/pengurang)."
+    if indikasi == "BEDA_TANDA" and status == "DIFFERENT":
+        persen = baris.get("selisih_persen")
+        return (f"Tanda berlawanan dan nilai absolut juga berbeda {format_angka(baris['selisih'])} "
+                f"{baris.get('satuan_pdf') or ''}" + (f" ({persen:.2f}%)" if persen is not None else "")
+                + "; perlu konfirmasi ke entitas.").replace("  ", " ")
     if indikasi == "BEDA_SKALA":
         return "Nilai berbeda kelipatan ribuan/jutaan; periksa satuan penyajian PDF atau skala di sheet_config."
     persen = baris.get("selisih_persen")

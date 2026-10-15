@@ -61,16 +61,20 @@ ai:
 
 komparasi:
   periode: [berjalan]         # tambah "lalu" untuk ikut membandingkan angka tahun pembanding
-  toleransi_absolut: 1        # dalam Rupiah: selisih <= Rp1 dianggap MATCH (dikonversi ke satuan PDF)
-  toleransi_relatif: 0.0      # mis. 0.001 = selisih <= 0,1% dianggap MATCH
-  # Perbandingan memakai satuan PDF: bila PDF "dalam jutaan", angka Excel dibagi 1.000.000.
-  # true = selisih sampai toleransi_pembulatan_satuan (dalam satuan PDF) dianggap pembulatan (MATCH).
-  toleransi_pembulatan_skala: true
-  toleransi_pembulatan_satuan: 1     # mis. PDF "dalam jutaan": selisih <= 1 juta dianggap MATCH
-  # true = beda tanda saja (PDF (5.206) vs Excel 5.206) dianggap MATCH dengan indikasi BEDA_TANDA,
-  # sesuai instruksi sheet Master. false = tetap DIFFERENT.
+  # Toleransi MATCH: angka Excel (sudah dibagi satuan PDF) dibulatkan ke jumlah desimal yang tertulis
+  # di PDF, lalu selisih sampai toleransi_digit_terakhir satuan pada digit terakhir dianggap sama.
+  # Contoh: PDF 376 vs Excel 374,77 -> 375 (selisih 1, MATCH); PDF "dalam jutaan" 20.558 vs Excel
+  # 20.559,78 juta -> 20.560 (selisih 2, DIFFERENT); PDF 4.397,88 vs Excel 4.397,8778 -> 4.397,88 (MATCH).
+  toleransi_digit_terakhir: 1
+  toleransi_relatif: 0.0      # opsional, mis. 0.001 = selisih <= 0,1% juga dianggap MATCH
+  # Arah (tanda) tidak memengaruhi MATCH: yang dibandingkan nilai absolut, mis. PDF (5.206) vs Excel 5.206
+  # MATCH dengan indikasi BEDA_TANDA (sesuai sheet Master). false = tanda ikut dibandingkan.
   abaikan_beda_tanda: true
   # true = akun bernilai nihil di satu sisi dan tidak ada/0 di sisi lain dianggap MATCH (indikasi NIHIL).
   nihil_dianggap_match: true
+  # Toleransi lama (dipakai hanya bila toleransi_digit_terakhir dihapus): Rupiah absolut dan pembulatan satuan.
+  toleransi_absolut: 1
+  toleransi_pembulatan_skala: true
+  toleransi_pembulatan_satuan: 1
   ai_gen_hanya_non_match: true       # hemat biaya: ai_gen hanya untuk baris bukan MATCH
   catatan_match: Nilai sesuai

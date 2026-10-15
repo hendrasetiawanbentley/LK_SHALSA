@@ -1,10 +1,11 @@
 {
  "catatan": {
-  "penghasilan_kena_pajak/berjalan": "Taksiran penghasilan kena pajak USD 144,187.36 tersaji di CaLK hal. 39; Excel tidak memuat baris ini."
+  "penghasilan_kena_pajak/berjalan": "Taksiran penghasilan kena pajak USD 144,187.36 tersaji di CaLK hal. 39; Excel tidak memuat baris ini.",
+  "kas_dan_setara_kas_pada_awal_periode/berjalan": "Kas awal tahun PDF USD 487,368.88 vs Excel 487,368.50 (selisih 0,38 USD, melebihi 1 digit terakhir). PDF sendiri tidak konsisten: kas akhir 2024 di neraca 487,368.88, sementara NAB 2024 tertulis 1,585,557.73 dan 1,585,557.35. Konfirmasi angka kas 31 Desember 2024 yang benar ke manajer investasi."
  },
- "kesimpulan": "Reksa Dana Syariah STAR Global Sharia Equity USD konsisten untuk seluruh akun utama: NAB 1,035,605.95, unit 987,036.1167, laba periode berjalan 130,064.80 dan pembelian kembali unit (680,016.20). Kas awal tahun berbeda 0,38 USD (dalam toleransi). PDF memuat inkonsistensi internal NAB 2024 (1,585,557.73 vs 1,585,557.35).",
+ "kesimpulan": "Reksa Dana Syariah STAR Global Sharia Equity USD konsisten untuk seluruh akun utama: NAB 1,035,605.95, unit 987,036.1167, laba periode berjalan 130,064.80 dan pembelian kembali unit (680,016.20). Satu perbedaan kecil pada kas awal tahun (0,38 USD), sejalan dengan inkonsistensi internal PDF pada angka 2024 (NAB 1,585,557.73 vs 1,585,557.35).",
  "rekomendasi": [
-  "Minta manajer investasi mengoreksi inkonsistensi NAB 31 Desember 2024 di laporan posisi keuangan (1,585,557.73 vs 1,585,557.35).",
+  "Minta manajer investasi mengoreksi inkonsistensi angka 31 Desember 2024 (NAB 1,585,557.73 vs 1,585,557.35; kas 487,368.88 vs Excel 487,368.50).",
   "Tambahkan penghasilan kena pajak dari CaLK untuk perhitungan rasio PKP."
  ]
 }

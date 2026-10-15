@@ -6,7 +6,7 @@
   "pendapatan_lainnya/berjalan": "PDF 'Pendapatan lainnya - bersih' 5.976 juta (pendapatan bunga 7.152 dikurangi beban lain 1.176) vs Excel 5.721,90 juta; selisih 254 juta tidak dapat dijelaskan dari laporan utama.",
   "beban_lainnya/berjalan": "PDF tidak punya satu baris beban lainnya; nilai (1.176) juta adalah jumlah rugi pelepasan aset tetap, rugi selisih kurs, dan beban pajak lainnya. Excel 1.177,67 juta: beda tanda dan selisih 1,67 juta karena pembulatan komponen."
  },
- "kesimpulan": "PT BNP Paribas Asset Management (jutaan Rupiah) konsisten untuk neraca, laba tahun berjalan 12.430 juta, penghasilan komprehensif, dan kas akhir 178.867 juta. Lima perbedaan di laba rugi dan arus kas operasi bernilai kecil (1-2 juta) kecuali pendapatan lainnya (selisih 254 juta). Pola selisih kecil menandakan Excel disusun dari angka rupiah penuh sebelum pembulatan yang sedikit berbeda dari LK audit.",
+ "kesimpulan": "PT BNP Paribas Asset Management (jutaan Rupiah) konsisten untuk neraca, laba tahun berjalan 12.430 juta, penghasilan komprehensif, dan kas akhir 178.867 juta. Lima perbedaan di laba rugi dan arus kas operasi: empat di antaranya kecil (Excel setelah dibulatkan berbeda 2 pada digit terakhir, setara 1-2 juta) dan satu lebih besar pada pendapatan lainnya (selisih 254 juta). Beda arah penyajian beban tidak dihitung sebagai perbedaan.",
  "rekomendasi": [
   "Minta penjelasan selisih pendapatan lainnya 254 juta (PDF 5.976 vs Excel 5.721,9).",
   "Pertimbangkan toleransi relatif kecil (mis. 0,01%) untuk LK yang disajikan dalam jutaan agar selisih pembulatan 1-2 juta tidak menjadi DIFFERENT.",

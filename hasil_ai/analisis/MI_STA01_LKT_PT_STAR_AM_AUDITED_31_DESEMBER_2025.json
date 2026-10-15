@@ -1,11 +1,9 @@
 {
  "catatan": {
-  "pendapatan/berjalan": "PDF 204.988.250.376 vs Excel 204.988.250.374,77; selisih Rp1,23 akibat Excel menyimpan desimal. Secara material sama.",
   "mkbd/berjalan": "CaLK hal. 57 menyebut MKBD yang dilaporkan ke OJK per 30 Desember 2025 Rp49.290.886.517; Excel tidak memuat baris MKBD sehingga tidak dapat dibandingkan."
  },
- "kesimpulan": "PT Surya Timur Alam Raya Asset Management sesuai untuk seluruh pos laporan keuangan utama; beban dan beban lainnya hanya beda tanda penyajian, dan arus kas pendanaan nihil di kedua sisi. Satu-satunya selisih (pendapatan Rp1,23) berasal dari desimal di Excel. MKBD Rp49,29 miliar tersedia di PDF tetapi tidak di Excel.",
+ "kesimpulan": "PT Surya Timur Alam Raya Asset Management sesuai untuk seluruh pos laporan keuangan utama. Pendapatan PDF 204.988.250.376 vs Excel 204.988.250.374,77 dianggap sama karena setelah dibulatkan selisihnya 1 pada digit terakhir; beban dan beban lainnya hanya beda arah penyajian, dan arus kas pendanaan nihil di kedua sisi. MKBD Rp49,29 miliar tersedia di PDF tetapi tidak di Excel.",
  "rekomendasi": [
-  "Gunakan MKBD Rp49.290.886.517 (CaLK hal. 57) untuk analisis kecukupan modal karena Excel tidak menyediakannya.",
-  "Minta entitas membulatkan angka Excel ke rupiah penuh seperti LK audit."
+  "Gunakan MKBD Rp49.290.886.517 (CaLK hal. 57) untuk analisis kecukupan modal karena Excel tidak menyediakannya."
  ]
 }

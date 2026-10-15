@@ -9,6 +9,9 @@ jutaan Rupiah" menulis 1.250, Excel 1.250.400.000 -> Excel disesuaikan 1.250,4.
 
 from __future__ import annotations
 
+import re
+from decimal import ROUND_HALF_UP, Decimal
+
 MATCH, DIFFERENT, PDF_ONLY, EXCEL_ONLY = "MATCH", "DIFFERENT", "PDF_ONLY", "EXCEL_ONLY"
 
 
@@ -50,8 +53,29 @@ def indikasi_selisih(nilai_pdf: float, nilai_excel: float, tol: float) -> str | 
     return None
 
 
+def desimal_teks(teks: str | None, nilai: float | None) -> int:
+    """Jumlah digit di belakang koma pada angka PDF seperti tertulis.
+
+    "4.397,88" -> 2, "1,068,697.19" -> 2, "709.863.919,7765" -> 4, "6.929" / "(1.115.249.979)" -> 0
+    (tiga digit setelah pemisah terakhir pada bilangan bulat = pemisah ribuan)."""
+    if not teks or nilai is None:
+        return 0
+    t = re.sub(r"[^\d.,]", "", teks)
+    akhir = max(t.rfind("."), t.rfind(","))
+    if akhir < 0:
+        return 0
+    d = len(t) - akhir - 1
+    if d == 0 or (d == 3 and float(nilai).is_integer()):
+        return 0
+    return d if abs(nilai * 10 ** d - round(nilai * 10 ** d)) < 1e-6 else 0
+
+
+def _bulatkan(x: float, desimal: int) -> float:
+    return float(Decimal(str(x)).quantize(Decimal(1).scaleb(-desimal), rounding=ROUND_HALF_UP))
+
+
 def tentukan_status(nilai_pdf: float | None, nilai_excel: float | None,
-                    skala_pdf: float, cfg: dict) -> dict:
+                    skala_pdf: float, cfg: dict, desimal_pdf: int = 0) -> dict:
     if nilai_pdf is None and nilai_excel is None:
         raise ValueError("minimal salah satu nilai harus ada")
     # Rules Master: akun nihil ("-" di PDF, 0 di Excel, atau tidak disajikan sama sekali) di kedua
@@ -63,19 +87,31 @@ def tentukan_status(nilai_pdf: float | None, nilai_excel: float | None,
         return {"status": PDF_ONLY, "selisih": None, "selisih_persen": None, "indikasi": None}
     if nilai_pdf is None:
         return {"status": EXCEL_ONLY, "selisih": None, "selisih_persen": None, "indikasi": None}
-    selisih = nilai_pdf - nilai_excel
-    persen = None if nilai_excel == 0 else round(selisih / abs(nilai_excel) * 100, 4)
-    tol = toleransi(nilai_pdf, nilai_excel, skala_pdf, cfg)
-    if abs(selisih) <= tol:
-        return {"status": MATCH, "selisih": selisih, "selisih_persen": persen, "indikasi": None}
-    # Rules Master: "perbedaan tanda saja dengan Excel (mis. -5.206 vs 5.206) bukan perbedaan nilai".
-    if cfg.get("abaikan_beda_tanda") and abs(nilai_pdf + nilai_excel) <= tol:
-        sisa = abs(nilai_pdf) - abs(nilai_excel)
-        return {"status": MATCH, "selisih": sisa,
-                "selisih_persen": None if nilai_excel == 0 else round(sisa / abs(nilai_excel) * 100, 4),
-                "indikasi": "BEDA_TANDA"}
+
+    # Rules Master: perbedaan tanda saja (mis. -5.206 vs 5.206) bukan perbedaan nilai, jadi bila
+    # abaikan_beda_tanda aktif yang dibandingkan adalah nilai absolutnya.
+    beda_tanda = nilai_pdf * nilai_excel < 0
+    abaikan = bool(cfg.get("abaikan_beda_tanda"))
+    a, e = (abs(nilai_pdf), abs(nilai_excel)) if abaikan else (nilai_pdf, nilai_excel)
+    digit = cfg.get("toleransi_digit_terakhir")
+    if digit is not None:
+        # Excel dibulatkan ke presisi angka PDF (jumlah desimal yang tertulis), lalu selisih sampai
+        # `digit` satuan pada digit terakhir masih dianggap sama (mis. 376 vs 374,77 -> 375: selisih 1).
+        satuan_digit = 10.0 ** -desimal_pdf
+        e_banding = _bulatkan(e, desimal_pdf)
+        tol = max(float(digit) * satuan_digit,
+                  float(cfg.get("toleransi_relatif", 0) or 0) * max(abs(a), abs(e)))
+        cocok = abs(a - e_banding) <= tol + satuan_digit * 1e-6
+    else:
+        tol = toleransi(nilai_pdf, nilai_excel, skala_pdf, cfg)
+        cocok = abs(a - e) <= tol
+    selisih = a - e
+    persen = None if e == 0 else round(selisih / abs(e) * 100, 4)
+    indikasi = "BEDA_TANDA" if beda_tanda else None
+    if cocok:
+        return {"status": MATCH, "selisih": selisih, "selisih_persen": persen, "indikasi": indikasi}
     return {"status": DIFFERENT, "selisih": selisih, "selisih_persen": persen,
-            "indikasi": indikasi_selisih(nilai_pdf, nilai_excel, tol)}
+            "indikasi": indikasi or indikasi_selisih(nilai_pdf, nilai_excel, tol)}
 
 
 def _indeks(baris: list[dict], periode: set[str], sisi: str) -> dict[tuple, dict]:
@@ -152,7 +188,9 @@ def bandingkan(angka_pdf: list[dict], angka_excel: list[dict], cfg_komparasi: di
             "label_excel": (e or {}).get("label_asli"),
             "jumlah_baris_pdf": (p or {}).get("jumlah_baris_pdf", 0),
             "jumlah_baris_excel": (e or {}).get("jumlah_baris_excel", 0),
-            **tentukan_status(nilai_pdf, nilai_excel, skala_pdf, cfg_komparasi),
+            "desimal_pdf": desimal_teks((p or {}).get("nilai_asli"), nilai_pdf),
+            **tentukan_status(nilai_pdf, nilai_excel, skala_pdf, cfg_komparasi,
+                              desimal_teks((p or {}).get("nilai_asli"), nilai_pdf)),
         })
     return hasil
 

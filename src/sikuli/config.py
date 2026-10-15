@@ -53,6 +53,7 @@ BAWAAN: dict = {
         "toleransi_relatif": 0.0,
         "toleransi_pembulatan_skala": True,
         "toleransi_pembulatan_satuan": 1.0,
+        "toleransi_digit_terakhir": None,   # mis. 1 = selisih 1 pada digit terakhir angka PDF dianggap sama
         "abaikan_beda_tanda": False,
         "nihil_dianggap_match": False,
         "ai_gen_hanya_non_match": True,

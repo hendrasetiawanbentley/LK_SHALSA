@@ -144,7 +144,7 @@ dan `ringkasan.md`.
 | `nilai_excel` | angka Excel yang sudah **dibagi** sesuai satuan PDF, mis. 1.250.400.000 → 1.250,4 |
 | `nilai_excel_asli` | angka Excel asli (Rupiah penuh) |
 | `selisih`, `selisih_persen` | `nilai_pdf − nilai_excel` dalam satuan PDF, dan persentasenya terhadap Excel |
-| `status` | `MATCH` (sama dalam toleransi), `DIFFERENT`, `PDF_ONLY`, `EXCEL_ONLY` |
+| `status` | `MATCH`, `DIFFERENT`, `PDF_ONLY`, `EXCEL_ONLY`. MATCH: nilai absolut sama (arah/tanda diabaikan) setelah angka Excel dibulatkan ke jumlah desimal PDF, dengan selisih paling banyak 1 pada digit terakhir (`komparasi.toleransi_digit_terakhir`) |
 | `indikasi` | `BEDA_TANDA` (hanya tanda berbeda; MATCH bila `komparasi.abaikan_beda_tanda: true`, sesuai sheet Master), `BEDA_SKALA`, `NIHIL` (nol/"-" di satu sisi dan tidak ada di sisi lain; MATCH bila `komparasi.nihil_dianggap_match: true`) |
 | `catatan` | penjelasan per baris (dari AI bila aktif, selain itu template) |
 | `sumber_catatan` | `ai` atau `otomatis` |
