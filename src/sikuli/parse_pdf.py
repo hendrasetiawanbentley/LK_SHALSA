@@ -24,6 +24,8 @@ class Halaman:
     nomor: int            # 1-based
     teks: str             # seluruh teks halaman, tabel sudah jadi baris "a | b | c"
     zona_atas: str        # beberapa baris teratas, untuk deteksi seksi
+    jumlah_gambar: int = 0  # gambar di halaman; halaman tanpa teks tapi bergambar = kemungkinan scan
+    sumber_teks: str = "lapisan_teks"  # lapisan_teks / ocr_claude / gambar_perlu_ocr / kosong
 
 
 def tabel_html_ke_teks(isi: str) -> str:

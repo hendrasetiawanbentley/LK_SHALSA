@@ -16,7 +16,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-from . import ai
+from . import ai, ocr
 from .akun import PemetaAkun
 from .config import muat_config
 from .ekstraksi_lokal import ekstraksi_seksi
@@ -106,38 +106,70 @@ def turunan_periode_lalu(baris: list[dict], rules: Rules, doc_type: str | None) 
     return len(tambahan)
 
 
+def _jalankan_ocr(klien, cfg_ai: dict, path: str, halaman, zona: int, peringatan: list[str]) -> None:
+    """Halaman bergambar tanpa teks (scan) dibaca Claude bila ai.ocr aktif; selain itu hanya dicatat."""
+    nomor = ocr.perlu_ocr(halaman)
+    if not nomor:
+        return
+    nama, daftar = Path(path).name, ", ".join(map(str, nomor))
+    if not (klien and cfg_ai.get("ocr")):
+        peringatan.append(f"{nama}: {len(nomor)} halaman bergambar tanpa teks (hal. {daftar}); "
+                          "aktifkan ai.ocr untuk OCR dengan Claude")
+        return
+    try:
+        hasil = ocr.ocr_halaman(klien, path, nomor, int(cfg_ai.get("ocr_halaman_per_permintaan", 10)))
+    except Exception as e:  # API error / rekaman OCR tidak ada
+        peringatan.append(f"{nama}: OCR gagal ({type(e).__name__}: {e}); hal. {daftar} tanpa teks")
+        return
+    n = ocr.terapkan_ocr(halaman, hasil, zona)
+    peringatan.append(f"{nama}: {n} dari {len(nomor)} halaman scan dibaca dengan OCR Claude (sumber_teks = ocr_claude)")
+
+
+def _proses_pdf_ai(klien, cfg: dict, rules: Rules, path: str, info: dict, halaman,
+                   lokasi: list, angka_pdf: list, peringatan: list) -> bool:
+    """Ekstraksi PDF oleh Claude. True = dokumen selesai (berhasil, atau gagal dengan ai.wajib)."""
+    cfg_ai = cfg.get("ai") or {}
+    if not (klien and cfg_ai.get("ekstraksi_pdf", True) and info["entitas_dikenal"]):
+        return False
+    nama = Path(path).name
+    try:
+        lok, ang, pesan = ai.ekstraksi_pdf(klien, path, info, rules, cfg, [h.teks for h in halaman])
+    except Exception as e:  # API error, refusal, PDF terlalu besar
+        if cfg_ai.get("wajib"):
+            peringatan.append(f"{nama}: GAGAL - ekstraksi AI error ({type(e).__name__}: {e}); "
+                              "dokumen tidak diproses (ai.wajib = true)")
+            return True
+        peringatan.append(f"{nama}: ekstraksi AI gagal ({type(e).__name__}: {e}); memakai aturan")
+        return False
+    lokasi.extend(lok)
+    angka_pdf.extend(ang)
+    peringatan.extend(pesan)
+    return True
+
+
 def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules,
              klien: ai.KlienAI | None = None) -> dict:
     """Pipeline lengkap. `klien` = KlienAI untuk memakai Claude; None = hanya aturan."""
     cfg_ai = cfg.get("ai") or {}
     pola = kompilasi_pola(rules.mapping_seksi)
-    teks, lokasi, angka_pdf, peringatan = [], [], [], []
+    teks, lokasi, angka_pdf, peringatan, teks_halaman = [], [], [], [], []
     for path in pdf_paths:
         nama = Path(path).name
+        zona = int(cfg["deteksi_seksi"]["baris_zona_atas"])
         try:
-            halaman = halaman_dari_pdf(path, int(cfg["deteksi_seksi"]["baris_zona_atas"]))
+            halaman = halaman_dari_pdf(path, zona)
         except Exception as e:  # PDF rusak / terkunci
             peringatan.append(f"{nama}: gagal dibaca ({type(e).__name__}: {e})")
             continue
         info = info_dari_nama_file(path, cfg, rules)
-        if klien and cfg_ai.get("ekstraksi_pdf", True) and info["entitas_dikenal"]:
-            try:
-                lok, ang, pesan = ai.ekstraksi_pdf(klien, path, info, rules, cfg, [h.teks for h in halaman])
-                lokasi.extend(lok)
-                angka_pdf.extend(ang)
-                peringatan.extend(pesan)
-                continue
-            except Exception as e:  # API error, refusal, PDF terlalu besar
-                if cfg_ai.get("wajib"):
-                    peringatan.append(f"{nama}: GAGAL - ekstraksi AI error ({type(e).__name__}: {e}); "
-                                      "dokumen tidak diproses (ai.wajib = true)")
-                    continue
-                peringatan.append(f"{nama}: ekstraksi AI gagal ({type(e).__name__}: {e}); memakai aturan")
-        hasil = proses_halaman(path, halaman, cfg, rules, pola)
-        teks.extend(hasil["teks"])
-        lokasi.extend(hasil["lokasi"])
-        peringatan.extend(hasil["peringatan"])
-        angka_pdf.extend(_ekstraksi_aturan(hasil["teks"], cfg, rules, peringatan))
+        _jalankan_ocr(klien, cfg_ai, path, halaman, zona, peringatan)
+        if not _proses_pdf_ai(klien, cfg, rules, path, info, halaman, lokasi, angka_pdf, peringatan):
+            hasil = proses_halaman(path, halaman, cfg, rules, pola)
+            teks.extend(hasil["teks"])
+            lokasi.extend(hasil["lokasi"])
+            peringatan.extend(hasil["peringatan"])
+            angka_pdf.extend(_ekstraksi_aturan(hasil["teks"], cfg, rules, peringatan))
+        teks_halaman.extend(ocr.baris_teks(info, halaman, [l for l in lokasi if l.get("nama_file") == info["nama_file"]]))
 
     angka_excel, pemeta = [], PemetaAkun(rules)
     for path in excel_paths:
@@ -178,7 +210,7 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
             except Exception as e:
                 peringatan.append(f"{entity_key}: analisis AI gagal ({type(e).__name__}: {e})")
     return {"komparasi": komparasi, "angka_pdf": angka_pdf, "angka_excel": angka_excel,
-            "lokasi_seksi": lokasi, "teks_pdf": teks, "peringatan": peringatan,
+            "lokasi_seksi": lokasi, "teks_pdf": teks, "teks_halaman": teks_halaman, "peringatan": peringatan,
             "ringkasan": ringkasan(komparasi), "kesimpulan": kesimpulan,
             "mode": f"AI ({klien.model})" if klien else "aturan (tanpa AI)"}
 
@@ -207,6 +239,7 @@ KOLOM = {
                     "cara_pemetaan", "periode", "nilai", "nilai_asli"],
     "Lokasi_Seksi": ["nama_file", "entity_key", "seksi", "halaman_mulai", "halaman_akhir", "judul_cocok"],
     "Kesimpulan": ["entity_key", "kesimpulan", "rekomendasi"],
+    "Teks_PDF": ["entity_key", "nama_file", "halaman", "no_baris", "seksi", "sumber_teks", "teks"],
 }
 WARNA = {"MATCH": "D9F2E1", "DIFFERENT": "FBDAD7", "PDF_ONLY": "FFF1C2", "EXCEL_ONLY": "FFF1C2"}
 
@@ -215,7 +248,8 @@ def tulis_excel(hasil: dict, path) -> None:
     wb = Workbook()
     wb.remove(wb.active)
     sumber = {"Ringkasan": "ringkasan", "Komparasi": "komparasi", "Angka_PDF": "angka_pdf",
-              "Angka_Excel": "angka_excel", "Lokasi_Seksi": "lokasi_seksi", "Kesimpulan": "kesimpulan"}
+              "Angka_Excel": "angka_excel", "Lokasi_Seksi": "lokasi_seksi", "Kesimpulan": "kesimpulan",
+              "Teks_PDF": "teks_halaman"}
     for sheet, kolom in KOLOM.items():
         ws = wb.create_sheet(sheet)
         ws.append(kolom)
@@ -242,12 +276,14 @@ def _kumpulkan(folder: str | None, akhiran: tuple[str, ...]) -> list[str]:
 
 def tulis_csv(hasil: dict, folder: Path) -> None:
     sumber = {"ringkasan": "Ringkasan", "komparasi": "Komparasi", "angka_pdf": "Angka_PDF",
-              "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi", "kesimpulan": "Kesimpulan"}
+              "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi", "kesimpulan": "Kesimpulan",
+              "teks_pdf": "Teks_PDF"}
     for kunci, sheet in sumber.items():
         with open(folder / f"{kunci}.csv", "w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
             w.writerow(KOLOM[sheet])
-            w.writerows([b.get(k) for k in KOLOM[sheet]] for b in hasil.get(kunci, []))
+            data = hasil.get("teks_halaman" if kunci == "teks_pdf" else kunci, [])
+            w.writerows([b.get(k) for k in KOLOM[sheet]] for b in data)
     with open(folder / "peringatan.csv", "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f)
         w.writerow(["peringatan"])
@@ -256,7 +292,7 @@ def tulis_csv(hasil: dict, folder: Path) -> None:
 
 def tulis_json(hasil: dict, path) -> None:
     """Semua hasil (tanpa teks PDF mentah) dalam satu file JSON, dipakai scripts/buat_dashboard.py."""
-    data = {k: v for k, v in hasil.items() if k != "teks_pdf"}
+    data = {k: v for k, v in hasil.items() if k not in ("teks_pdf", "teks_halaman")}
     Path(path).write_text(json.dumps(data, ensure_ascii=False, default=str, indent=1), encoding="utf-8")
 
 

@@ -42,6 +42,8 @@ BAWAAN: dict = {
         "ekstraksi_pdf": True,
         "pemetaan_excel": True,
         "catatan_dan_kesimpulan": True,
+        "ocr": False,
+        "ocr_halaman_per_permintaan": 10,
     },
     "komparasi": {
         "periode": ["berjalan"],

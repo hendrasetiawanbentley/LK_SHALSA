@@ -15,6 +15,7 @@ rules/Extraction_Rules.xlsx (sheet Master) dipakai di setiap langkah
 | Tahap | Dengan AI (`ANTHROPIC_API_KEY` tersedia) | Cadangan tanpa AI |
 |-------|------------------------------------------|-------------------|
 | Parsing PDF, seksi, satuan, angka akun | Claude membaca PDF langsung (termasuk PDF hasil scan), menentukan halaman tiap seksi dan satuannya, lalu menyalin angka akun sesuai sheet Master | pdfplumber + pola `mapping_seksi` + pencocokan label |
+| OCR halaman scan | Halaman bergambar tanpa lapisan teks dibaca Claude (`ai.ocr: true`, nonaktif bawaan); hasil di sheet **Teks_PDF** dengan `sumber_teks = ocr_claude` | Halaman ditandai `gambar_perlu_ocr` di Teks_PDF dan Peringatan |
 | Verifikasi angka PDF | Setiap angka dari AI dicek ulang ke teks halaman rujukan (kolom `verifikasi`) | - |
 | Pemetaan label Excel | Label yang tidak dikenali rules dipetakan Claude (`cara_pemetaan = ai`) | Label dibiarkan belum terpetakan |
 | Komparasi dan status | Deterministik (kode), tidak memakai AI | sama |
@@ -26,7 +27,8 @@ rules/Extraction_Rules.xlsx (sheet Master) dipakai di setiap langkah
 2. Di GitHub: **Settings → Secrets and variables → Actions → New repository secret**, nama
    `ANTHROPIC_API_KEY`, isi dengan key tersebut.
 3. Atur model dan tahap mana yang memakai AI di bagian `ai:` pada `config/pipeline.yaml`
-   (bawaan: `claude-opus-5-5`, effort `medium`, semua tahap aktif).
+   (bawaan: `claude-opus-5-5`, effort `medium`, semua tahap aktif kecuali OCR).
+4. Untuk OCR halaman scan: ubah `ocr: false` menjadi `ocr: true` di bagian `ai:` `config/pipeline.yaml`.
 
 Dengan `ai.wajib: true` (bawaan di `config/pipeline.yaml`), workflow **gagal dengan pesan jelas** bila secret
 belum diisi, dan dokumen yang gagal diproses AI dicatat GAGAL di Peringatan (tidak dialihkan ke mode aturan).
@@ -167,6 +169,13 @@ yang sama (mis. EPP `3410000` kolom V dan W untuk saldo laba ditentukan/belum di
 
 **Kesimpulan** (`kesimpulan.csv`): per `entity_key`: `kesimpulan` dan `rekomendasi` dari Claude (kosong bila AI
 tidak aktif).
+
+**Teks_PDF** (`teks_pdf.csv`): seluruh teks PDF, satu baris per baris teks: `entity_key`, `nama_file`,
+`halaman`, `no_baris`, `seksi`, `sumber_teks`, `teks`. `sumber_teks`:
+- `lapisan_teks`: dibaca langsung dari teks PDF
+- `ocr_claude`: hasil OCR Claude untuk halaman scan (bila `ai.ocr: true`)
+- `gambar_perlu_ocr`: halaman bergambar tanpa teks yang belum di-OCR
+- `kosong`: halaman tanpa teks dan tanpa gambar
 
 **Peringatan** (`peringatan.csv`): akun tidak ditemukan, sheet tidak ada, nama file tidak dikenali, PDF tanpa teks.
 

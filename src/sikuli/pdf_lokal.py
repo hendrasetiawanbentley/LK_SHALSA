@@ -13,6 +13,8 @@ from .parse_pdf import Halaman
 # Bagian bawah halaman (footer seperti "Catatan atas laporan keuangan terlampir
 # ...") tidak ikut zona atas supaya tidak terbaca sebagai judul seksi CaLK.
 BATAS_ZONA_ATAS = 0.88
+# Halaman bergambar dengan teks kurang dari ini (mis. hanya nomor halaman) dianggap hasil scan.
+MIN_KARAKTER_TEKS = 30
 
 
 def _buang_spasi_menumpuk(page):
@@ -52,5 +54,10 @@ def halaman_dari_pdf(path, baris_zona_atas: int = 8) -> list[Halaman]:
             except ValueError:
                 atas = teks
             baris = [b.strip() for b in atas.splitlines() if b.strip()]
-            hasil.append(Halaman(i, teks, "\n".join(baris[:baris_zona_atas])))
+            gambar = len(page.images)
+            if gambar and len(teks.strip()) < MIN_KARAKTER_TEKS:
+                sumber = "gambar_perlu_ocr"
+            else:
+                sumber = "lapisan_teks" if teks.strip() else "kosong"
+            hasil.append(Halaman(i, teks, "\n".join(baris[:baris_zona_atas]), gambar, sumber))
     return hasil

@@ -82,6 +82,7 @@ class KlienRekaman:
       pemetaan_excel_<doc_type>.json           {"label": {"label Excel": "kode_akun"},
                                                 "turunan": [{"kode_akun": "...", "label": ["...",
                                                              {"label": "...", "seksi": "..."}]}]}
+      ocr/<nama file PDF>.json                 {"halaman": {"12": "teks halaman 12", ...}}
       analisis/<entity_key>.json               {"catatan": {"kode_akun/periode": "..."},
                                                 "kesimpulan": "...", "rekomendasi": ["..."]}
     Permintaan tanpa rekaman menimbulkan ErrorAI (sama seperti panggilan API yang gagal).
@@ -123,6 +124,10 @@ class KlienRekaman:
                                       for i, k in enumerate(kunci["baris"]) if catatan.get(k)],
                     "kesimpulan": rekaman.get("kesimpulan", ""),
                     "rekomendasi": rekaman.get("rekomendasi", [])}
+        if tahap == "ocr":
+            rekaman = self._baca(f"ocr/{kunci['nama_file']}.json").get("halaman") or {}
+            return {"halaman": [{"halaman": i, "teks": rekaman[str(n)]}
+                                for i, n in enumerate(kunci["halaman"], start=1) if rekaman.get(str(n))]}
         raise ErrorAI(f"permintaan tanpa kunci rekaman: {kunci}")
 
 
