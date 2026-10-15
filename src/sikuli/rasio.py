@@ -9,19 +9,22 @@ memakai angka PDF; analisis per rasio ditulis AI (ai.analisis_rasio).
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import yaml
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
-from .komparasi import _indeks
+from .komparasi import _indeks, nama_satuan
 
 KOLOM_KK = ["No", "Kategori", "Entitas", "field_key", "dtype", "Description", "Nilai Y-1", "Nilai Y",
             "Rumus Rasio AI", "Hasil Rasio"]
-KOLOM_TAMBAHAN = ["Hasil Rasio Y-1", "Hasil Rasio Y", "Satuan", "Analisis AI", "Keterangan"]
+KOLOM_TAMBAHAN = ["Hasil Rasio Y-1", "Hasil Rasio Y", "Satuan", "Perhitungan Y-1", "Perhitungan Y",
+                  "Sumber Angka Y-1 (PDF)", "Sumber Angka Y (PDF)", "Analisis AI", "Keterangan"]
 KOLOM = ["entity_key", "no", "kategori", "entitas", "field_key", "dtype", "description", "nilai_y1", "nilai_y",
-         "rumus_ai", "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "analisis_ai", "sumber_analisis", "keterangan"]
+         "rumus_ai", "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "perhitungan_y1", "perhitungan_y",
+         "sumber_y1", "sumber_y", "analisis_ai", "sumber_analisis", "keterangan"]
 FUNGSI = {"rata2", "opsional", "abs", "min", "max"}
 SATUAN = {"persen": "%", "kali": "x", "nominal": "nominal"}
 
@@ -148,6 +151,47 @@ def _nilai_entitas(angka_pdf: list[dict], entity_key: str) -> dict[tuple[str, st
     return hasil
 
 
+def _baris_entitas(angka_pdf: list[dict], entity_key: str) -> dict[tuple[str, str], dict]:
+    """(kode_akun, periode) -> baris angka_pdf (untuk jejak sumber: halaman, label, angka tertulis)."""
+    return {(kode, periode): b for (ek, kode, periode), b in _indeks(angka_pdf, {"berjalan", "lalu"}, "pdf").items()
+            if ek == entity_key}
+
+
+def _sumber(rumus: str, periode: str, baris: dict, kelompok: dict, nama_akun: dict[str, str]) -> str:
+    """Asal setiap angka rumus: nama akun, nilai penuh, halaman PDF, label baris, dan angka seperti tertulis."""
+    hasil = []
+    for n in _nama_akun(rumus):
+        dasar, per = (n[:-6], "lalu") if n.endswith("__lalu") else (n, periode)
+        if n.endswith("__lalu") and periode == "lalu":
+            continue
+        for kode in kelompok.get(dasar, [dasar]):
+            b = baris.get((kode, per))
+            if b is None:
+                if dasar not in kelompok:
+                    hasil.append(f"- {nama_akun.get(kode) or kode}: tidak ada di PDF")
+                continue
+            skala = b.get("skala") or 1.0
+            satuan = f" dalam {nama_satuan(skala)}" if skala > 1 else ""
+            label = (b.get("label_di_dokumen") or "").strip()
+            hasil.append(f"- {nama_akun.get(kode) or kode} = {fmt_angka(b['nilai'] * skala)} "
+                         f"<- PDF hal. {b.get('halaman') or '?'}, \"{label}\" tertulis {b.get('nilai_asli') or '-'}{satuan}"
+                         + (" (periode sebelumnya)" if per != periode else ""))
+    return "\n".join(hasil)
+
+
+def _perhitungan(rumus: str, ambil, satuan: str, hasil: float | None) -> str:
+    """Rumus dengan angka disubstitusikan, mis. 24.458.000.000.000 / 287.759.000.000.000 x 100% = 8,50%."""
+    if hasil is None:
+        return ""
+    def ganti(m):
+        v = ambil(m.group(0))
+        return fmt_angka(v, 0) if v is not None and float(v).is_integer() else (fmt_angka(v, 4) if v is not None else "0")
+    nama = sorted(_nama_akun(rumus), key=len, reverse=True)
+    teks = re.sub(r"\b(" + "|".join(map(re.escape, nama)) + r")\b", ganti, rumus) if nama else rumus
+    teks = teks.replace("opsional(", "(").replace("rata2(", "rata-rata(").replace("*", "x")
+    return f"{teks}{' x 100%' if satuan == 'persen' else ''} = {fmt_rasio(hasil, satuan)}"
+
+
 def _pengambil(data: dict, periode: str):
     def ambil(nama: str):
         if nama.endswith("__lalu"):
@@ -215,6 +259,7 @@ def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], entitas: dict[str,
     hasil = []
     for entity_key, doc_type in sorted(entitas.items()):
         pdf = _nilai_entitas(angka_pdf, entity_key)
+        baris_pdf = _baris_entitas(angka_pdf, entity_key)
         jenis = [doc_type] + list(kriteria_tambahan.get(doc_type, []))
         for d in (x for x in definisi if x["entitas"] in jenis):
             satuan = d["satuan"]
@@ -255,7 +300,11 @@ def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], entitas: dict[str,
             hasil.append({**baris,
                           "nilai_y1": "" if periode == "berjalan" else komponen(ambil_y1, _pengambil(pdf, "lalu")),
                           "nilai_y": "" if periode == "lalu" else komponen(ambil_y, _pengambil(pdf, "berjalan")),
-                          "rasio_y1": y1, "rasio_y": y, "hasil_rasio": "\n".join(bagian), "keterangan": "; ".join(ket)})
+                          "rasio_y1": y1, "rasio_y": y, "hasil_rasio": "\n".join(bagian), "keterangan": "; ".join(ket),
+                          "perhitungan_y1": _perhitungan(d["rumus"], ambil_y1, satuan, y1),
+                          "perhitungan_y": _perhitungan(d["rumus"], ambil_y, satuan, y),
+                          "sumber_y1": "" if periode == "berjalan" else _sumber(d["rumus"], "lalu", baris_pdf, kel, nama_akun),
+                          "sumber_y": "" if periode == "lalu" else _sumber(d["rumus"], "berjalan", baris_pdf, kel, nama_akun)})
     return hasil
 
 
@@ -288,8 +337,9 @@ def tulis_kk(rasio: list[dict], path) -> None:
     wb.remove(wb.active)
     kolom = KOLOM_KK + KOLOM_TAMBAHAN
     kunci = ["no", "kategori", "entitas", "field_key", "dtype", "description", "nilai_y1", "nilai_y", "rumus_ai",
-             "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "analisis_ai", "keterangan"]
-    lebar = [5, 16, 8, 30, 8, 45, 45, 45, 36, 24, 14, 14, 9, 70, 30]
+             "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "perhitungan_y1", "perhitungan_y",
+             "sumber_y1", "sumber_y", "analisis_ai", "keterangan"]
+    lebar = [5, 16, 8, 30, 8, 45, 45, 45, 36, 24, 14, 14, 9, 45, 45, 70, 70, 70, 30]
     kepala = PatternFill("solid", fgColor="DCE3F2")
 
     def sheet(nama: str, isi: list[dict], dengan_entitas: bool):

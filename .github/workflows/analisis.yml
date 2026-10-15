@@ -46,7 +46,10 @@ jobs:
       - name: Buat dashboard HTML
         if: always()
         run: |
-          if [ -f hasil/hasil.json ]; then PYTHONPATH=src python scripts/buat_dashboard.py --hasil hasil; fi
+          if [ -f hasil/hasil.json ]; then
+            PYTHONPATH=src python scripts/buat_dashboard.py --hasil hasil
+            PYTHONPATH=src python scripts/buat_dashboard_rasio.py --hasil hasil
+          fi
       - name: Tampilkan ringkasan di halaman run
         if: always()
         run: |

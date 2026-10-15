@@ -1,0 +1,274 @@
+<title>SIKULI Rasio Keuangan 2025</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: kertas kerja rasio. Ringkasan, pilih entitas, tabel rasio dengan jejak perhitungan; perbandingan antar entitas di bawah. */
+:root {
+  --bg: #f2f4f6;
+  --panel: #ffffff;
+  --ink: #18212b;
+  --muted: #5b6672;
+  --line: #d8dde3;
+  --accent: #2b4c9b;
+  --accent-soft: #e3e9f7;
+  --ok: #1f7a4d;  --ok-bg: #dcf1e5;
+  --bad: #b3261e; --bad-bg: #fbe1de;
+  --warn: #8a5a00; --warn-bg: #fdefc8;
+  --nil: #5b6672; --nil-bg: #e8ebee;
+  --bar-y1: #b7c3d9;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161c; --panel: #19202a; --ink: #e6eaef; --muted: #9aa5b1; --line: #2c3540;
+  --accent: #8ea8ec; --accent-soft: #233154;
+  --ok: #6fd19c; --ok-bg: #173a29; --bad: #ff9b92; --bad-bg: #4a1f1c;
+  --warn: #f2c35b; --warn-bg: #3d3115; --nil: #9aa5b1; --nil-bg: #262e38; --bar-y1: #44506a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11161c; --panel: #19202a; --ink: #e6eaef; --muted: #9aa5b1; --line: #2c3540;
+  --accent: #8ea8ec; --accent-soft: #233154;
+  --ok: #6fd19c; --ok-bg: #173a29; --bad: #ff9b92; --bad-bg: #4a1f1c;
+  --warn: #f2c35b; --warn-bg: #3d3115; --nil: #9aa5b1; --nil-bg: #262e38; --bar-y1: #44506a; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); margin: 0; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); font-stretch: 82%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; line-height: 1.05; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.02rem; font-weight: 700; }
+.eyebrow { font: 600 0.72rem/1 var(--f-body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.muted { color: var(--muted); }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 10px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; font-size: 0.9rem; color: var(--muted); }
+.stamp { border: 1.5px solid var(--accent); color: var(--accent); padding: 2px 8px; border-radius: 3px;
+  font: 600 0.75rem/1.4 var(--f-data); text-transform: uppercase; letter-spacing: 0.04em; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+.tile .big { font: 700 1.9rem/1.1 var(--f-display); font-stretch: 80%; }
+.tile .lbl { font-size: 0.8rem; color: var(--muted); }
+.tile.ok .big { color: var(--ok); } .tile.warn .big { color: var(--warn); }
+
+.picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.ent { font: 600 0.84rem/1.2 var(--f-body); text-align: left; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  border-radius: 6px; padding: 8px 12px; cursor: pointer; display: grid; gap: 2px; min-width: 0; }
+.ent small { font: 0.7rem var(--f-data); color: var(--muted); }
+.ent[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.ent:focus-visible, button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip { display: inline-block; font: 600 0.68rem/1.5 var(--f-data); padding: 0 6px; border-radius: 3px; background: var(--accent-soft); color: var(--accent); }
+
+section { display: grid; gap: 12px; }
+.head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.72rem/1.2 var(--f-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; background: var(--panel); }
+td.n, th.n { text-align: right; white-space: nowrap; font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+tr.kat td { background: var(--bg); font: 700 0.76rem var(--f-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding-block: 6px; }
+.rname { font-weight: 600; } .rno { font: 0.7rem var(--f-data); color: var(--muted); }
+.delta { font: 0.72rem var(--f-data); display: block; color: var(--muted); }
+.pill { display: inline-block; font: 600 0.68rem/1.6 var(--f-data); padding: 0 7px; border-radius: 10px; white-space: nowrap; }
+.p-ok { background: var(--ok-bg); color: var(--ok); } .p-bad { background: var(--bad-bg); color: var(--bad); } .p-nil { background: var(--nil-bg); color: var(--nil); }
+.calc { font: 0.76rem/1.45 var(--f-data); color: var(--ink); min-width: 260px; max-width: 46ch; word-break: break-word; }
+.calc .per { color: var(--muted); }
+.src { font-size: 0.78rem; color: var(--muted); }
+details.more summary { cursor: pointer; color: var(--accent); font-size: 0.8rem; font-weight: 600; margin-top: 4px; }
+details.more[open] summary { margin-bottom: 6px; }
+.trace { display: grid; gap: 8px; font-size: 0.8rem; max-width: 70ch; }
+.trace h4 { margin: 0; font: 600 0.7rem var(--f-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.trace pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 0.76rem/1.5 var(--f-data); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; }
+.trace p { margin: 0; }
+.ai { font: 600 0.64rem var(--f-data); color: var(--accent); margin-left: 4px; }
+
+.cmp { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: grid; gap: 12px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select { font: 0.9rem var(--f-body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); max-width: 100%; }
+.bars { display: grid; gap: 10px; }
+.brow { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) 96px; gap: 10px; align-items: center; font-size: 0.84rem; }
+.brow .lab { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { position: relative; height: 26px; background: var(--bg); border-radius: 3px; }
+.track .zero { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.track .b { position: absolute; border-radius: 2px; }
+.track .by { top: 4px; height: 11px; background: var(--accent); }
+.track .by1 { top: 17px; height: 6px; background: var(--bar-y1); }
+.brow .val { text-align: right; font: 0.8rem var(--f-data); }
+.legend { display: flex; gap: 16px; font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+@media (max-width: 640px) { .brow { grid-template-columns: minmax(0, 1fr) 80px; } .brow .track { grid-column: 1 / -1; grid-row: 2; } }
+footer { font-size: 0.8rem; color: var(--muted); max-width: 95ch; }
+@media (prefers-reduced-motion: no-preference) { .track .b { transition: width .25s, left .25s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">SIKULI · Rasio kertas kerja · LK audited 31 Desember 2025</span>
+    <h1>Rasio keuangan dari angka PDF</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <section>
+    <div class="head"><h2>Pilih entitas</h2><span class="muted" style="font-size:.85rem">Klik entitas untuk melihat rasio dan asal setiap angkanya.</span></div>
+    <div class="picker" id="picker" role="group" aria-label="Entitas"></div>
+  </section>
+
+  <section id="rinci">
+    <div><span class="eyebrow" id="d-eyebrow"></span><h2 id="d-nama"></h2></div>
+    <div class="scroll"><table id="rasio"><thead><tr>
+      <th>Rasio</th><th class="n">Y-1 (2024)</th><th class="n">Y (2025)</th><th>Status</th>
+      <th>Perhitungan (asal angka)</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section>
+    <div class="head"><h2>Bandingkan antar entitas</h2></div>
+    <div class="cmp">
+      <div class="controls">
+        <select id="pilih-rasio" aria-label="Rasio yang dibandingkan"></select>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Y (2025)</span><span><i style="background:var(--bar-y1)"></i>Y-1 (2024)</span></div>
+      </div>
+      <div class="bars" id="bars"></div>
+      <p class="muted" id="bars-info" style="margin:0;font-size:.8rem"></p>
+    </div>
+  </section>
+
+  <footer>
+    Semua rasio dihitung dari angka laporan keuangan audited (PDF) yang diekstraksi Claude sesuai sheet Master; nilai dalam mata uang penuh
+    (angka PDF dikali satuan penyajiannya). Kolom "Perhitungan" menampilkan rumus dengan angka yang dipakai; "Asal angka" menunjuk halaman PDF,
+    label baris, dan angka seperti tertulis. Rumus ada di config/rasio.yaml, daftar rasio dari template kertas kerja.
+  </footer>
+</div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const JENIS = { EPP: "Emiten", MI: "Manajer investasi", RD: "Reksa dana" };
+  const el = (t, a = {}, ...kids) => { const e = document.createElement(t);
+    for (const [k, v] of Object.entries(a)) { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); }
+    for (const c of kids) if (c != null) e.append(c); return e; };
+  const fmt = (x, s) => {
+    if (x === null || x === undefined) return "–";
+    const a = Math.abs(x);
+    if (s === "nominal") return (x < 0 ? "-" : "") + a.toLocaleString("id-ID", { maximumFractionDigits: 0 });
+    return x.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (s === "%" ? "%" : " x");
+  };
+  const status = (r) => {
+    const t = r.hasil_rasio || "";
+    if (r.rasio_y === null && r.rasio_y1 === null) return ["p-nil", "Tidak dapat dihitung"];
+    if (/tidak memenuhi/.test(t)) return ["p-bad", "Tidak memenuhi"];
+    if (/memenuhi/.test(t)) return ["p-ok", "Memenuhi"];
+    return null;
+  };
+  const halaman = (s) => { const m = [...(s || "").matchAll(/PDF hal\. (\d+)/g)].map(x => +x[1]);
+    return [...new Set(m)].sort((a, b) => a - b); };
+
+  // Ringkasan
+  const R = D.rasio;
+  const ada = R.filter(r => r.rasio_y !== null || r.rasio_y1 !== null).length;
+  const des = R.filter(r => r.entitas === "EPP" && r.no >= 31 && r.no <= 34);
+  document.getElementById("meta").append(el("span", { class: "stamp", text: "Data PDF audited" }),
+    el("span", { text: D.entitas.length + " entitas · " + R.length + " rasio · sumber: " + (D.mode || "-") }));
+  const tile = (cls, big, lbl) => el("div", { class: "tile " + cls }, el("span", { class: "big", text: big }), el("span", { class: "lbl", text: lbl }));
+  const desOk = des.length && des.every(r => /\(memenuhi/.test(r.hasil_rasio));
+  document.getElementById("summary").append(
+    tile("", ada, "Rasio terhitung dari " + R.length),
+    tile("warn", R.length - ada, "Tidak dapat dihitung (data tidak tersaji)"),
+    tile(desOk ? "ok" : "warn", des.length ? (desOk ? "Memenuhi" : "Cek") : "–", "Kriteria DES emiten (RU ≤ 45%, RPNH ≤ 10%)"),
+    tile("", R.filter(r => r.sumber_analisis === "ai").length, "Rasio dengan analisis AI"));
+
+  // Pemilih entitas
+  const picker = document.getElementById("picker");
+  let pilih = D.entitas[0].entity_key;
+  try { const s = localStorage.getItem("sikuli-rasio"); if (s && D.entitas.some(e => e.entity_key === s)) pilih = s; } catch (e) {}
+  for (const e of D.entitas) {
+    const b = el("button", { type: "button", class: "ent", "data-key": e.entity_key, "aria-pressed": "false" },
+      el("span", {}, el("span", { class: "chip", text: e.doc_type }), " " + e.kode),
+      el("small", { text: e.nama }));
+    b.addEventListener("click", () => { pilih = e.entity_key; try { localStorage.setItem("sikuli-rasio", pilih); } catch (x) {} render(); });
+    picker.append(b);
+  }
+
+  function render() {
+    picker.querySelectorAll(".ent").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.key === pilih)));
+    const e = D.entitas.find(x => x.entity_key === pilih);
+    document.getElementById("d-eyebrow").textContent = (JENIS[e.doc_type] || e.doc_type) + (e.doc_type === "EPP" ? " · termasuk kriteria DES" : "");
+    document.getElementById("d-nama").textContent = e.kode + " · " + e.nama;
+    const tb = document.querySelector("#rasio tbody"); tb.replaceChildren();
+    let kat = null;
+    for (const r of R.filter(x => x.entity_key === pilih)) {
+      if (r.kategori !== kat) { kat = r.kategori; tb.append(el("tr", { class: "kat" }, el("td", { colspan: "5", text: kat }))); }
+      const st = status(r);
+      let delta = null;
+      if (r.rasio_y !== null && r.rasio_y1 !== null && r.satuan !== "nominal") {
+        const d = r.rasio_y - r.rasio_y1;
+        delta = el("span", { class: "delta", text: (d > 0 ? "▲ " : d < 0 ? "▼ " : "") + fmt(Math.abs(d), r.satuan) });
+      }
+      const hal = [...new Set([...halaman(r.sumber_y), ...halaman(r.sumber_y1)])].sort((a, b) => a - b);
+      const calc = el("td", { class: "calc" });
+      if (r.perhitungan_y) calc.append(el("div", {}, el("span", { class: "per", text: "Y: " }), r.perhitungan_y));
+      if (r.perhitungan_y1) calc.append(el("div", {}, el("span", { class: "per", text: "Y-1: " }), r.perhitungan_y1));
+      if (!r.perhitungan_y && !r.perhitungan_y1) calc.append(el("div", { class: "muted", text: r.keterangan || "Tidak dapat dihitung" }));
+      if (hal.length) calc.append(el("div", { class: "src", text: "Asal angka: PDF hal. " + hal.join(", ") }));
+      const det = el("details", { class: "more" }, el("summary", { text: "Rumus, asal angka, dan analisis" }),
+        el("div", { class: "trace" },
+          el("div", {}, el("h4", { text: "Rumus" }), el("p", { text: r.rumus_ai || "-" })),
+          r.sumber_y ? el("div", {}, el("h4", { text: "Asal angka Y (2025)" }), el("pre", { text: r.sumber_y })) : null,
+          r.sumber_y1 ? el("div", {}, el("h4", { text: "Asal angka Y-1 (2024)" }), el("pre", { text: r.sumber_y1 })) : null,
+          r.analisis_ai ? el("div", {}, el("h4", {}, "Analisis", el("span", { class: "ai", text: "AI" })), el("p", { text: r.analisis_ai })) : null,
+          r.keterangan ? el("div", {}, el("h4", { text: "Keterangan" }), el("p", { text: r.keterangan })) : null));
+      calc.append(det);
+      tb.append(el("tr", {},
+        el("td", {}, el("div", { class: "rname", text: r.field_key }), el("span", { class: "rno", text: "No " + r.no + " · " + r.satuan })),
+        el("td", { class: "n", text: fmt(r.rasio_y1, r.satuan) }),
+        el("td", { class: "n" }, fmt(r.rasio_y, r.satuan), delta),
+        el("td", {}, st ? el("span", { class: "pill " + st[0], text: st[1] }) : el("span", { class: "muted", text: "–" })),
+        calc));
+    }
+    isiPilihan(e.doc_type);
+  }
+
+  // Perbandingan antar entitas
+  const sel = document.getElementById("pilih-rasio");
+  let jenisAktif = null;
+  function isiPilihan(jenis) {
+    if (jenis === jenisAktif) return;
+    jenisAktif = jenis;
+    const kunci = new Map();
+    R.filter(r => r.entitas === jenis).forEach(r => kunci.set(r.no, r.field_key));
+    sel.replaceChildren(...[...kunci].map(([no, nama]) => el("option", { value: String(no), text: "No " + no + " · " + nama })));
+    gambar();
+  }
+  sel.addEventListener("change", gambar);
+  function gambar() {
+    const no = +sel.value;
+    const rows = R.filter(r => r.entitas === jenisAktif && r.no === no);
+    const bars = document.getElementById("bars"); bars.replaceChildren();
+    const nilai = rows.flatMap(r => [r.rasio_y, r.rasio_y1]).filter(v => v !== null);
+    const min = Math.min(0, ...nilai), max = Math.max(0, ...nilai);
+    const span = (max - min) || 1, pos = v => (v - min) / span * 100;
+    for (const r of rows) {
+      const e = D.entitas.find(x => x.entity_key === r.entity_key);
+      const track = el("div", { class: "track" });
+      const z = el("span", { class: "zero" }); z.style.left = pos(0) + "%"; track.append(z);
+      for (const [v, c] of [[r.rasio_y, "by"], [r.rasio_y1, "by1"]]) {
+        if (v === null) continue;
+        const b = el("span", { class: "b " + c }); b.style.left = Math.min(pos(0), pos(v)) + "%"; b.style.width = Math.abs(pos(v) - pos(0)) + "%"; track.append(b);
+      }
+      bars.append(el("div", { class: "brow" }, el("span", { class: "lab", title: e.nama, text: e.kode + " · " + e.nama }), track,
+        el("span", { class: "val", text: fmt(r.rasio_y, r.satuan) })));
+    }
+    const r0 = rows[0];
+    document.getElementById("bars-info").textContent = r0 ? (r0.rumus_ai + (rows.some(r => r.rasio_y === null) ? " · entitas tanpa batang: rasio tidak dapat dihitung" : "")) : "";
+  }
+  render();
+})();
+</script>

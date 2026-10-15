@@ -174,7 +174,8 @@ tidak aktif).
 Daftar rasio dan uraiannya dari `config/rasio_kk_template.xlsx` (baris bertanda "tidak dipakai" dilewati),
 rumusnya di `config/rasio.yaml`. Kolom: No, Kategori, Entitas, field_key, dtype, Description, Nilai Y-1 dan
 Nilai Y (komponen angka PDF), Rumus Rasio AI, Hasil Rasio, ditambah Hasil Rasio Y-1/Y (angka), Satuan,
-Analisis AI, dan Keterangan (alasan bila rasio tidak dapat dihitung).
+Perhitungan Y-1/Y (rumus dengan angka disubstitusikan), Sumber Angka Y-1/Y (halaman PDF, label baris, dan angka
+seperti tertulis untuk setiap komponen), Analisis AI, dan Keterangan (alasan bila rasio tidak dapat dihitung).
 
 **Teks_PDF** (`teks_pdf.csv`): seluruh teks PDF, satu baris per baris teks: `entity_key`, `nama_file`,
 `halaman`, `no_baris`, `seksi`, `sumber_teks`, `teks`. `sumber_teks`:
@@ -203,6 +204,7 @@ Analisis AI, dan Keterangan (alasan bila rasio tidak dapat dihitung).
 | `config/` | `pipeline.yaml`, `mapping_seksi.csv`, `sheet_config.csv` (konfigurasi teknis) |
 | `src/sikuli/` | Kode pipeline (`lokal.py` = titik masuk) |
 | `hasil_ai/` | Jawaban AI yang direkam (ekstraksi PDF, pemetaan Excel, analisis) untuk `--ai-rekaman` |
-| `scripts/buat_dashboard.py` | Membuat `dashboard.html` dari `hasil/hasil.json` |
+| `scripts/buat_dashboard.py` | Membuat `dashboard.html` (komparasi) dari `hasil/hasil.json` |
+| `scripts/buat_dashboard_rasio.py` | Membuat `dashboard_rasio.html` (rasio, perhitungan, dan asal angka PDF) |
 | `tests/` | Tes unit dan end-to-end dengan PDF/Excel contoh |
 | `notebooks/`, `sql/` | Versi Databricks dari alur yang sama (opsional, tidak dipakai workflow) |

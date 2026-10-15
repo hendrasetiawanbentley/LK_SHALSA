@@ -90,3 +90,18 @@ def test_tambah_kriteria():
     hasil = tambah_kriteria(rules, {"EPP": ["DES"]})
     assert [(a["doc_type"], a["kode_akun"]) for a in hasil.rules_akun if a["doc_type"] == "EPP"] == [
         ("EPP", "total_aset"), ("EPP", "utang_bank_bunga")]
+
+
+def test_perhitungan_dan_sumber_angka():
+    definisi = [{"no": 1, "entitas": "MI", "satuan": "persen", "rumus": "laba / aset", "teks": "ROA",
+                 "kategori": "P", "field_key": "ROA", "dtype": "number", "description": ""}]
+    pdf = [{"entity_key": "E", "kode_akun": "laba", "periode": "berjalan", "nilai": 5.0, "skala": 1e6,
+            "halaman": 10, "label_di_dokumen": "LABA TAHUN BERJALAN", "nilai_asli": "5"},
+           {"entity_key": "E", "kode_akun": "aset", "periode": "berjalan", "nilai": 100.0, "skala": 1e6,
+            "halaman": 9, "label_di_dokumen": "JUMLAH ASET", "nilai_asli": "100"}]
+    (r,) = rasio.hitung_rasio(definisi, pdf, {"E": "MI"}, {"laba": "Laba", "aset": "Total Aset"})
+    assert r["perhitungan_y"] == "5.000.000 / 100.000.000 x 100% = 5,00%"
+    assert r["sumber_y"].splitlines() == [
+        '- Laba = 5.000.000,00 <- PDF hal. 10, "LABA TAHUN BERJALAN" tertulis 5 dalam jutaan Rupiah',
+        '- Total Aset = 100.000.000,00 <- PDF hal. 9, "JUMLAH ASET" tertulis 100 dalam jutaan Rupiah']
+    assert r["perhitungan_y1"] == "" and r["rasio_y1"] is None
