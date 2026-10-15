@@ -405,17 +405,16 @@ def analisis_entitas(klien: KlienAI, entity_key: str, baris: list[dict]) -> dict
 
 SYSTEM_RASIO = """Anda analis pengawas OJK. Anda menerima rasio keuangan satu entitas (emiten, manajer
 investasi, atau reksa dana) untuk tahun berjalan (Y) dan tahun sebelumnya (Y-1), dihitung dari laporan
-keuangan audited (PDF), beserta nilai dari Excel yang disampaikan entitas. Untuk setiap rasio tulis
-analisis 2-3 kalimat dalam Bahasa Indonesia: arti nilainya, perubahan Y-1 ke Y, dan hal yang perlu
-diperhatikan pengawas (termasuk bila nilai Excel berbeda atau rasio tidak dapat dihitung). Jangan
-mengarang angka di luar yang diberikan. Gunakan `no` dari input."""
+keuangan audited (PDF), beserta komponen angkanya. Untuk setiap rasio tulis analisis 2-3 kalimat dalam
+Bahasa Indonesia: arti nilainya, perubahan Y-1 ke Y, dan hal yang perlu diperhatikan pengawas (termasuk
+bila rasio tidak dapat dihitung). Jangan mengarang angka di luar yang diberikan. Gunakan `no` dari input."""
 
 
 def analisis_rasio(klien, entity_key: str, rasio: list[dict]) -> int:
     """Isi kolom analisis_ai untuk rasio satu entitas. Mengembalikan jumlah rasio yang dianalisis."""
     data = [{"no": i, "rasio": r["field_key"], "kategori": r["kategori"], "rumus": r["rumus_ai"], "satuan": r["satuan"],
-             "nilai_y_1": r["nilai_y1"], "nilai_y": r["nilai_y"], "nilai_y_excel": r["nilai_y_excel"],
-             "komponen_y": r["komponen_y"], "status_ambang": r["status_ambang"], "keterangan": r["keterangan"]}
+             "rasio_y_1": r["rasio_y1"], "rasio_y": r["rasio_y"], "komponen_y_1": r["nilai_y1"],
+             "komponen_y": r["nilai_y"], "hasil": r["hasil_rasio"], "keterangan": r["keterangan"]}
             for i, r in enumerate(rasio)]
     skema = _objek({"analisis": {"type": "array", "items": _objek({"no": {"type": "integer"}, "analisis": {"type": "string"}})}})
     hasil = klien.minta_json(SYSTEM_RASIO, [{"type": "text", "text":

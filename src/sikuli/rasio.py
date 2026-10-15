@@ -1,8 +1,9 @@
-"""Rasio kertas kerja (Sheet3 rules) dari angka PDF (diaudit) dan Excel.
+"""Rasio kertas kerja dari angka laporan keuangan audited (PDF).
 
-Definisi rasio = Sheet3 (No, Kategori, Entitas, field_key, dtype, Description) digabung dengan
-rumus di config/rasio.yaml. Perhitungan deterministik; analisis per rasio ditulis AI
-(ai.analisis_rasio) dan masuk kolom "Analisis AI".
+Definisi rasio dibaca dari template kertas kerja `config/rasio_kk_template.xlsx` (kolom No, Kategori,
+Entitas, field_key, dtype, Description; baris bertanda "tidak dipakai" dilewati), dengan cadangan
+Sheet3 file rules. Rumus perhitungan ada di `config/rasio.yaml`. Perhitungan deterministik dan hanya
+memakai angka PDF; analisis per rasio ditulis AI (ai.analisis_rasio).
 """
 
 from __future__ import annotations
@@ -17,54 +18,64 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from .komparasi import _indeks
 
 KOLOM_KK = ["No", "Kategori", "Entitas", "field_key", "dtype", "Description", "Nilai Y-1", "Nilai Y",
-            "Rumus Rasio AI", "Analisis AI"]
-KOLOM_TAMBAHAN = ["Satuan", "Nilai Y (Excel)", "Komponen Y (PDF)", "Status ambang", "Keterangan"]
+            "Rumus Rasio AI", "Hasil Rasio"]
+KOLOM_TAMBAHAN = ["Hasil Rasio Y-1", "Hasil Rasio Y", "Satuan", "Analisis AI", "Keterangan"]
 KOLOM = ["entity_key", "no", "kategori", "entitas", "field_key", "dtype", "description", "nilai_y1", "nilai_y",
-         "rumus_ai", "analisis_ai", "sumber_analisis", "satuan", "nilai_y_excel", "komponen_y", "status_ambang",
-         "keterangan"]
+         "rumus_ai", "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "analisis_ai", "sumber_analisis", "keterangan"]
 FUNGSI = {"rata2", "opsional", "abs", "min", "max"}
+SATUAN = {"persen": "%", "kali": "x", "nominal": "nominal"}
 
 
 class AkunHilang(Exception):
     pass
 
 
-def _baca_sheet3(path: Path) -> dict[tuple[int, str], dict]:
+def _baca_definisi_xlsx(path: Path, sheet: str | None = None) -> list[dict]:
+    """Baris definisi dari template kertas kerja (atau Sheet3 rules), urut seperti di file."""
     wb = load_workbook(path, read_only=True, data_only=True)
     try:
-        if "Sheet3" not in wb.sheetnames:
-            return {}
-        baris = list(wb["Sheet3"].iter_rows(values_only=True))
+        ws = wb[sheet] if sheet else wb.worksheets[0]
+        baris = list(ws.iter_rows(values_only=True))
     finally:
         wb.close()
     kepala = [str(k).strip() if k else "" for k in baris[0]]
-    hasil = {}
+    hasil = []
     for r in baris[1:]:
         d = dict(zip(kepala, r))
         if d.get("No") is None or not d.get("Entitas"):
             continue
-        kunci = (int(d["No"]), str(d["Entitas"]).strip())
-        hasil[kunci] = {"kategori": str(d.get("Kategori") or "").strip(), "field_key": str(d.get("field_key") or "").strip(),
-                        "dtype": d.get("dtype") or "number", "description": d.get("Description") or ""}
+        tanda = " ".join(str(v) for k, v in d.items() if k in ("Nilai Y-1", "Nilai Y") and v)
+        hasil.append({"no": int(d["No"]), "entitas": str(d["Entitas"]).strip(),
+                      "kategori": str(d.get("Kategori") or "").strip(), "field_key": str(d.get("field_key") or "").strip(),
+                      "dtype": d.get("dtype") or "number", "description": d.get("Description") or "",
+                      "dipakai": "tidak dipakai" not in tanda.lower()})
     return hasil
 
 
-def muat_rasio(folder_rules: str | Path, path_yaml: str | Path) -> list[dict]:
-    """Definisi rasio: rumus dari yaml + kategori/nama/deskripsi dari Sheet3 file rules."""
-    path_yaml = Path(path_yaml)
+def muat_rasio(path_template: str | Path, path_yaml: str | Path, folder_rules: str | Path | None = None) -> list[dict]:
+    """Definisi rasio yang dipakai: urutan dan uraian dari template, rumus dari yaml.
+
+    Rasio di template tanpa rumus di yaml tetap dikembalikan (rumus None) supaya terlihat di
+    kertas kerja sebagai "rumus belum didefinisikan"."""
+    path_yaml, path_template = Path(path_yaml), Path(path_template)
     if not path_yaml.exists():
         return []
-    sheet3 = {}
-    master = next(iter(sorted(Path(folder_rules).glob("*.xlsx"))), None)
-    if master:
-        sheet3 = _baca_sheet3(master)
-    hasil = []
+    rumus = {}
     for r in yaml.safe_load(path_yaml.read_text(encoding="utf-8")).get("rasio", []):
         _cek_rumus(r["rumus"])
-        info = sheet3.get((int(r["nomor"]), r["entitas"]), {})
-        hasil.append({**r, "no": int(r["nomor"]), "kategori": info.get("kategori", r.get("kategori", "")),
-                      "field_key": info.get("field_key", r.get("nama", f"Rasio {r['nomor']}")),
-                      "dtype": info.get("dtype", "number"), "description": info.get("description", "")})
+        rumus[(int(r["nomor"]), r["entitas"])] = r
+    if path_template.exists():
+        definisi = _baca_definisi_xlsx(path_template)
+    else:
+        master = next(iter(sorted(Path(folder_rules).glob("*.xlsx"))), None) if folder_rules else None
+        definisi = _baca_definisi_xlsx(master, "Sheet3") if master else []
+    hasil = []
+    for d in definisi:
+        if not d.pop("dipakai"):
+            continue
+        r = rumus.get((d["no"], d["entitas"]), {})
+        hasil.append({**d, "rumus": r.get("rumus"), "satuan": r.get("satuan", "persen"), "teks": r.get("teks", ""),
+                      "ambang": r.get("ambang")})
     return hasil
 
 
@@ -125,10 +136,10 @@ def evaluasi(rumus: str, nilai) -> float:
     return ev(ast.parse(rumus, mode="eval"))
 
 
-def _nilai_entitas(baris: list[dict], entity_key: str) -> dict[tuple[str, str], float]:
-    """(kode_akun, periode) -> nilai mata uang penuh."""
+def _nilai_entitas(angka_pdf: list[dict], entity_key: str) -> dict[tuple[str, str], float]:
+    """(kode_akun, periode) -> nilai PDF dalam mata uang penuh (nilai x satuan penyajian)."""
     hasil = {}
-    for (ek, kode, periode), b in _indeks(baris, {"berjalan", "lalu"}, "x").items():
+    for (ek, kode, periode), b in _indeks(angka_pdf, {"berjalan", "lalu"}, "pdf").items():
         if ek == entity_key:
             hasil[(kode, periode)] = b["nilai"] * (b.get("skala") or 1.0)
     return hasil
@@ -146,45 +157,66 @@ def _hitung(rumus: str, satuan: str, ambil) -> tuple[float | None, str | None]:
     try:
         v = evaluasi(rumus, ambil)
     except AkunHilang as e:
-        return None, f"akun {e.args[0]} tidak tersedia"
+        return None, f"akun {e.args[0]} tidak tersedia di PDF"
     except ZeroDivisionError:
         return None, "pembagi bernilai nol"
     return (v * 100 if satuan == "persen" else v), None
 
 
-def _fmt(x: float) -> str:
-    return f"{x:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+def fmt_angka(x: float, desimal: int = 2) -> str:
+    return f"{x:,.{desimal}f}".replace(",", "_").replace(".", ",").replace("_", ".")
 
 
-def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], angka_excel: list[dict],
-                 entitas: dict[str, str]) -> list[dict]:
-    """`entitas`: entity_key -> doc_type. Satu baris per entitas x rasio yang berlaku."""
+def fmt_rasio(x: float | None, satuan: str) -> str:
+    if x is None:
+        return "tidak dapat dihitung"
+    if satuan == "persen":
+        return fmt_angka(x) + "%"
+    if satuan == "kali":
+        return fmt_angka(x) + " x"
+    return fmt_angka(x, 0)
+
+
+def _komponen(rumus: str, ambil, nama_akun: dict[str, str]) -> str:
+    bagian = []
+    for n in _nama_akun(rumus):
+        dasar = n[:-6] if n.endswith("__lalu") else n
+        label = nama_akun.get(dasar, dasar) + (" (periode sebelumnya)" if n.endswith("__lalu") else "")
+        v = ambil(n)
+        bagian.append(f"{label} = {fmt_angka(v) if v is not None else 'tidak ada'}")
+    return "\n".join(bagian)
+
+
+def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], entitas: dict[str, str],
+                 nama_akun: dict[str, str] | None = None) -> list[dict]:
+    """`entitas`: entity_key -> doc_type. Satu baris per entitas x rasio yang berlaku, dari angka PDF saja."""
+    nama_akun = nama_akun or {}
     hasil = []
     for entity_key, doc_type in sorted(entitas.items()):
         pdf = _nilai_entitas(angka_pdf, entity_key)
-        excel = _nilai_entitas([{**b, "skala": 1.0} for b in angka_excel], entity_key)
         for d in (x for x in definisi if x["entitas"] == doc_type):
-            y, ket_y = _hitung(d["rumus"], d["satuan"], _pengambil(pdf, "berjalan"))
-            y1, ket_y1 = _hitung(d["rumus"], d["satuan"], _pengambil(pdf, "lalu"))
-            ye, _ = _hitung(d["rumus"], d["satuan"], _pengambil(excel, "berjalan"))
-            ambil = _pengambil(pdf, "berjalan")
-            komponen = "; ".join(f"{n} = {_fmt(ambil(n))}" if ambil(n) is not None else f"{n} = tidak ada"
-                                 for n in _nama_akun(d["rumus"]))
-            status = None
+            satuan = d["satuan"]
+            baris = {"entity_key": entity_key, "no": d["no"], "kategori": d["kategori"], "entitas": doc_type,
+                     "field_key": d["field_key"], "dtype": d["dtype"], "description": d["description"],
+                     "rumus_ai": d["teks"], "satuan": SATUAN.get(satuan, satuan), "analisis_ai": "",
+                     "sumber_analisis": None}
+            if not d.get("rumus"):
+                hasil.append({**baris, "nilai_y1": "", "nilai_y": "", "rasio_y1": None, "rasio_y": None,
+                              "hasil_rasio": "rumus belum didefinisikan di config/rasio.yaml",
+                              "keterangan": "rumus belum didefinisikan"})
+                continue
+            y, ket_y = _hitung(d["rumus"], satuan, _pengambil(pdf, "berjalan"))
+            y1, ket_y1 = _hitung(d["rumus"], satuan, _pengambil(pdf, "lalu"))
+            ket = [f"Y: {ket_y}"] if ket_y else []
+            ket += [f"Y-1: {ket_y1}"] if ket_y1 else []
+            hasil_teks = f"Y-1: {fmt_rasio(y1, satuan)}\nY: {fmt_rasio(y, satuan)}"
             if d.get("ambang") is not None and y is not None:
-                status = "Memenuhi" if y >= float(d["ambang"]) else "Tidak memenuhi"
-            ket = []
-            if ket_y:
-                ket.append(f"Y: {ket_y}")
-            if ket_y1:
-                ket.append(f"Y-1: {ket_y1}")
-            hasil.append({
-                "entity_key": entity_key, "no": d["no"], "kategori": d["kategori"], "entitas": doc_type,
-                "field_key": d["field_key"], "dtype": d["dtype"], "description": d["description"],
-                "nilai_y1": y1, "nilai_y": y, "rumus_ai": d["teks"], "analisis_ai": "", "sumber_analisis": None,
-                "satuan": {"persen": "%", "kali": "x", "nominal": "nominal"}[d["satuan"]],
-                "nilai_y_excel": ye, "komponen_y": komponen, "status_ambang": status, "keterangan": "; ".join(ket),
-            })
+                hasil_teks += "\n" + ("Memenuhi" if y >= float(d["ambang"]) else "Tidak memenuhi") + \
+                              f" batas {fmt_angka(float(d['ambang']), 0)}"
+            hasil.append({**baris,
+                          "nilai_y1": _komponen(d["rumus"], _pengambil(pdf, "lalu"), nama_akun),
+                          "nilai_y": _komponen(d["rumus"], _pengambil(pdf, "berjalan"), nama_akun),
+                          "rasio_y1": y1, "rasio_y": y, "hasil_rasio": hasil_teks, "keterangan": "; ".join(ket)})
     return hasil
 
 
@@ -201,18 +233,18 @@ def nama_sheet(entity_keys: list[str]) -> dict[str, str]:
 
 
 def tulis_kk(rasio: list[dict], path) -> None:
-    """Kertas kerja rasio: satu sheet per entitas dengan kolom seperti Rasio_KK, plus sheet Semua."""
+    """Kertas kerja rasio: satu sheet per entitas dengan kolom template, plus sheet Semua."""
     wb = Workbook()
     wb.remove(wb.active)
     kolom = KOLOM_KK + KOLOM_TAMBAHAN
     kunci = ["no", "kategori", "entitas", "field_key", "dtype", "description", "nilai_y1", "nilai_y", "rumus_ai",
-             "analisis_ai", "satuan", "nilai_y_excel", "komponen_y", "status_ambang", "keterangan"]
-    lebar = {"A": 5, "B": 16, "C": 8, "D": 30, "E": 8, "F": 50, "G": 16, "H": 16, "I": 40, "J": 70,
-             "K": 9, "L": 16, "M": 50, "N": 14, "O": 30}
+             "hasil_rasio", "rasio_y1", "rasio_y", "satuan", "analisis_ai", "keterangan"]
+    lebar = [5, 16, 8, 30, 8, 45, 45, 45, 36, 24, 14, 14, 9, 70, 30]
     kepala = PatternFill("solid", fgColor="DCE3F2")
 
     def sheet(nama: str, isi: list[dict], dengan_entitas: bool):
         ws = wb.create_sheet(nama[:31])
+        geser = 1 if dengan_entitas else 0
         ws.append((["entity_key"] if dengan_entitas else []) + kolom)
         for c in ws[1]:
             c.font, c.fill = Font(bold=True), kepala
@@ -220,14 +252,11 @@ def tulis_kk(rasio: list[dict], path) -> None:
             ws.append(([r["entity_key"]] if dengan_entitas else []) + [r.get(k) for k in kunci])
             for c in ws[ws.max_row]:
                 c.alignment = Alignment(wrap_text=True, vertical="top")
-            geser = 1 if dengan_entitas else 0
             fmt = "#,##0" if r["satuan"] == "nominal" else "#,##0.00"
-            for kol in (7, 8, 12):
+            for kol in (11, 12):
                 ws.cell(ws.max_row, kol + geser).number_format = fmt
-        for huruf, w in lebar.items():
-            ws.column_dimensions[chr(ord(huruf) + (1 if dengan_entitas else 0))].width = w
-        if dengan_entitas:
-            ws.column_dimensions["A"].width = 40
+        for i, w in enumerate(([40] if dengan_entitas else []) + lebar, start=1):
+            ws.column_dimensions[ws.cell(1, i).column_letter].width = w
         ws.freeze_panes = "A2"
 
     for e, nama in nama_sheet(sorted({r["entity_key"] for r in rasio})).items():

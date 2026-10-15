@@ -211,8 +211,9 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
                 peringatan.append(f"{entity_key}: analisis AI gagal ({type(e).__name__}: {e})")
     hasil_rasio = []
     if definisi_rasio:
-        entitas = {b["entity_key"]: b["doc_type"] for b in angka_excel + angka_pdf if b.get("doc_type")}
-        hasil_rasio = rasio.hitung_rasio(definisi_rasio, angka_pdf, angka_excel, entitas)
+        # Rasio hanya dari angka PDF (laporan audited).
+        entitas = {b["entity_key"]: b["doc_type"] for b in angka_pdf if b.get("doc_type")}
+        hasil_rasio = rasio.hitung_rasio(definisi_rasio, angka_pdf, entitas, nama_akun)
         if klien and cfg_ai.get("analisis_rasio", True):
             for entity_key in sorted(entitas):
                 baris = [r for r in hasil_rasio if r["entity_key"] == entity_key]
@@ -396,7 +397,8 @@ def main(argv=None) -> int:
             print(pesan)
             return 1
         print("AI aktif di config tetapi ANTHROPIC_API_KEY tidak ada; memakai aturan saja.")
-    definisi_rasio = rasio.muat_rasio(args.rules, Path(args.config).parent / "rasio.yaml")
+    folder_config = Path(args.config).parent
+    definisi_rasio = rasio.muat_rasio(folder_config / "rasio_kk_template.xlsx", folder_config / "rasio.yaml", args.rules)
     hasil = jalankan(pdf, excel, cfg, rules, klien, definisi_rasio)
     tulis_excel(hasil, out / "hasil_komparasi.xlsx")
     if hasil["rasio"]:

@@ -1,4 +1,4 @@
-"""Rasio kertas kerja: rumus aman, perhitungan Y/Y-1/Excel, dan definisi repo."""
+"""Rasio kertas kerja: rumus aman, perhitungan Y/Y-1 dari PDF, dan definisi template repo."""
 from pathlib import Path
 
 import pytest
@@ -30,7 +30,7 @@ def test_rumus_berbahaya_ditolak():
         rasio._cek_rumus("a.b")
 
 
-def test_hitung_rasio_y_y1_excel_dan_ambang():
+def test_hitung_rasio_dari_pdf_saja():
     definisi = [
         {"no": 1, "entitas": "MI", "satuan": "persen", "rumus": "laba / aset", "teks": "Laba / Aset x 100%",
          "kategori": "Profitabilitas", "field_key": "ROA", "dtype": "number", "description": ""},
@@ -38,22 +38,28 @@ def test_hitung_rasio_y_y1_excel_dan_ambang():
          "kategori": "Permodalan", "field_key": "MIKU 1", "dtype": "number", "description": ""},
         {"no": 9, "entitas": "MI", "satuan": "kali", "rumus": "laba / beban", "teks": "x",
          "kategori": "K", "field_key": "ICR", "dtype": "number", "description": ""},
+        {"no": 99, "entitas": "MI", "satuan": "persen", "rumus": None, "teks": "",
+         "kategori": "K", "field_key": "Baru", "dtype": "number", "description": ""},
     ]
     pdf = angka("E", "laba", 5, 4, skala=1e6) + angka("E", "aset", 100, 80, skala=1e6) + angka("E", "modal", 26e9)
-    excel = angka("E", "laba", 6e6) + angka("E", "aset", 100e6)
-    hasil = {r["field_key"]: r for r in rasio.hitung_rasio(definisi, pdf, excel, {"E": "MI"})}
-    assert hasil["ROA"]["nilai_y"] == pytest.approx(5.0) and hasil["ROA"]["nilai_y1"] == pytest.approx(5.0)
-    assert hasil["ROA"]["nilai_y_excel"] == pytest.approx(6.0)
-    assert hasil["ROA"]["komponen_y"] == "laba = 5.000.000,00; aset = 100.000.000,00"
-    assert hasil["MIKU 1"]["status_ambang"] == "Memenuhi" and hasil["MIKU 1"]["nilai_y1"] is None
-    assert hasil["ICR"]["nilai_y"] is None and "akun beban tidak tersedia" in hasil["ICR"]["keterangan"]
+    hasil = {r["field_key"]: r for r in rasio.hitung_rasio(definisi, pdf, {"E": "MI"}, {"laba": "Laba", "aset": "Total Aset"})}
+    roa = hasil["ROA"]
+    assert roa["rasio_y"] == pytest.approx(5.0) and roa["rasio_y1"] == pytest.approx(5.0)
+    assert roa["nilai_y"] == "Laba = 5.000.000,00\nTotal Aset = 100.000.000,00"
+    assert roa["nilai_y1"] == "Laba = 4.000.000,00\nTotal Aset = 80.000.000,00"
+    assert roa["hasil_rasio"] == "Y-1: 5,00%\nY: 5,00%"
+    assert hasil["MIKU 1"]["hasil_rasio"].endswith("Memenuhi batas 25.000.000.000")
+    assert hasil["ICR"]["rasio_y"] is None and "akun beban tidak tersedia di PDF" in hasil["ICR"]["keterangan"]
+    assert hasil["Baru"]["keterangan"] == "rumus belum didefinisikan"
 
 
-def test_definisi_repo_dan_kk(tmp_path):
-    definisi = rasio.muat_rasio(ROOT / "rules", ROOT / "config" / "rasio.yaml")
-    assert {(d["no"], d["entitas"]) for d in definisi} >= {(1, "EPP"), (20, "EPP"), (21, "MI"), (30, "RD")}
-    assert all(d["field_key"] and d["kategori"] for d in definisi)
-    baris = rasio.hitung_rasio(definisi, angka("X_A_1", "total_aset", 10.0), [], {"X_A_1": "EPP", "Y_B_2": "MI"})
+def test_definisi_template_repo_dan_kk(tmp_path):
+    definisi = rasio.muat_rasio(ROOT / "config" / "rasio_kk_template.xlsx", ROOT / "config" / "rasio.yaml")
+    kunci = {(d["no"], d["entitas"]) for d in definisi}
+    assert {(1, "EPP"), (20, "EPP"), (14, "MI"), (30, "RD")} <= kunci
+    assert not kunci & {(21, "MI"), (22, "MI"), (25, "RD")}          # bertanda "tidak dipakai" di template
+    assert all(d["rumus"] for d in definisi if d["entitas"] != "DES")
+    baris = rasio.hitung_rasio(definisi, angka("X_A_1", "total_aset", 10.0), {"X_A_1": "EPP", "Y_B_2": "MI"})
     rasio.tulis_kk(baris, tmp_path / "kk.xlsx")
     wb = load_workbook(tmp_path / "kk.xlsx")
     assert wb.sheetnames == ["X_A", "Y_B", "Semua"]

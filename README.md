@@ -170,6 +170,12 @@ yang sama (mis. EPP `3410000` kolom V dan W untuk saldo laba ditentukan/belum di
 **Kesimpulan** (`kesimpulan.csv`): per `entity_key`: `kesimpulan` dan `rekomendasi` dari Claude (kosong bila AI
 tidak aktif).
 
+**Rasio** (`rasio.csv`) dan **`Rasio_KK.xlsx`**: rasio kertas kerja per entitas, hanya dari angka PDF audited.
+Daftar rasio dan uraiannya dari `config/rasio_kk_template.xlsx` (baris bertanda "tidak dipakai" dilewati),
+rumusnya di `config/rasio.yaml`. Kolom: No, Kategori, Entitas, field_key, dtype, Description, Nilai Y-1 dan
+Nilai Y (komponen angka PDF), Rumus Rasio AI, Hasil Rasio, ditambah Hasil Rasio Y-1/Y (angka), Satuan,
+Analisis AI, dan Keterangan (alasan bila rasio tidak dapat dihitung).
+
 **Teks_PDF** (`teks_pdf.csv`): seluruh teks PDF, satu baris per baris teks: `entity_key`, `nama_file`,
 `halaman`, `no_baris`, `seksi`, `sumber_teks`, `teks`. `sumber_teks`:
 - `lapisan_teks`: dibaca langsung dari teks PDF
