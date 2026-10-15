@@ -1,0 +1,98 @@
+# Rumus rasio kertas kerja (Sheet3 di rules/Extraction_Rules.xlsx).
+# Kunci = (nomor, entitas) sesuai Sheet3; Kategori, nama rasio (field_key), dan Description dibaca dari Sheet3.
+#
+# rumus   : ekspresi atas kode akun sheet Master (nilai dalam mata uang penuh, sudah dikali satuan PDF).
+#           Fungsi: rata2(a, b) = (a + b) / 2; opsional(x) = x atau 0 bila akun tidak ada;
+#           abs, min, max. Akhiran __lalu = nilai periode sebelumnya dari akun yang sama.
+#           Untuk kolom Nilai Y-1 setiap akun diambil dari kolom pembanding (periode lalu).
+# satuan  : persen (hasil dikali 100), kali, atau nominal (mata uang laporan).
+# ambang  : opsional, batas minimum; hasil dibandingkan dengan >= (status Memenuhi / Tidak memenuhi).
+# teks    : rumus dalam bahasa biasa (kolom "Rumus Rasio AI").
+
+rasio:
+  # ---------------------------------------------------------------- EPP
+  - {nomor: 1, entitas: EPP, satuan: persen, rumus: "laba_rugi_periode_berjalan / total_aset",
+     teks: "Laba (Rugi) Periode Berjalan / Total Aset x 100%"}
+  - {nomor: 2, entitas: EPP, satuan: persen, rumus: "laba_rugi_periode_berjalan / total_ekuitas",
+     teks: "Laba (Rugi) Periode Berjalan / Total Ekuitas x 100%"}
+  - {nomor: 3, entitas: EPP, satuan: persen, rumus: "laba_rugi_periode_berjalan / pendapatan",
+     teks: "Laba (Rugi) Periode Berjalan / Pendapatan x 100%"}
+  - {nomor: 4, entitas: EPP, satuan: persen, rumus: "laba_bruto / pendapatan",
+     teks: "Laba Bruto (Laba Usaha) / Pendapatan x 100%"}
+  - {nomor: 7, entitas: EPP, satuan: persen, rumus: "total_liabilitas / total_aset",
+     teks: "Total Liabilitas / Total Aset x 100%"}
+  - {nomor: 8, entitas: EPP, satuan: persen, rumus: "total_liabilitas / total_ekuitas",
+     teks: "Total Liabilitas / Total Ekuitas x 100%"}
+  - {nomor: 9, entitas: EPP, satuan: kali, rumus: "laba_sebelum_bunga_dan_pajak_ebit / abs(beban_bunga)",
+     teks: "EBIT / |Beban Bunga| (kali)"}
+  - {nomor: 11, entitas: EPP, satuan: persen, rumus: "kas_dan_setara_kas / total_liabilitas_jangka_pendek",
+     teks: "Kas dan Setara Kas / Liabilitas Jangka Pendek x 100%"}
+  - {nomor: 12, entitas: EPP, satuan: persen,
+     rumus: "(total_aset_lancar - opsional(persediaan) - opsional(uang_muka)) / total_liabilitas_jangka_pendek",
+     teks: "(Aset Lancar - Persediaan - Uang Muka) / Liabilitas Jangka Pendek x 100%"}
+  - {nomor: 13, entitas: EPP, satuan: persen, rumus: "total_aset_lancar / total_liabilitas_jangka_pendek",
+     teks: "Aset Lancar / Liabilitas Jangka Pendek x 100%"}
+  - {nomor: 15, entitas: EPP, satuan: kali, rumus: "pendapatan / rata2(total_aset, total_aset_periode_sebelumnya)",
+     teks: "Pendapatan / ((Total Aset + Total Aset Periode Sebelumnya) / 2) (kali)"}
+  - {nomor: 16, entitas: EPP, satuan: kali, rumus: "pendapatan / rata2(piutang_usaha, piutang_usaha_periode_sebelumnya)",
+     teks: "Pendapatan / ((Piutang Usaha + Piutang Usaha Periode Sebelumnya) / 2) (kali)"}
+  - {nomor: 17, entitas: EPP, satuan: persen, rumus: "total_liabilitas_berbunga / total_ekuitas",
+     teks: "Liabilitas Berbunga (utang bank, pinjaman, sewa, obligasi) / Total Ekuitas x 100%"}
+  - {nomor: 18, entitas: EPP, satuan: nominal, rumus: "total_aset_lancar - total_liabilitas_jangka_pendek",
+     teks: "Aset Lancar - Liabilitas Jangka Pendek"}
+  - {nomor: 19, entitas: EPP, satuan: nominal, rumus: "saldo_laba_awal + laba_rugi_periode_berjalan - abs(dividen)",
+     teks: "Saldo Laba Awal + Laba (Rugi) Periode Berjalan - Dividen"}
+  - {nomor: 20, entitas: EPP, satuan: kali,
+     rumus: "(laba_rugi_sebelum_pajak + abs(beban_bunga) + abs(beban_penyusutan_dan_amortisasi)) / (abs(beban_bunga) + pokok_utang_jatuh_tempo_dalam_satu_tahun)",
+     teks: "EBITDA (Laba Sebelum Pajak + Beban Bunga + Penyusutan dan Amortisasi) / (Beban Bunga + Pokok Utang Jatuh Tempo 1 Tahun) (kali)"}
+
+  # ---------------------------------------------------------------- MI
+  - {nomor: 1, entitas: MI, satuan: persen, rumus: "laba_rugi_periode_berjalan / total_aset",
+     teks: "Laba (Rugi) Periode Berjalan / Total Aset x 100%"}
+  - {nomor: 2, entitas: MI, satuan: persen, rumus: "laba_rugi_periode_berjalan / total_ekuitas",
+     teks: "Laba (Rugi) Periode Berjalan / Total Ekuitas x 100%"}
+  - {nomor: 3, entitas: MI, satuan: persen, rumus: "laba_rugi_periode_berjalan / pendapatan",
+     teks: "Laba (Rugi) Periode Berjalan / Pendapatan Kegiatan Usaha x 100%"}
+  - {nomor: 5, entitas: MI, satuan: persen, rumus: "abs(beban) / pendapatan",
+     teks: "Beban Usaha / Pendapatan Usaha x 100%"}
+  - {nomor: 6, entitas: MI, satuan: persen, rumus: "pendapatan / pendapatan_lainnya",
+     teks: "Pendapatan Usaha / Pendapatan Lainnya x 100%"}
+  - {nomor: 8, entitas: MI, satuan: persen, rumus: "total_liabilitas / total_ekuitas",
+     teks: "Total Liabilitas / Total Ekuitas x 100%"}
+  - {nomor: 10, entitas: MI, satuan: persen, rumus: "total_liabilitas / total_aset",
+     teks: "Total Liabilitas / Total Aset x 100%"}
+  - {nomor: 13, entitas: MI, satuan: persen, rumus: "total_aset_lancar / total_liabilitas_jangka_pendek",
+     teks: "Aset Lancar / Liabilitas Jangka Pendek x 100%"}
+  - {nomor: 14, entitas: MI, satuan: persen, rumus: "total_ekuitas / total_aset",
+     teks: "Total Ekuitas / Total Aset x 100%"}
+  # Batas minimum: sesuaikan dengan ketentuan OJK yang berlaku.
+  - {nomor: 21, entitas: MI, satuan: nominal, rumus: "modal_disetor", ambang: 25000000000,
+     teks: "Modal Disetor >= Rp25.000.000.000 (batas minimum modal disetor MI)"}
+  - {nomor: 22, entitas: MI, satuan: nominal, rumus: "mkbd", ambang: 200000000,
+     teks: "MKBD >= Rp200.000.000 + 0,1% dana kelolaan (komponen dana kelolaan tidak tersedia di LK)"}
+
+  # ---------------------------------------------------------------- RD
+  - {nomor: 23, entitas: RD, satuan: persen,
+     rumus: "(total_nilai_aset_bersih - total_nilai_aset_bersih_awal_periode) / total_nilai_aset_bersih_awal_periode",
+     teks: "(NAB Akhir - NAB Awal) / NAB Awal x 100%"}
+  - {nomor: 24, entitas: RD, satuan: persen,
+     rumus: "(nilai_aset_bersih_per_unit_penyertaan * jumlah_unit_penyertaan_beredar - nilai_aset_bersih_per_unit_penyertaan__lalu * jumlah_unit_penyertaan_beredar_awal_periode) / (nilai_aset_bersih_per_unit_penyertaan__lalu * jumlah_unit_penyertaan_beredar_awal_periode)",
+     teks: "(NAB/Unit Akhir x Unit Akhir - NAB/Unit Awal x Unit Awal) / (NAB/Unit Awal x Unit Awal) x 100%"}
+  - {nomor: 25, entitas: RD, satuan: persen,
+     rumus: "(total_nilai_aset_bersih - total_nilai_aset_bersih_awal_periode - biaya_penjualan_dan_pelunasan_unit_penyertaan) / total_nilai_aset_bersih_awal_periode",
+     teks: "(NAB Akhir - NAB Awal - Biaya Penjualan dan Pelunasan Unit) / NAB Awal x 100%"}
+  - {nomor: 26, entitas: RD, satuan: persen,
+     rumus: "abs(total_beban_laporan_kinerja_keuangan) / rata2(total_nilai_aset_bersih, total_nilai_aset_bersih_awal_periode)",
+     teks: "Total Beban / Rata-rata NAB ((NAB Awal + NAB Akhir) / 2) x 100%"}
+  - {nomor: 27, entitas: RD, satuan: persen,
+     rumus: "min(abs(opsional(pembelian_portofolio_efek)), abs(opsional(penjualan_portofolio_efek))) / rata2(total_nilai_aset_bersih, total_nilai_aset_bersih_awal_periode)",
+     teks: "Min(Pembelian, Penjualan Portofolio Efek) / Rata-rata NAB x 100%"}
+  - {nomor: 28, entitas: RD, satuan: persen,
+     rumus: "penghasilan_kena_pajak / total_pendapatan_laporan_kinerja_keuangan",
+     teks: "Penghasilan Kena Pajak / Total Pendapatan x 100%"}
+  - {nomor: 29, entitas: RD, satuan: persen,
+     rumus: "abs(total_beban_laporan_kinerja_keuangan) / rata2(total_nilai_aset_bersih, total_nilai_aset_bersih_awal_periode)",
+     teks: "Total Beban / Rata-rata NAB x 100%"}
+  - {nomor: 30, entitas: RD, satuan: persen,
+     rumus: "(total_nilai_aset_bersih - total_nilai_aset_bersih_awal_periode) / total_nilai_aset_bersih_awal_periode",
+     teks: "(NAB Akhir - NAB Awal) / NAB Awal x 100%"}

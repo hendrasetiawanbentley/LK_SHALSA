@@ -82,6 +82,7 @@ class KlienRekaman:
       pemetaan_excel_<doc_type>.json           {"label": {"label Excel": "kode_akun"},
                                                 "turunan": [{"kode_akun": "...", "label": ["...",
                                                              {"label": "...", "seksi": "..."}]}]}
+      rasio/<entity_key>.json                  {"analisis": {"<no rasio>": "analisis rasio"}}
       ocr/<nama file PDF>.json                 {"halaman": {"12": "teks halaman 12", ...}}
       analisis/<entity_key>.json               {"catatan": {"kode_akun/periode": "..."},
                                                 "kesimpulan": "...", "rekomendasi": ["..."]}
@@ -124,6 +125,9 @@ class KlienRekaman:
                                       for i, k in enumerate(kunci["baris"]) if catatan.get(k)],
                     "kesimpulan": rekaman.get("kesimpulan", ""),
                     "rekomendasi": rekaman.get("rekomendasi", [])}
+        if tahap == "rasio":
+            analisis = self._baca(f"rasio/{kunci['entity_key']}.json").get("analisis") or {}
+            return {"analisis": [{"no": i, "analisis": analisis[k]} for i, k in enumerate(kunci["rasio"]) if analisis.get(k)]}
         if tahap == "ocr":
             rekaman = self._baca(f"ocr/{kunci['nama_file']}.json").get("halaman") or {}
             return {"halaman": [{"halaman": i, "teks": rekaman[str(n)]}
@@ -395,3 +399,31 @@ def analisis_entitas(klien: KlienAI, entity_key: str, baris: list[dict]) -> dict
             perlu[c["no"]]["sumber_catatan"] = "ai"
     return {"entity_key": entity_key, "kesimpulan": hasil.get("kesimpulan", ""),
             "rekomendasi": "\n".join(f"- {r}" for r in hasil.get("rekomendasi", []))}
+
+
+# ---------------------------------------------------------------- 4. Analisis rasio
+
+SYSTEM_RASIO = """Anda analis pengawas OJK. Anda menerima rasio keuangan satu entitas (emiten, manajer
+investasi, atau reksa dana) untuk tahun berjalan (Y) dan tahun sebelumnya (Y-1), dihitung dari laporan
+keuangan audited (PDF), beserta nilai dari Excel yang disampaikan entitas. Untuk setiap rasio tulis
+analisis 2-3 kalimat dalam Bahasa Indonesia: arti nilainya, perubahan Y-1 ke Y, dan hal yang perlu
+diperhatikan pengawas (termasuk bila nilai Excel berbeda atau rasio tidak dapat dihitung). Jangan
+mengarang angka di luar yang diberikan. Gunakan `no` dari input."""
+
+
+def analisis_rasio(klien, entity_key: str, rasio: list[dict]) -> int:
+    """Isi kolom analisis_ai untuk rasio satu entitas. Mengembalikan jumlah rasio yang dianalisis."""
+    data = [{"no": i, "rasio": r["field_key"], "kategori": r["kategori"], "rumus": r["rumus_ai"], "satuan": r["satuan"],
+             "nilai_y_1": r["nilai_y1"], "nilai_y": r["nilai_y"], "nilai_y_excel": r["nilai_y_excel"],
+             "komponen_y": r["komponen_y"], "status_ambang": r["status_ambang"], "keterangan": r["keterangan"]}
+            for i, r in enumerate(rasio)]
+    skema = _objek({"analisis": {"type": "array", "items": _objek({"no": {"type": "integer"}, "analisis": {"type": "string"}})}})
+    hasil = klien.minta_json(SYSTEM_RASIO, [{"type": "text", "text":
+        f"Entitas: {entity_key}\n\nRasio:\n{json.dumps(data, ensure_ascii=False)}"}], skema,
+        kunci={"tahap": "rasio", "entity_key": entity_key, "rasio": [str(r["no"]) for r in rasio]})
+    n = 0
+    for a in hasil.get("analisis", []):
+        if 0 <= a.get("no", -1) < len(rasio) and a.get("analisis"):
+            rasio[a["no"]]["analisis_ai"], rasio[a["no"]]["sumber_analisis"] = a["analisis"], "ai"
+            n += 1
+    return n

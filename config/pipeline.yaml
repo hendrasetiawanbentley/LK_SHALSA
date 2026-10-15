@@ -48,6 +48,7 @@ ai:
   ekstraksi_pdf: true         # Claude membaca PDF (termasuk hasil scan), seksi, satuan, angka akun
   pemetaan_excel: true        # Claude memetakan label Excel yang tidak dikenali rules
   catatan_dan_kesimpulan: true  # catatan per baris bukan MATCH + kesimpulan dan rekomendasi per entitas
+  analisis_rasio: true        # analisis per rasio kertas kerja (config/rasio.yaml), kolom "Analisis AI"
   # OCR: halaman bergambar tanpa lapisan teks (scan) dibaca Claude, hasilnya masuk sheet Teks_PDF
   # (sumber_teks = ocr_claude) dan dipakai untuk verifikasi angka. Ubah ke true untuk mengaktifkan.
   ocr: false

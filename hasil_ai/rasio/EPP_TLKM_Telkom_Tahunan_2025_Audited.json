@@ -1,0 +1,20 @@
+{
+ "analisis": {
+  "1": "ROA turun dari 10,12% menjadi 8,50% karena laba tahun berjalan turun 17% (29.497 menjadi 24.458 miliar) sementara total aset relatif stabil. Masih tergolong sehat untuk emiten telekomunikasi padat modal; nilai PDF dan XBRL sama.",
+  "2": "ROE turun dari 19,13% menjadi 16,25%, sejalan dengan penurunan laba dan ekuitas yang turun tipis (154.204 menjadi 150.537 miliar) setelah dividen. Imbal hasil bagi pemegang saham tetap di atas 15%.",
+  "3": "Net profit margin turun dari 19,67% menjadi 16,67%: pendapatan turun 2,2% (149.967 menjadi 146.742 miliar) sedangkan laba turun lebih dalam, menandakan tekanan biaya (penyusutan naik 34.181 menjadi 37.649 miliar).",
+  "4": "Laba usaha dipakai sebagai laba bruto sesuai alias Master karena laporan laba rugi Telkom tidak menyajikan laba bruto. Marjin turun dari 27,64% ke 23,61%. Tidak dapat dibandingkan dengan Excel karena template XBRL 3312000 tidak punya baris laba usaha.",
+  "7": "DAR naik tipis dari 47,08% ke 47,69%; sekitar separuh aset dibiayai liabilitas. Struktur pendanaan stabil dan sama dengan XBRL.",
+  "8": "DER naik dari 88,96% ke 91,15% karena ekuitas turun (dividen 21.047 miliar melebihi laba bagian pemilik 17.814 miliar) sementara liabilitas tetap. Masih di bawah 100%.",
+  "9": "EBIT (laba usaha) menutup beban bunga 6,66 kali, turun dari 7,96 kali karena laba usaha turun 16%. Kemampuan membayar bunga masih memadai; tidak dapat diuji silang ke XBRL karena EBIT tidak tersedia di template.",
+  "11": "Kas menutup 46,29% liabilitas jangka pendek (naik dari 44,17%). Kas 34.228 miliar cukup besar, tetapi tetap di bawah kewajiban jangka pendek.",
+  "12": "Quick ratio PDF 81,62% vs Excel 81,56%; selisih berasal dari uang muka lancar (PDF Catatan 8: 511 miliar, XBRL: 551 miliar). Aset lancar likuid belum menutup seluruh liabilitas jangka pendek.",
+  "13": "Current ratio 83,53% (naik dari 82,17%), modal kerja negatif. Lazim untuk operator telekomunikasi dengan liabilitas kontrak dan utang jangka pendek besar, tetapi perlu dipantau bersama arus kas operasi.",
+  "15": "Perputaran aset 0,51 kali (0,52 kali pada Y-1, memakai aset 1 Januari 2024 sebesar 280.002 miliar dari kolom disajikan kembali). Rendah karena aset tetap jaringan sangat besar; relatif stabil.",
+  "16": "Piutang berputar 12,53 kali (sekitar 29 hari), turun dari 13,12 kali karena pendapatan turun lebih cepat daripada rata-rata piutang. Penagihan masih baik.",
+  "17": "Liabilitas berbunga (utang bank, pinjaman, sewa, obligasi: 74.911 miliar) setara 49,76% ekuitas, hampir sama dengan Y-1 (49,85%). Nilai XBRL turunan sama dengan PDF.",
+  "18": "Modal kerja negatif Rp12.182 miliar (membaik dari negatif Rp13.687 miliar). Konsisten dengan current ratio di bawah 100%.",
+  "19": "Rumus kertas kerja (saldo laba awal 116.647 + laba 24.458 - dividen 21.047) menghasilkan 120.058 miliar, sedangkan saldo laba akhir di neraca 113.193 miliar. Selisih karena laba yang dipakai termasuk bagian nonpengendali (6.644); dengan laba bagian pemilik entitas induk hasilnya 113.414 miliar, sisanya penghasilan komprehensif lain (221). Disarankan rumus memakai laba yang diatribusikan ke pemilik entitas induk.",
+  "20": "DSCR 2,59 kali (turun dari 2,90): EBITDA 73.957 miliar menutup beban bunga plus pokok utang jatuh tempo 28.542 miliar. Kemampuan membayar utang tetap memadai."
+ }
+}

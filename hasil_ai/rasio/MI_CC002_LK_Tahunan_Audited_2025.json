@@ -1,0 +1,15 @@
+{
+ "analisis": {
+  "1": "ROA konsolidasian 8,68% (naik dari 5,27%) karena laba naik 64%. Nilai Excel 6,59% berbeda karena Excel memakai laporan entitas induk (aset 413,9 miliar, laba 27,3 miliar).",
+  "2": "ROE konsolidasian 11,93%, naik dari 6,43%. Excel (entitas induk) 8,52%; perbedaan basis penyajian perlu diselesaikan sebelum rasio dipakai untuk penilaian.",
+  "3": "NPM 11,60% (Y-1 7,50%) dari laba 39,99 miliar atas pendapatan 344,79 miliar. Excel 8,83% karena basis entitas induk.",
+  "5": "BOPO membaik dari 94,16% ke 88,21%; beban usaha tumbuh lebih lambat dari pendapatan. Excel 88,63%, hampir sama walau basis berbeda.",
+  "6": "Pendapatan usaha 45,9 kali pendapatan lainnya (4.592,98%); bisnis inti sangat dominan. Excel 413.390% karena pendapatan lainnya di Excel hanya 74,7 juta, menguatkan temuan klasifikasi/basis yang berbeda.",
+  "8": "DER naik dari 21,95% ke 37,42% karena liabilitas konsolidasian naik 50% (83,4 menjadi 125,4 miliar), sebagian besar beban akrual dan utang terkait pengelolaan investasi. Leverage masih rendah.",
+  "10": "Rasio utang 27,23% (Y-1 18,00%). Excel 22,65% (entitas induk).",
+  "13": "Tidak dapat dihitung: laporan posisi keuangan MI tidak mengklasifikasikan aset dan liabilitas lancar/jangka pendek. Untuk MI, likuiditas lebih tepat dinilai dari MKBD.",
+  "14": "Ekuitas membiayai 72,77% aset (turun dari 82,00%) karena kenaikan liabilitas. Permodalan tetap kuat.",
+  "21": "Modal disetor Rp60 miliar, di atas batas minimum Rp25 miliar yang dipakai di kertas kerja: memenuhi.",
+  "22": "Tidak dapat dihitung: LK tidak menyajikan angka MKBD. Minta laporan MKBD per 31 Desember 2025 untuk menguji batas Rp200 juta + 0,1% dana kelolaan."
+ }
+}

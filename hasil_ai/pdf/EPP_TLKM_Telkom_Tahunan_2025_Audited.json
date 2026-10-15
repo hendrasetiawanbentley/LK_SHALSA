@@ -236,16 +236,16 @@
   },
   {
    "kode_akun": "total_aset_periode_sebelumnya",
-   "label_di_dokumen": "JUMLAH ASET (kolom 2024)",
+   "label_di_dokumen": "JUMLAH ASET (kolom 2024; kolom pembanding 1 Januari 2024 = 280.002)",
    "nilai_berjalan": "291.389",
-   "nilai_lalu": "",
+   "nilai_lalu": "280.002",
    "halaman": 9
   },
   {
    "kode_akun": "piutang_usaha_periode_sebelumnya",
-   "label_di_dokumen": "Piutang usaha pihak berelasi + pihak ketiga (kolom 2024)",
+   "label_di_dokumen": "Piutang usaha pihak berelasi + pihak ketiga (kolom 2024; 1 Januari 2024 = 1.918 + 8.749)",
    "nilai_berjalan": "12.193",
-   "nilai_lalu": "",
+   "nilai_lalu": "10.667",
    "halaman": 9
   },
   {

@@ -16,7 +16,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 
-from . import ai, ocr
+from . import ai, ocr, rasio
 from .akun import PemetaAkun
 from .config import muat_config
 from .ekstraksi_lokal import ekstraksi_seksi
@@ -148,7 +148,7 @@ def _proses_pdf_ai(klien, cfg: dict, rules: Rules, path: str, info: dict, halama
 
 
 def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rules,
-             klien: ai.KlienAI | None = None) -> dict:
+             klien: ai.KlienAI | None = None, definisi_rasio: list[dict] | None = None) -> dict:
     """Pipeline lengkap. `klien` = KlienAI untuk memakai Claude; None = hanya aturan."""
     cfg_ai = cfg.get("ai") or {}
     pola = kompilasi_pola(rules.mapping_seksi)
@@ -209,7 +209,20 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
                     klien, entity_key, [b for b in komparasi if b["entity_key"] == entity_key]))
             except Exception as e:
                 peringatan.append(f"{entity_key}: analisis AI gagal ({type(e).__name__}: {e})")
-    return {"komparasi": komparasi, "angka_pdf": angka_pdf, "angka_excel": angka_excel,
+    hasil_rasio = []
+    if definisi_rasio:
+        entitas = {b["entity_key"]: b["doc_type"] for b in angka_excel + angka_pdf if b.get("doc_type")}
+        hasil_rasio = rasio.hitung_rasio(definisi_rasio, angka_pdf, angka_excel, entitas)
+        if klien and cfg_ai.get("analisis_rasio", True):
+            for entity_key in sorted(entitas):
+                baris = [r for r in hasil_rasio if r["entity_key"] == entity_key]
+                if not baris:
+                    continue
+                try:
+                    ai.analisis_rasio(klien, entity_key, baris)
+                except Exception as e:
+                    peringatan.append(f"{entity_key}: analisis rasio AI gagal ({type(e).__name__}: {e})")
+    return {"komparasi": komparasi, "angka_pdf": angka_pdf, "angka_excel": angka_excel, "rasio": hasil_rasio,
             "lokasi_seksi": lokasi, "teks_pdf": teks, "teks_halaman": teks_halaman, "peringatan": peringatan,
             "ringkasan": ringkasan(komparasi), "kesimpulan": kesimpulan,
             "mode": f"AI ({klien.model})" if klien else "aturan (tanpa AI)"}
@@ -239,6 +252,7 @@ KOLOM = {
                     "cara_pemetaan", "periode", "nilai", "nilai_asli"],
     "Lokasi_Seksi": ["nama_file", "entity_key", "seksi", "halaman_mulai", "halaman_akhir", "judul_cocok"],
     "Kesimpulan": ["entity_key", "kesimpulan", "rekomendasi"],
+    "Rasio": rasio.KOLOM,
     "Teks_PDF": ["entity_key", "nama_file", "halaman", "no_baris", "seksi", "sumber_teks", "teks"],
 }
 WARNA = {"MATCH": "D9F2E1", "DIFFERENT": "FBDAD7", "PDF_ONLY": "FFF1C2", "EXCEL_ONLY": "FFF1C2"}
@@ -249,7 +263,7 @@ def tulis_excel(hasil: dict, path) -> None:
     wb.remove(wb.active)
     sumber = {"Ringkasan": "ringkasan", "Komparasi": "komparasi", "Angka_PDF": "angka_pdf",
               "Angka_Excel": "angka_excel", "Lokasi_Seksi": "lokasi_seksi", "Kesimpulan": "kesimpulan",
-              "Teks_PDF": "teks_halaman"}
+              "Rasio": "rasio", "Teks_PDF": "teks_halaman"}
     for sheet, kolom in KOLOM.items():
         ws = wb.create_sheet(sheet)
         ws.append(kolom)
@@ -277,7 +291,7 @@ def _kumpulkan(folder: str | None, akhiran: tuple[str, ...]) -> list[str]:
 def tulis_csv(hasil: dict, folder: Path) -> None:
     sumber = {"ringkasan": "Ringkasan", "komparasi": "Komparasi", "angka_pdf": "Angka_PDF",
               "angka_excel": "Angka_Excel", "lokasi_seksi": "Lokasi_Seksi", "kesimpulan": "Kesimpulan",
-              "teks_pdf": "Teks_PDF"}
+              "rasio": "Rasio", "teks_pdf": "Teks_PDF"}
     for kunci, sheet in sumber.items():
         with open(folder / f"{kunci}.csv", "w", encoding="utf-8-sig", newline="") as f:
             w = csv.writer(f)
@@ -382,8 +396,11 @@ def main(argv=None) -> int:
             print(pesan)
             return 1
         print("AI aktif di config tetapi ANTHROPIC_API_KEY tidak ada; memakai aturan saja.")
-    hasil = jalankan(pdf, excel, cfg, rules, klien)
+    definisi_rasio = rasio.muat_rasio(args.rules, Path(args.config).parent / "rasio.yaml")
+    hasil = jalankan(pdf, excel, cfg, rules, klien, definisi_rasio)
     tulis_excel(hasil, out / "hasil_komparasi.xlsx")
+    if hasil["rasio"]:
+        rasio.tulis_kk(hasil["rasio"], out / "Rasio_KK.xlsx")
     tulis_csv(hasil, out)
     tulis_json(hasil, out / "hasil.json")
     md = ringkasan_markdown(hasil, len(pdf), len(excel))
