@@ -6,8 +6,103 @@
 #           abs, min, max. Akhiran __lalu = nilai periode sebelumnya dari akun yang sama.
 #           Untuk kolom Nilai Y-1 setiap akun diambil dari kolom pembanding (periode lalu).
 # satuan  : persen (hasil dikali 100), kali, atau nominal (mata uang laporan).
-# ambang  : opsional, batas minimum; hasil dibandingkan dengan >= (status Memenuhi / Tidak memenuhi).
+# ambang  : opsional, batas minimum; hasil dibandingkan dengan >= (status memenuhi / tidak memenuhi).
+# ambang_maks : opsional, batas maksimum dalam persen (<=), mis. kriteria DES.
+# periode : opsional, lalu (hanya Y-1) atau berjalan (hanya Y); bawaan keduanya.
 # teks    : rumus dalam bahasa biasa (kolom "Rumus Rasio AI").
+
+# Kelompok akun DES (sheet Master): utang berbasis bunga (Mas no 64-125) dan pendapatan non halal
+# (Mas no 126-163, tanpa akun halal/syariah). Nilai kelompok = jumlah anggota yang tersaji di PDF.
+kelompok:
+  total_utang_berbasis_bunga:
+    - utang_bank_jangka_pendek_yang_dikenakan_bunga
+    - utang_trust_receipts_yang_dikenakan_bunga
+    - utang_usaha_pihak_ketiga_yang_dikenakan_bunga
+    - utang_usaha_pihak_berelasi_yang_dikenakan_bunga
+    - utang_lainnya_pihak_ketiga_yang_dikenakan_bunga
+    - utang_lainnya_pihak_berelasi_yang_dikenakan_bunga
+    - liabilitas_keuangan_jangka_pendek_lainnya_yang_dikenakan_bunga
+    - beban_akrual_jangka_pendek_khusus_utang_bunga_dan_premi_asuransi_non_syariah
+    - utang_proyek_yang_dikenakan_bunga
+    - utang_kepada_lembaga_kliring_dan_penjaminan_yang_dikenakan_bunga
+    - utang_nasabah_pihak_ketiga_yang_dikenakan_bunga
+    - utang_nasabah_pihak_berelasi_yang_dikenakan_bunga
+    - utang_koasuransi_non_syariah
+    - utang_reasuransi_non_syariah
+    - liabilitas_anjak_piutang_non_syariah
+    - liabilitas_pembayaran_berbasis_saham
+    - liabilitas_yang_secara_langsung_berhubungan_dengan_aset_tidak_lancar_atau_kelompok_lepasan_yang_diklasifikasikan_sebagai_dimiliki_u_0627f517
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_bank_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_keuangan_non_bank_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_pinjaman_beragunan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_pinjaman_tanpa_agunan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_penerusan_pinjaman_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_pinjaman_dari_pemerintah_republik_indonesia_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_pinjaman_subordinasi_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_liabilitas_kerja_sama_operasi_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_liabilitas_pembebasan_tanah_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_pembiayaan_konsumen_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_listrik_swasta_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_wesel_bayar
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_surat_utang_jangka_menengah_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_obligasi
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_obligasi_subordinasi
+    - liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_pinjaman_lainnya_yang_dikenakan_bunga
+    - utang_pihak_berelasi_jangka_pendek_yang_dikenakan_bunga
+    - utang_pemegang_saham_jangka_pendek_yang_dikenakan_bunga
+    - liabilitas_keuangan_derivatif_jangka_pendek
+    - liabilitas_non_keuangan_jangka_pendek_lainnya_yang_dikenakan_bunga
+    - liabilitas_keuangan_derivatif_jangka_panjang
+    - utang_pihak_berelasi_jangka_panjang_yang_dikenakan_bunga
+    - utang_pemegang_saham_jangka_panjang_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_utang_bank_yang_dikenakan_bunga
+    - utang_lembaga_keuangan_non_bank_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_penerusan_pinjaman_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_pinjaman_beragunan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_pinjaman_tanpa_agunan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_pinjaman_dari_pemerintah_republik_indonesia_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_pinjaman_subordinasi_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_liabilitas_kerja_sama_operasi_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_liabilitas_pembebasan_tanah_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_utang_pembiayaan_konsumen_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_utang_listrik_swasta_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_wesel_bayar
+    - liabilitas_jangka_panjang_atas_surat_utang_jangka_menengah_yang_dikenakan_bunga
+    - liabilitas_jangka_panjang_atas_utang_obligasi
+    - liabilitas_jangka_panjang_atas_obligasi_subordinasi
+    - liabilitas_jangka_panjang_atas_pinjaman_lainnya_yang_dikenakan_bunga
+    - obligasi_konversi
+    - liabilitas_kepada_pemegang_polis_asuransi_non_syariah
+    - liabilitas_keuangan_jangka_panjang_lainnya_yang_dikenakan_bunga
+    - liabilitas_non_keuangan_jangka_panjang_yang_dikenakan_bunga
+  total_pendapatan_non_halal:
+    - penjualan_makanan_yang_mengandung_babi_darah
+    - penjualan_minuman_yang_mengandung_alkohol_atau_zat_yang_memabukkan
+    - penjualan_produk_rokok
+    - saham_non_index_saham_syariah_indonesia_issi
+    - obligasi
+    - reksa_dana_dan_produk_investasi_lainnya_non_syariah
+    - deposito_non_syariah
+    - perbankan_asuransi_dan_perusahaan_pembiayaan_non_syariah
+    - memproduksi_dan_memperdagangkan_rokok
+    - memproduksi_dan_memperdagangkan_minuman_keras
+    - memproduksi_dan_memperdagangkan_makanan_yang_mengandung_babi
+    - pendapatan_utama_perusahaan_yang_diperoleh_dari_konsumen_yang_produk_dan_jasanya_non_halal
+    - hiburan_dan_penyewaan_tempat_hiburan_diskotik_tv_cable_pornografi
+    - pendapatan_keuangan_setelah_dikurangi_pendapatan_bunga_atas_liabilitas_sewa_operasi_pendapatan_imbal_hasil
+    - pendapatan_dividen_dari_entitas_yang_kegiatan_usahanya_non_halal
+    - pendapatan_bunga_setelah_dikurangi_pendapatan_bunga_liabilitas_sewa_operasi_pendapatan_imbal_hasil
+    - keuntungan_kurs_mata_uang_asing_non_syariah
+    - pendapatan_investasi_dari_entitas_yang_kegiatan_usahanya_non_halal
+    - bagian_atas_laba_entitas_asosiasi_yang_dicatat_dengan_menggunakan_metode_ekuitas_dari_entitas_yang_kegiatan_usahanya_non_halal
+    - bagian_atas_laba_entitas_ventura_bersama_yang_dicatat_menggunakan_metode_ekuitas_dari_entitas_yang_kegiatan_usahanya_non_halal
+    - keuntungan_perubahan_nilai_wajar_efek_non_halal
+    - keuntungan_dari_transaksi_perdagangan_efek_non_halal_yang_telah_direalisasi
+    - keuntungan_atas_instrumen_keuangan_derivatif_non_syariah
+    - pendapatan_atas_klaim_asuransi_konvensional
+    - pendapatan_keuntungan_lain_lain_non_halal_lainnya_sebutkan
 
 rasio:
   # ---------------------------------------------------------------- EPP
@@ -96,3 +191,18 @@ rasio:
   - {nomor: 30, entitas: RD, satuan: persen,
      rumus: "(total_nilai_aset_bersih - total_nilai_aset_bersih_awal_periode) / total_nilai_aset_bersih_awal_periode",
      teks: "(NAB Akhir - NAB Awal) / NAB Awal x 100%"}
+
+  # ---------------------------------------------------------------- DES (juga untuk EPP, lihat entitas.kriteria_tambahan)
+  # Periode 1 = laporan tahun sebelumnya (31 Desember Y-1), Periode 2 = tahun berjalan (31 Desember Y).
+  - {nomor: 31, entitas: DES, satuan: persen, periode: lalu, ambang_maks: 45,
+     rumus: "total_utang_berbasis_bunga / total_aset",
+     teks: "Total Utang Berbasis Bunga / Total Aset x 100% (Periode 1 = Y-1; batas DES maks 45%)"}
+  - {nomor: 32, entitas: DES, satuan: persen, periode: berjalan, ambang_maks: 45,
+     rumus: "total_utang_berbasis_bunga / total_aset",
+     teks: "Total Utang Berbasis Bunga / Total Aset x 100% (Periode 2 = Y; batas DES maks 45%)"}
+  - {nomor: 33, entitas: DES, satuan: persen, periode: lalu, ambang_maks: 10,
+     rumus: "opsional(total_pendapatan_non_halal) / (pendapatan + opsional(pendapatan_lainnya))",
+     teks: "Total Pendapatan Non Halal / (Pendapatan Usaha + Pendapatan Lain-lain) x 100% (Periode 1 = Y-1; batas DES maks 10%)"}
+  - {nomor: 34, entitas: DES, satuan: persen, periode: berjalan, ambang_maks: 10,
+     rumus: "opsional(total_pendapatan_non_halal) / (pendapatan + opsional(pendapatan_lainnya))",
+     teks: "Total Pendapatan Non Halal / (Pendapatan Usaha + Pendapatan Lain-lain) x 100% (Periode 2 = Y; batas DES maks 10%)"}

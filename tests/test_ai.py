@@ -86,7 +86,7 @@ class KlienTiruan:
                               "nilai_berjalan": "703", "nilai_lalu": "650", "halaman": 4}],
                     "catatan": ""}
         if system == ai.SYSTEM_EXCEL:
-            label = konten[0]["text"].split("dipetakan:\n")[1].splitlines()
+            label = konten[0]["text"].split("di turunan):\n")[1].splitlines()
             no = next(i for i, l in enumerate(label) if "belum dikenal" in l)
             return {"pemetaan": [{"no": no, "kode_akun": "FP_JUMLAH_LIABILITAS"}]}
         if system == ai.SYSTEM_ANALISIS:

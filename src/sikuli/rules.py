@@ -185,6 +185,22 @@ def muat_rules(folder: str | Path, folder_teknis: str | Path | None = None) -> R
     return Rules(**data)
 
 
+def tambah_kriteria(rules: Rules, tambahan: dict[str, list[str]] | None) -> Rules:
+    """Akun jenis lain ikut berlaku untuk suatu jenis entitas, mis. {"EPP": ["DES"]}: akun DES
+    disalin dengan doc_type EPP (akun yang kode_akun-nya sudah ada untuk EPP tidak diduplikasi)."""
+    if not tambahan:
+        return rules
+    akun = list(rules.rules_akun)
+    for jenis, daftar in tambahan.items():
+        ada = {a["kode_akun"] for a in akun if berlaku_untuk(a["doc_type"], jenis)}
+        for sumber in daftar:
+            for a in rules.rules_akun:
+                if a["doc_type"] == sumber and a["kode_akun"] not in ada:
+                    akun.append({**a, "doc_type": jenis, "kriteria": sumber})
+                    ada.add(a["kode_akun"])
+    return Rules(rules.mapping_seksi, akun, rules.sheet_config, rules.mapping_akun_excel, rules.daftar_entitas)
+
+
 def validasi_rules(rules: Rules) -> list[str]:
     """Kembalikan daftar masalah; list kosong berarti rules siap dipakai."""
     masalah: list[str] = []

@@ -254,7 +254,126 @@
    "nilai_berjalan": "511",
    "nilai_lalu": "451",
    "halaman": 59
+  },
+  {
+   "kode_akun": "utang_bank_jangka_pendek_yang_dikenakan_bunga",
+   "label_di_dokumen": "Utang bank jangka pendek (Catatan 18: seluruhnya bank konvensional, bunga JIBOR/IndONIA/tetap)",
+   "nilai_berjalan": "6.929",
+   "nilai_lalu": "11.525",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "beban_akrual_jangka_pendek_khusus_utang_bunga_dan_premi_asuransi_non_syariah",
+   "label_di_dokumen": "Beban yang masih harus dibayar - Beban bunga dan administrasi bank (Catatan 16)",
+   "nilai_berjalan": "210",
+   "nilai_lalu": "247",
+   "halaman": 69
+  },
+  {
+   "kode_akun": "liabilitas_yang_secara_langsung_berhubungan_dengan_aset_tidak_lancar_atau_kelompok_lepasan_yang_diklasifikasikan_sebagai_dimiliki_u_0627f517",
+   "label_di_dokumen": "Liabilitas terkait aset tersedia untuk dijual",
+   "nilai_berjalan": "466",
+   "nilai_lalu": "-",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_bank_yang_dikenakan_bunga",
+   "label_di_dokumen": "Pinjaman jangka panjang jatuh tempo dalam satu tahun - Utang bank (Catatan 19; termasuk pembiayaan BSI)",
+   "nilai_berjalan": "17.746",
+   "nilai_lalu": "13.519",
+   "halaman": 72
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_obligasi",
+   "label_di_dokumen": "Pinjaman jangka panjang jatuh tempo dalam satu tahun - Obligasi (Catatan 19; 2024 termasuk Sukuk Mitratel Rp10 miliar)",
+   "nilai_berjalan": "-",
+   "nilai_lalu": "2.347",
+   "halaman": 72
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga",
+   "label_di_dokumen": "Liabilitas sewa yang jatuh tempo dalam satu tahun",
+   "nilai_berjalan": "5.590",
+   "nilai_lalu": "5.491",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_atas_utang_bank_yang_dikenakan_bunga",
+   "label_di_dokumen": "Pinjaman jangka panjang - Utang bank (Catatan 19b; termasuk pembiayaan BSI)",
+   "nilai_berjalan": "23.403",
+   "nilai_lalu": "22.822",
+   "halaman": 72
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_atas_utang_obligasi",
+   "label_di_dokumen": "Pinjaman jangka panjang - Obligasi Telkom 2015 Seri C dan D (Catatan 19a)",
+   "nilai_berjalan": "2.696",
+   "nilai_lalu": "2.696",
+   "halaman": 72
+  },
+  {
+   "kode_akun": "liabilitas_jangka_panjang_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga",
+   "label_di_dokumen": "Liabilitas sewa (jangka panjang)",
+   "nilai_berjalan": "18.547",
+   "nilai_lalu": "18.468",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "liabilitas_non_keuangan_jangka_panjang_yang_dikenakan_bunga",
+   "label_di_dokumen": "Liabilitas kontrak jangka panjang (padanan sesuai elaborasi Master)",
+   "nilai_berjalan": "2.851",
+   "nilai_lalu": "2.484",
+   "halaman": 9
+  },
+  {
+   "kode_akun": "pendapatan_lainnya",
+   "label_di_dokumen": "Penghasilan lain-lain - bersih",
+   "nilai_berjalan": "119",
+   "nilai_lalu": "281",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "pendapatan_keuangan_setelah_dikurangi_pendapatan_bunga_atas_liabilitas_sewa_operasi_pendapatan_imbal_hasil",
+   "label_di_dokumen": "Penghasilan pendanaan - bersih (bunga jasa giro dan deposito)",
+   "nilai_berjalan": "1.661",
+   "nilai_lalu": "1.367",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "keuntungan_kurs_mata_uang_asing_non_syariah",
+   "label_di_dokumen": "Laba selisih kurs - bersih",
+   "nilai_berjalan": "180",
+   "nilai_lalu": "136",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "bagian_atas_laba_entitas_asosiasi_yang_dicatat_dengan_menggunakan_metode_ekuitas_dari_entitas_yang_kegiatan_usahanya_halal",
+   "label_di_dokumen": "Bagian laba (rugi) investasi jangka panjang pada entitas asosiasi",
+   "nilai_berjalan": "(1)",
+   "nilai_lalu": "3",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "keuntungan_perubahan_nilai_wajar_efek_halal",
+   "label_di_dokumen": "Keuntungan (kerugian) yang belum direalisasi dari perubahan nilai wajar atas investasi",
+   "nilai_berjalan": "(242)",
+   "nilai_lalu": "188",
+   "halaman": 10
+  },
+  {
+   "kode_akun": "utang_usaha_pihak_ketiga_yang_dikenakan_bunga",
+   "label_di_dokumen": "Utang usaha tidak dikenakan bunga (Catatan 15a); nihil",
+   "nilai_berjalan": "-",
+   "nilai_lalu": "-",
+   "halaman": 68
+  },
+  {
+   "kode_akun": "utang_usaha_pihak_berelasi_yang_dikenakan_bunga",
+   "label_di_dokumen": "Utang usaha tidak dikenakan bunga (Catatan 15a); nihil",
+   "nilai_berjalan": "-",
+   "nilai_lalu": "-",
+   "halaman": 68
   }
  ],
- "catatan": "Uang muka tidak disajikan sebagai baris tersendiri di aset lancar (termasuk dalam aset lancar lainnya), sehingga tidak diambil. Laba per saham dalam Rupiah penuh, bukan miliar. Uang muka diambil dari rincian aset lancar lainnya (Catatan 8): 511; uang muka tidak lancar 734 ada di Catatan 13."
+ "catatan": "Uang muka tidak disajikan sebagai baris tersendiri di aset lancar (termasuk dalam aset lancar lainnya), sehingga tidak diambil. Laba per saham dalam Rupiah penuh, bukan miliar. Uang muka diambil dari rincian aset lancar lainnya (Catatan 8): 511; uang muka tidak lancar 734 ada di Catatan 13. Kriteria DES: utang bank jangka panjang termasuk pembiayaan PT Bank Syariah Indonesia Rp1.666 miliar (2024: Rp2.083 miliar) yang secara syariah bukan utang berbasis bunga, tetapi tidak dapat dipisahkan antara bagian lancar dan jangka panjang. Penghasilan pendanaan tidak dirinci; sebagian berasal dari deposito BSI Rp1.150 miliar (bagi hasil). Liabilitas kontrak jangka panjang dimasukkan sebagai liabilitas non-keuangan jangka panjang berbunga sesuai elaborasi Master, walaupun pada dasarnya uang muka pelanggan tanpa bunga. Kehalalan investee (investasi nilai wajar dan entitas asosiasi) tidak diungkapkan; diasumsikan halal (usaha telekomunikasi/teknologi)."
 }

@@ -18,6 +18,7 @@ BAWAAN: dict = {
         "pola_nama_file": r"^(?P<entity_id>[A-Za-z0-9]+)",
         "doc_type_bawaan": None,
         "kunci_pasangan": "entitas",  # atau "nama_file"
+        "kriteria_tambahan": {},      # mis. {"EPP": ["DES"]}
     },
     "deteksi_seksi": {
         "baris_zona_atas": 8,

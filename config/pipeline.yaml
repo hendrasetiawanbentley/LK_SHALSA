@@ -18,6 +18,11 @@ entitas:
   #   tahun     = angka 4 digit bila ada (informasi saja)
   pola_nama_file: '^(?P<doc_type>EPP|MI|RD)_(?P<entity_id>[A-Za-z0-9]+)(?:_.*?(?P<tahun>(?:19|20)\d{2}))?'
   doc_type_bawaan: null
+  # Kriteria tambahan per jenis entitas: akun dan rasio jenis lain di sheet Master ikut dipakai.
+  # EPP (emiten) juga dinilai dengan kriteria DES (Daftar Efek Syariah: utang berbasis bunga dan
+  # pendapatan non halal) untuk rasio RU dan RPNH.
+  kriteria_tambahan:
+    EPP: [DES]
   # nama_file: PDF dan Excel dengan nama file yang sama (selain ekstensi) dipasangkan.
   # Diperlukan karena satu kode MI bisa punya beberapa reksa dana (mis. RD_MEES2_1 dan RD_MEES2_18).
   kunci_pasangan: nama_file

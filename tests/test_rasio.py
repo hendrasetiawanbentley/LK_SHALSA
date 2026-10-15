@@ -48,7 +48,7 @@ def test_hitung_rasio_dari_pdf_saja():
     assert roa["nilai_y"] == "Laba = 5.000.000,00\nTotal Aset = 100.000.000,00"
     assert roa["nilai_y1"] == "Laba = 4.000.000,00\nTotal Aset = 80.000.000,00"
     assert roa["hasil_rasio"] == "Y-1: 5,00%\nY: 5,00%"
-    assert hasil["MIKU 1"]["hasil_rasio"].endswith("Memenuhi batas 25.000.000.000")
+    assert hasil["MIKU 1"]["hasil_rasio"].endswith("Y: 26.000.000.000 (memenuhi)")
     assert hasil["ICR"]["rasio_y"] is None and "akun beban tidak tersedia di PDF" in hasil["ICR"]["keterangan"]
     assert hasil["Baru"]["keterangan"] == "rumus belum didefinisikan"
 
@@ -69,3 +69,24 @@ def test_definisi_template_repo_dan_kk(tmp_path):
 def test_nama_sheet_unik():
     assert rasio.nama_sheet(["RD_STA01_Berbasis_X", "RD_STA01_STAR_Y", "MI_CC002_LK"]) == {
         "RD_STA01_Berbasis_X": "RD_STA01_Berbasis", "RD_STA01_STAR_Y": "RD_STA01_STAR", "MI_CC002_LK": "MI_CC002"}
+
+
+def test_kelompok_periode_dan_batas_maks_untuk_kriteria_tambahan():
+    definisi = [{"no": 31, "entitas": "DES", "satuan": "persen", "rumus": "utang_bunga / total_aset", "teks": "RU",
+                 "kategori": "DES", "field_key": "RU Periode 1", "dtype": "number", "description": "",
+                 "ambang_maks": 45, "periode": "lalu", "kelompok": {"utang_bunga": ["bank", "obligasi", "sukuk"]}}]
+    pdf = angka("E", "bank", 30, 20) + angka("E", "obligasi", 10, 30) + angka("E", "total_aset", 100, 100)
+    (r,) = rasio.hitung_rasio(definisi, pdf, {"E": "EPP"}, {"bank": "Utang bank"}, {"EPP": ["DES"]})
+    assert r["rasio_y1"] == pytest.approx(50.0) and r["rasio_y"] is None
+    assert r["hasil_rasio"] == "Y-1: 50,00% (tidak memenuhi, maks 45,00%)"
+    assert "Utang bank = 20,00" in r["nilai_y1"] and r["nilai_y"] == ""
+    assert rasio.hitung_rasio(definisi, pdf, {"E": "EPP"}) == []          # tanpa kriteria tambahan
+
+
+def test_tambah_kriteria():
+    from sikuli.rules import Rules, tambah_kriteria
+    rules = Rules(rules_akun=[{"doc_type": "EPP", "kode_akun": "total_aset"}, {"doc_type": "DES", "kode_akun": "total_aset"},
+                              {"doc_type": "DES", "kode_akun": "utang_bank_bunga"}])
+    hasil = tambah_kriteria(rules, {"EPP": ["DES"]})
+    assert [(a["doc_type"], a["kode_akun"]) for a in hasil.rules_akun if a["doc_type"] == "EPP"] == [
+        ("EPP", "total_aset"), ("EPP", "utang_bank_bunga")]

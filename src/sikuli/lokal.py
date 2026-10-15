@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -25,7 +26,7 @@ from .excel import baca_excel
 from .komparasi import MATCH, bandingkan
 from .pdf_lokal import halaman_dari_pdf
 from .pipeline import buat_permintaan_ekstraksi, konteks_permintaan, proses_halaman
-from .rules import Rules, berlaku_untuk, muat_rules, validasi_rules
+from .rules import Rules, berlaku_untuk, muat_rules, tambah_kriteria, validasi_rules
 from .seksi import kompilasi_pola
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -106,6 +107,22 @@ def turunan_periode_lalu(baris: list[dict], rules: Rules, doc_type: str | None) 
     return len(tambahan)
 
 
+def _baca_satu(path: str, zona: int):
+    try:
+        return halaman_dari_pdf(path, zona)
+    except Exception as e:  # dikembalikan, bukan dilempar, agar PDF lain tetap diproses
+        return e
+
+
+def _baca_pdf_paralel(pdf_paths: list[str], zona: int) -> dict:
+    """Teks semua PDF dibaca paralel (pdfplumber lambat untuk LK ratusan halaman)."""
+    if len(pdf_paths) < 2:
+        return {p: _baca_satu(p, zona) for p in pdf_paths}
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=min(len(pdf_paths), os.cpu_count() or 1)) as ex:
+        return dict(zip(pdf_paths, ex.map(_baca_satu, pdf_paths, [zona] * len(pdf_paths))))
+
+
 def _jalankan_ocr(klien, cfg_ai: dict, path: str, halaman, zona: int, peringatan: list[str]) -> None:
     """Halaman bergambar tanpa teks (scan) dibaca Claude bila ai.ocr aktif; selain itu hanya dicatat."""
     nomor = ocr.perlu_ocr(halaman)
@@ -153,13 +170,13 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
     cfg_ai = cfg.get("ai") or {}
     pola = kompilasi_pola(rules.mapping_seksi)
     teks, lokasi, angka_pdf, peringatan, teks_halaman = [], [], [], [], []
+    zona = int(cfg["deteksi_seksi"]["baris_zona_atas"])
+    semua_halaman = _baca_pdf_paralel(pdf_paths, zona)
     for path in pdf_paths:
         nama = Path(path).name
-        zona = int(cfg["deteksi_seksi"]["baris_zona_atas"])
-        try:
-            halaman = halaman_dari_pdf(path, zona)
-        except Exception as e:  # PDF rusak / terkunci
-            peringatan.append(f"{nama}: gagal dibaca ({type(e).__name__}: {e})")
+        halaman = semua_halaman[path]
+        if isinstance(halaman, Exception):  # PDF rusak / terkunci
+            peringatan.append(f"{nama}: gagal dibaca ({type(halaman).__name__}: {halaman})")
             continue
         info = info_dari_nama_file(path, cfg, rules)
         _jalankan_ocr(klien, cfg_ai, path, halaman, zona, peringatan)
@@ -213,7 +230,8 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
     if definisi_rasio:
         # Rasio hanya dari angka PDF (laporan audited).
         entitas = {b["entity_key"]: b["doc_type"] for b in angka_pdf if b.get("doc_type")}
-        hasil_rasio = rasio.hitung_rasio(definisi_rasio, angka_pdf, entitas, nama_akun)
+        hasil_rasio = rasio.hitung_rasio(definisi_rasio, angka_pdf, entitas, nama_akun,
+                                         (cfg.get("entitas") or {}).get("kriteria_tambahan"))
         if klien and cfg_ai.get("analisis_rasio", True):
             for entity_key in sorted(entitas):
                 baris = [r for r in hasil_rasio if r["entity_key"] == entity_key]
@@ -382,6 +400,7 @@ def main(argv=None) -> int:
         return 0
 
     cfg = muat_config(args.config)
+    rules = tambah_kriteria(rules, (cfg.get("entitas") or {}).get("kriteria_tambahan"))
     cfg_ai = cfg.get("ai") or {}
     if args.ai_rekaman:
         klien = ai.KlienRekaman(args.ai_rekaman, model=f"rekaman {args.ai_rekaman}")

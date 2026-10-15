@@ -309,7 +309,10 @@ def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_ty
     """
     # Baris bernilai 0 ikut dikirim: akun nihil (mis. penghasilan komprehensif lain "-") tetap
     # perlu dipasangkan dengan PDF. Komparasi mengutamakan baris bernilai bukan nol.
-    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel if not b.get("kode_akun")})
+    # Semua label dikirim (yang sudah terpetakan rules diberi tanda) supaya `turunan` dapat menjumlahkan
+    # baris mana pun; pemetaan AI hanya diterapkan ke baris yang belum terpetakan.
+    sudah = {(b["label_asli"], b["sheet"], b["seksi"]): b["kode_akun"] for b in baris_excel if b.get("kode_akun")}
+    belum = sorted({(b["label_asli"], b["sheet"], b["seksi"]) for b in baris_excel})
     akun = [a for a in rules.rules_akun if berlaku_untuk(a["doc_type"], doc_type)]
     if not belum or not akun:
         return 0
@@ -326,15 +329,17 @@ def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_ty
     })
     daftar_akun = "\n".join(f"- {a['kode_akun']} (seksi {a['seksi']}): {a['nama_akun']}" for a in akun)
     daftar_label = "\n".join(f"{i}. [{sheet} / {seksi}] {' '.join(label.split())}"
+                             + (f" (sudah dipetakan rules: {sudah[(label, sheet, seksi)]})" if (label, sheet, seksi) in sudah else "")
                              for i, (label, sheet, seksi) in enumerate(belum))
     hasil = klien.minta_json(SYSTEM_EXCEL, [{"type": "text", "text":
-        f"Kode akun:\n{daftar_akun}\n\nLabel Excel yang perlu dipetakan:\n{daftar_label}"}], skema,
+        f"Kode akun:\n{daftar_akun}\n\nLabel Excel (petakan yang belum dipetakan; semua boleh dipakai di turunan):\n"
+        f"{daftar_label}"}], skema,
         kunci={"tahap": "excel", "doc_type": doc_type, "label": [label for label, _, _ in belum],
                "seksi": [seksi for _, _, seksi in belum]})
 
     peta = {}
     for p in hasil.get("pemetaan", []):
-        if p.get("kode_akun") and 0 <= p.get("no", -1) < len(belum):
+        if p.get("kode_akun") and 0 <= p.get("no", -1) < len(belum) and belum[p["no"]] not in sudah:
             peta[belum[p["no"]]] = p["kode_akun"]
     for b in baris_excel:
         kode = peta.get((b["label_asli"], b["sheet"], b["seksi"]))
@@ -348,7 +353,8 @@ def pemetaan_excel(klien: KlienAI, baris_excel: list[dict], rules: Rules, doc_ty
             continue
         per_periode: dict[str, list[dict]] = {}
         for b in baris_excel:
-            if (b["label_asli"], b["sheet"], b["seksi"]) in bagian and b.get("nilai") is not None:
+            if (b["label_asli"], b["sheet"], b["seksi"]) in bagian and b.get("nilai") is not None \
+                    and b.get("cara_pemetaan") != "ai_turunan":
                 per_periode.setdefault(b["periode"], []).append(b)
         for periode, isi in per_periode.items():
             acuan = isi[0]

@@ -60,8 +60,10 @@ def muat_rasio(path_template: str | Path, path_yaml: str | Path, folder_rules: s
     path_yaml, path_template = Path(path_yaml), Path(path_template)
     if not path_yaml.exists():
         return []
+    isi = yaml.safe_load(path_yaml.read_text(encoding="utf-8"))
+    kelompok = isi.get("kelompok") or {}
     rumus = {}
-    for r in yaml.safe_load(path_yaml.read_text(encoding="utf-8")).get("rasio", []):
+    for r in isi.get("rasio", []):
         _cek_rumus(r["rumus"])
         rumus[(int(r["nomor"]), r["entitas"])] = r
     if path_template.exists():
@@ -75,7 +77,8 @@ def muat_rasio(path_template: str | Path, path_yaml: str | Path, folder_rules: s
             continue
         r = rumus.get((d["no"], d["entitas"]), {})
         hasil.append({**d, "rumus": r.get("rumus"), "satuan": r.get("satuan", "persen"), "teks": r.get("teks", ""),
-                      "ambang": r.get("ambang")})
+                      "ambang": r.get("ambang"), "ambang_maks": r.get("ambang_maks"), "periode": r.get("periode"),
+                      "kelompok": kelompok})
     return hasil
 
 
@@ -181,20 +184,39 @@ def _komponen(rumus: str, ambil, nama_akun: dict[str, str]) -> str:
     bagian = []
     for n in _nama_akun(rumus):
         dasar = n[:-6] if n.endswith("__lalu") else n
-        label = nama_akun.get(dasar, dasar) + (" (periode sebelumnya)" if n.endswith("__lalu") else "")
+        label = nama_akun.get(dasar) or dasar.replace("_", " ").capitalize()
+        label += " (periode sebelumnya)" if n.endswith("__lalu") else ""
         v = ambil(n)
         bagian.append(f"{label} = {fmt_angka(v) if v is not None else 'tidak ada'}")
     return "\n".join(bagian)
 
 
+def _dengan_kelompok(ambil, kelompok: dict[str, list[str]]):
+    """Nama kelompok (mis. utang_berbasis_bunga_des) = jumlah anggota yang tersedia; None bila tidak ada."""
+    def f(nama: str):
+        if nama in kelompok:
+            nilai = [v for v in (ambil(k) for k in kelompok[nama]) if v is not None]
+            return sum(nilai) if nilai else None
+        return ambil(nama)
+    return f
+
+
+def _rincian_kelompok(kelompok: list[str], ambil, nama_akun: dict[str, str]) -> str:
+    return "\n".join(f"  - {nama_akun.get(k, k)} = {fmt_angka(ambil(k))}" for k in kelompok if ambil(k) is not None)
+
+
 def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], entitas: dict[str, str],
-                 nama_akun: dict[str, str] | None = None) -> list[dict]:
-    """`entitas`: entity_key -> doc_type. Satu baris per entitas x rasio yang berlaku, dari angka PDF saja."""
+                 nama_akun: dict[str, str] | None = None,
+                 kriteria_tambahan: dict[str, list[str]] | None = None) -> list[dict]:
+    """`entitas`: entity_key -> doc_type. Satu baris per entitas x rasio yang berlaku, dari angka PDF saja.
+    `kriteria_tambahan` mis. {"EPP": ["DES"]}: rasio DES juga dihitung untuk emiten."""
     nama_akun = nama_akun or {}
+    kriteria_tambahan = kriteria_tambahan or {}
     hasil = []
     for entity_key, doc_type in sorted(entitas.items()):
         pdf = _nilai_entitas(angka_pdf, entity_key)
-        for d in (x for x in definisi if x["entitas"] == doc_type):
+        jenis = [doc_type] + list(kriteria_tambahan.get(doc_type, []))
+        for d in (x for x in definisi if x["entitas"] in jenis):
             satuan = d["satuan"]
             baris = {"entity_key": entity_key, "no": d["no"], "kategori": d["kategori"], "entitas": doc_type,
                      "field_key": d["field_key"], "dtype": d["dtype"], "description": d["description"],
@@ -205,19 +227,47 @@ def hitung_rasio(definisi: list[dict], angka_pdf: list[dict], entitas: dict[str,
                               "hasil_rasio": "rumus belum didefinisikan di config/rasio.yaml",
                               "keterangan": "rumus belum didefinisikan"})
                 continue
-            y, ket_y = _hitung(d["rumus"], satuan, _pengambil(pdf, "berjalan"))
-            y1, ket_y1 = _hitung(d["rumus"], satuan, _pengambil(pdf, "lalu"))
+            kel = d.get("kelompok") or {}
+            ambil_y = _dengan_kelompok(_pengambil(pdf, "berjalan"), kel)
+            ambil_y1 = _dengan_kelompok(_pengambil(pdf, "lalu"), kel)
+            y, ket_y = _hitung(d["rumus"], satuan, ambil_y)
+            y1, ket_y1 = _hitung(d["rumus"], satuan, ambil_y1)
+            periode = d.get("periode")             # None = Y-1 dan Y; "lalu" / "berjalan" = satu periode saja
+            if periode == "lalu":
+                y, ket_y = None, None
+            elif periode == "berjalan":
+                y1, ket_y1 = None, None
             ket = [f"Y: {ket_y}"] if ket_y else []
             ket += [f"Y-1: {ket_y1}"] if ket_y1 else []
-            hasil_teks = f"Y-1: {fmt_rasio(y1, satuan)}\nY: {fmt_rasio(y, satuan)}"
-            if d.get("ambang") is not None and y is not None:
-                hasil_teks += "\n" + ("Memenuhi" if y >= float(d["ambang"]) else "Tidak memenuhi") + \
-                              f" batas {fmt_angka(float(d['ambang']), 0)}"
+            bagian = []
+            if periode != "berjalan":
+                bagian.append(f"Y-1: {fmt_rasio(y1, satuan)}" + _status(y1, d))
+            if periode != "lalu":
+                bagian.append(f"Y: {fmt_rasio(y, satuan)}" + _status(y, d))
+
+            def komponen(ambil_kel, ambil_dasar):
+                teks = _komponen(d["rumus"], ambil_kel, nama_akun)
+                for nama, anggota in kel.items():
+                    if nama in _nama_akun(d["rumus"]):
+                        judul = nama_akun.get(nama) or nama.replace("_", " ").capitalize()
+                        teks += f"\nRincian {judul}:\n" + _rincian_kelompok(anggota, ambil_dasar, nama_akun)
+                return teks
             hasil.append({**baris,
-                          "nilai_y1": _komponen(d["rumus"], _pengambil(pdf, "lalu"), nama_akun),
-                          "nilai_y": _komponen(d["rumus"], _pengambil(pdf, "berjalan"), nama_akun),
-                          "rasio_y1": y1, "rasio_y": y, "hasil_rasio": hasil_teks, "keterangan": "; ".join(ket)})
+                          "nilai_y1": "" if periode == "berjalan" else komponen(ambil_y1, _pengambil(pdf, "lalu")),
+                          "nilai_y": "" if periode == "lalu" else komponen(ambil_y, _pengambil(pdf, "berjalan")),
+                          "rasio_y1": y1, "rasio_y": y, "hasil_rasio": "\n".join(bagian), "keterangan": "; ".join(ket)})
     return hasil
+
+
+def _status(x: float | None, d: dict) -> str:
+    if x is None:
+        return ""
+    if d.get("ambang") is not None:
+        return " (memenuhi)" if x >= float(d["ambang"]) else " (tidak memenuhi)"
+    if d.get("ambang_maks") is not None:
+        maks = float(d["ambang_maks"])
+        return f" (memenuhi, maks {fmt_angka(maks)}%)" if x <= maks else f" (tidak memenuhi, maks {fmt_angka(maks)}%)"
+    return ""
 
 
 def nama_sheet(entity_keys: list[str]) -> dict[str, str]:

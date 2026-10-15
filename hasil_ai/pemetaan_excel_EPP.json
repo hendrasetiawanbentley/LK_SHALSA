@@ -13,7 +13,20 @@
   "Laba rugi komprehensif yang dapat diatribusikan ke entitas induk": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_pemilik_entitas_induk",
   "Laba rugi komprehensif yang dapat diatribusikan ke kepentingan non-pengendali": "total_laba_rugi_komprehensif_periode_berjalan_yang_diatribusikan_kepada_kepentingan_non_pengendali",
   "Laba (rugi) per saham dasar dari operasi yang dilanjutkan": "laba_rugi_per_saham",
-  "Distribusi dividen kas": "dividen"
+  "Distribusi dividen kas": "dividen",
+  "Utang bank jangka pendek": "utang_bank_jangka_pendek_yang_dikenakan_bunga",
+  "Liabilitas yang secara langsung berhubungan dengan aset tidak lancar atau kelompok lepasan yang diklasifikasikan sebagai dimiliki untuk dijual atau dimiliki untuk didistribusikan kepada pemilik": "liabilitas_yang_secara_langsung_berhubungan_dengan_aset_tidak_lancar_atau_kelompok_lepasan_yang_diklasifikasikan_sebagai_dimiliki_u_0627f517",
+  "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang bank": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_bank_yang_dikenakan_bunga",
+  "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas utang obligasi": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_utang_obligasi",
+  "Liabilitas jangka panjang yang jatuh tempo dalam satu tahun atas liabilitas sewa pembiayaan": "liabilitas_jangka_panjang_yang_jatuh_tempo_dalam_satu_tahun_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga",
+  "Liabilitas jangka panjang atas utang bank": "liabilitas_jangka_panjang_atas_utang_bank_yang_dikenakan_bunga",
+  "Liabilitas jangka panjang atas utang obligasi": "liabilitas_jangka_panjang_atas_utang_obligasi",
+  "Liabilitas jangka panjang atas liabilitas sewa pembiayaan": "liabilitas_jangka_panjang_atas_liabilitas_sewa_pembiayaan_yang_dikenakan_bunga",
+  "Liabilitas non-keuangan jangka panjang": "liabilitas_non_keuangan_jangka_panjang_yang_dikenakan_bunga",
+  "Pendapatan lainnya": "pendapatan_lainnya",
+  "Pendapatan keuangan": "pendapatan_keuangan_setelah_dikurangi_pendapatan_bunga_atas_liabilitas_sewa_operasi_pendapatan_imbal_hasil",
+  "Keuntungan (kerugian) lainnya": "keuntungan_kurs_mata_uang_asing_non_syariah",
+  "Bagian atas laba (rugi) entitas asosiasi yang dicatat dengan menggunakan metode ekuitas": "bagian_atas_laba_entitas_asosiasi_yang_dicatat_dengan_menggunakan_metode_ekuitas_dari_entitas_yang_kegiatan_usahanya_halal"
  },
  "turunan": [
   {
