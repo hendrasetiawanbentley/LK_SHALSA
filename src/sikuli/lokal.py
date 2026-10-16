@@ -183,7 +183,14 @@ def jalankan(pdf_paths: list[str], excel_paths: list[str], cfg: dict, rules: Rul
             continue
         info = info_dari_nama_file(path, cfg, rules)
         _jalankan_ocr(klien, cfg_ai, path, halaman, zona, peringatan)
-        if not _proses_pdf_ai(klien, cfg, rules, path, info, halaman, lokasi, angka_pdf, peringatan):
+        if _proses_pdf_ai(klien, cfg, rules, path, info, halaman, lokasi, angka_pdf, peringatan):
+            # Seksi yang tidak dilaporkan AI (mis. sampul, surat pernyataan, laporan auditor)
+            # dilengkapi dari deteksi judul halaman.
+            dari_ai = {l["seksi"] for l in lokasi if l.get("nama_file") == info["nama_file"]}
+            for l in proses_halaman(path, halaman, cfg, rules, pola)["lokasi"]:
+                if l["seksi"] not in dari_ai:
+                    lokasi.append({**l, "sumber_deteksi": "judul_halaman"})
+        else:
             hasil = proses_halaman(path, halaman, cfg, rules, pola)
             teks.extend(hasil["teks"])
             lokasi.extend(hasil["lokasi"])

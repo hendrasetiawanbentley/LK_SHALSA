@@ -32,6 +32,8 @@ deteksi_seksi:
   min_seksi_daftar_isi: 3     # >= 3 seksi cocok di satu halaman = daftar isi
   label_tidak_dikenal: tidak_dikenal
   label_daftar_isi: daftar_isi
+  label_awal: sampul          # halaman sebelum seksi pertama (sampul, daftar isi)
+  halaman_pertama_sampul: true  # halaman 1 selalu sampul (judulnya sering memuat "Laporan Auditor Independen")
 
 ekstraksi:
   ai_extract_version: "2.0"   # versi ai_extract (2.0 / 2.1); skema JSON bersarang butuh >= 2.0

@@ -158,7 +158,8 @@ Tugas:
 1. Tentukan rentang halaman setiap seksi yang ada di dokumen (nomor halaman PDF, mulai dari 1),
    judul seksi seperti tertulis, dan satuan penyajian angkanya ("rupiah", "ribuan", "jutaan",
    atau "miliar") dari keterangan seperti "(Dinyatakan dalam jutaan Rupiah)".
-   Abaikan daftar isi, laporan auditor, dan surat pernyataan direksi.
+   Seksi non-keuangan (sampul, surat pernyataan, laporan auditor) juga dilaporkan rentang
+   halamannya bila ada di daftar seksi; halaman hasil scan tetap dibaca dari gambarnya.
 2. Untuk setiap akun di daftar, cari barisnya di seksi yang sesuai dan salin angka periode
    berjalan (kolom tahun terbaru) dan periode pembanding PERSIS seperti tertulis, termasuk tanda
    kurung dan pemisah ribuan, misalnya "(1.234.567)". Jangan membulatkan atau mengubah satuan.

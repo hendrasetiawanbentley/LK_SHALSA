@@ -38,8 +38,8 @@ def test_deteksi_seksi_alur_slide5(rules):
     hal = halaman_dari_parse(dokumen_contoh())
     label, lokasi = deteksi_seksi([h.zona_atas for h in hal], pola, "EPP", CFG_DETEKSI)
     assert [l["seksi"] for l in label] == [
-        "tidak_dikenal",        # sampul: tanpa kecocokan, tanpa seksi sebelumnya
-        "daftar_isi",           # >= 3 seksi cocok
+        "sampul",               # sampul: halaman sebelum seksi pertama
+        "sampul",               # daftar isi (>= 3 seksi cocok) sebelum seksi pertama ikut sampul
         "financial_position",
         "financial_position",   # judul diulang "(lanjutan)"
         "income",
@@ -49,7 +49,7 @@ def test_deteksi_seksi_alur_slide5(rules):
         "calk",                 # tanpa judul: lanjutkan seksi sebelumnya
     ]
     assert [(l["seksi"], l["halaman_mulai"], l["halaman_akhir"]) for l in lokasi] == [
-        ("financial_position", 3, 4), ("income", 5, 5), ("equity", 6, 6),
+        ("sampul", 1, 2), ("financial_position", 3, 4), ("income", 5, 5), ("equity", 6, 6),
         ("cashflow", 7, 7), ("calk", 8, 9)]
 
 
@@ -59,7 +59,7 @@ def test_pola_khusus_rd_dan_laba_rugi_berkurung(rules):
     label_rd, _ = deteksi_seksi(zona, pola, "RD", CFG_DETEKSI)
     label_epp, _ = deteksi_seksi(zona, pola, "EPP", CFG_DETEKSI)
     assert [l["seksi"] for l in label_rd] == ["rd_performance", "income"]
-    assert [l["seksi"] for l in label_epp] == ["tidak_dikenal", "income"]
+    assert [l["seksi"] for l in label_epp] == ["sampul", "income"]
 
 
 def test_maks_halaman_dan_regex():
@@ -71,3 +71,17 @@ def test_maks_halaman_dan_regex():
     label, lokasi = deteksi_seksi(zona, pola, "EPP", CFG_DETEKSI)
     assert [l["seksi"] for l in label] == ["calk", "calk", "tidak_dikenal", "lampiran", "lampiran"]
     assert lokasi[0]["halaman_akhir"] == 2
+
+
+def test_halaman_tanpa_teks_tidak_memperpanjang_seksi():
+    pola = kompilasi_pola([
+        {"kode": "laporan_auditor", "entitas": "Semua", "pola": "laporan auditor independen"},
+        {"kode": "financial_position", "entitas": "Semua", "pola": "laporan posisi keuangan"},
+    ])
+    zona = ["PT Contoh Laporan keuangan", "Laporan Auditor Independen", "lanjutan opini", "", "",
+            "LAPORAN POSISI KEUANGAN"]
+    label, lokasi = deteksi_seksi(zona, pola, "EPP", CFG_DETEKSI)
+    assert [l["seksi"] for l in label] == ["sampul", "laporan_auditor", "laporan_auditor", "tanpa_teks",
+                                           "tanpa_teks", "financial_position"]
+    assert [(l["seksi"], l["halaman_mulai"], l["halaman_akhir"]) for l in lokasi] == [
+        ("sampul", 1, 1), ("laporan_auditor", 2, 3), ("financial_position", 6, 6)]

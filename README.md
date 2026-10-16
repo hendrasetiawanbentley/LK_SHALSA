@@ -164,6 +164,11 @@ dan `ringkasan.md`.
 **Lokasi_Seksi** (`lokasi_seksi.csv`): seksi per dokumen: `nama_file`, `entity_key`, `seksi`,
 `halaman_mulai`, `halaman_akhir`, `judul_cocok`.
 
+Seksi di `config/mapping_seksi.csv`: `sampul`, `surat_pernyataan`, `laporan_auditor`, `financial_position`,
+`equity` (EPP/MI), `income` (EPP/MI), `rd_performance` dan `rd_netassets` (RD), `cashflow`, `calk`. Judul harus berada
+di awal baris (boleh diawali "Laporan", "Statements of", "Consolidated"); halaman sebelum seksi pertama dan halaman 1
+menjadi `sampul`; halaman tanpa teks (scan) ditandai `tanpa_teks` sampai di-OCR (`ai.ocr`).
+
 `sheet_config.csv` boleh memakai seksi bertingkat `seksi:nama` untuk membaca kolom lain dari sheet matriks
 yang sama (mis. EPP `3410000` kolom V dan W untuk saldo laba ditentukan/belum ditentukan).
 

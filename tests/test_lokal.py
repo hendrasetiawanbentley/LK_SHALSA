@@ -72,7 +72,7 @@ def test_pipeline_lokal_pdf_dan_excel(tmp_path, cfg, rules):
     hasil = jalankan([str(pdf)], [str(xls)], cfg, rules)
 
     assert [(l["seksi"], l["halaman_mulai"], l["halaman_akhir"]) for l in hasil["lokasi_seksi"]] == [
-        ("financial_position", 3, 3), ("income", 4, 4), ("calk", 5, 5)]
+        ("sampul", 1, 2), ("financial_position", 3, 3), ("income", 4, 4), ("calk", 5, 5)]
     status = {b["kode_akun"]: b["status"] for b in hasil["komparasi"]}
     assert status["FP_KAS"] == "MATCH"                 # 1.250 juta vs 1.250.400.000
     assert status["FP_JUMLAH_ASET_LANCAR"] == "MATCH"
