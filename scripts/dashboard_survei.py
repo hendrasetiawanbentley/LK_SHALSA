@@ -69,6 +69,13 @@ body { margin: 0; background: %(bg)s; color: %(teks)s; font-family: %(font)s; }
 .pill { font-size: 12px; padding: 6px 12px; border-radius: 8px; background: %(panel)s;
         border: 1px solid %(garis)s; color: %(pudar)s; }
 .pill b { color: %(aksen)s; }
+.legenda { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 12px; color: %(pudar)s; }
+.leg-skala { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+.leg-bar { height: 10px; border-radius: 5px; }
+.leg-angka { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.leg-item { display: flex; align-items: center; gap: 6px; }
+.leg-titik { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.kanan { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .kpi { background: %(panel)s; border: 1px solid %(garis)s; border-radius: 10px; padding: 14px 16px; }
 .kpi .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: %(pudar)s; }
@@ -401,7 +408,22 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         html.Div([html.H1("Dasbor Skor Hasil Survei"),
                   html.P(f"Skor {kolom_skor.lower()} · {len(df_dim)} dimensi · {len(df_sub)} subdimensi · "
                          f"{n_butir} butir")]),
-        html.Div(className="pill", children=["Target ", html.B(f"{target:g}")]),
+        html.Div(className="kanan", children=[
+            # legenda warna: skala skor (gelap = jauh di bawah target) + arti warna gap
+            html.Div(className="legenda", children=[
+                html.Div(className="leg-skala", children=[
+                    html.Div(className="leg-bar", style={"background": "linear-gradient(to right, " +
+                             ", ".join(f"{w} {p * 100:.0f}%" for p, w in SKALA) + ")"}),
+                    html.Div(className="leg-angka", children=[
+                        html.Span(f"Skor {cmin:.2f} · rendah"), html.Span(f"tinggi · {cmax:.2f}")]),
+                ]),
+                html.Span(className="leg-item", children=[
+                    html.I(className="leg-titik", style={"background": C["merah"]}), "Di bawah target"]),
+                html.Span(className="leg-item", children=[
+                    html.I(className="leg-titik", style={"background": C["hijau"]}), "Tercapai"]),
+            ]),
+            html.Div(className="pill", children=["Target ", html.B(f"{target:g}")]),
+        ]),
     ])
     kpis = html.Div(className="kpis", children=[
         _kpi("Skor keseluruhan", f"{skor_total:.2f}", "rata-rata seluruh butir"),
