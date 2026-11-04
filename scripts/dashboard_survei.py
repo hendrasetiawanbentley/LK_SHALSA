@@ -37,13 +37,17 @@ from sunburst_treemap_survei import _rapikan, susun_hierarki
 # --------------------------------------------------------------------------- tema
 C = dict(
     bg="#0b1220", sidebar="#0e1626", panel="#121b2d", panel2="#172238", garis="#1f2b42",
-    teks="#e7edf6", pudar="#8b98ae", aksen="#f59e0b", biru="#4c8dff", teal="#2cc4b0",
-    hijau="#34c38f", merah="#e0735e", ungu="#9b8cff",
+    teks="#e7edf6", pudar="#8b98ae", aksen="#ecd9a8", biru="#5b8def", teal="#3fb3a3",
+    hijau="#3fb3a3", merah="#e08a4a", ungu="#9b8cff",
 )
 FONT = "Segoe UI, Inter, Helvetica, Arial, sans-serif"
-# merah bata diredam -> sangat muda (gelap = jauh di bawah target)
-SKALA = [[0.00, "#8f3a2f"], [0.30, "#c45f48"], [0.60, "#e39a7f"], [0.85, "#f2cbb8"], [1.00, "#f8ece4"]]
-LIKERT = ["#c45f48", "#e39a7f", "#5d6b82", "#6fb7c9", "#2cc4b0"]
+# Amber -> pasir -> teal, berpusat di target:
+#   amber = di bawah target, pasir = tepat di target, teal = di atas target.
+#   Aman untuk buta warna merah-hijau dan nyaman di latar gelap.
+SKALA = [[0.00, "#b5542f"], [0.25, "#d98a4a"], [0.50, "#e9d8a6"], [0.75, "#5fb8a6"], [1.00, "#2a8c82"]]
+LIKERT = ["#b5542f", "#d98a4a", "#5d6b82", "#5fb8a6", "#2a8c82"]
+GAP_BAWAH, GAP_CAPAI = "rgba(224,138,74,0.22)", "rgba(63,179,163,0.22)"   # latar sel Gap di tabel
+SOROT = "#3b3624"                                                            # baris butir yang diklik
 
 CSS = """
 * { box-sizing: border-box; }
@@ -57,7 +61,7 @@ body { margin: 0; background: %(bg)s; color: %(teks)s; font-family: %(font)s; }
 .nav { all: unset; cursor: pointer; padding: 11px 12px; border-radius: 8px; color: %(pudar)s;
        font-size: 14px; display: flex; gap: 10px; align-items: center; }
 .nav:hover { background: %(panel2)s; color: %(teks)s; }
-.nav.on { background: %(aksen)s; color: #1b1205; font-weight: 600; }
+.nav.on { background: %(aksen)s; color: #1d1a10; font-weight: 600; }
 .nav i { font-style: normal; width: 18px; text-align: center; }
 .side-foot { margin-top: auto; padding: 14px 12px; border: 1px solid %(garis)s; border-radius: 10px;
              font-size: 12px; color: %(pudar)s; line-height: 1.5; }
@@ -164,8 +168,10 @@ def _pendek(teks, n=28):
 def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_skor="Keseluruhan"):
     df_dim, df_sub, df_butir = _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir, kolom_skor)
     h = susun_hierarki(df_dim, df_sub, df_butir, target)
-    cmin = h["warna"].min()
-    cmax = max(target, h["warna"].max())
+    # skala simetris di sekitar target, supaya warna pasir (tengah) tepat di target
+    jarak = max(abs(h["warna"].max() - target), abs(h["warna"].min() - target)) or 0.5
+    cmin, cmax = target - jarak, target + jarak
+    skor_maks = max(target, h["warna"].max())   # batas sumbu grafik (skala warna boleh lebih lebar)
     induk = dict(zip(h["id"], h["parent"]))
     judul_node = dict(zip(h["id"], h["judul"]))
     nama_sub = dict(zip(df_sub["Kode Subdimensi"], df_sub["Subdimensi"]))
@@ -207,7 +213,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         textfont=dict(color=C["teks"]), hovertemplate="%{y}<br>Skor %{x:.2f}<extra></extra>"))
     f_gapdim.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5),
                        annotation=dict(text=f"target {target:g}", font=dict(color=C["aksen"]), yanchor="bottom"))
-    _gaya(f_gapdim, 300, xaxis=dict(range=[0, max(5, cmax) + 0.6]), bargap=0.35,
+    _gaya(f_gapdim, 300, xaxis=dict(range=[0, max(5, skor_maks) + 0.6]), bargap=0.35,
           margin=dict(l=10, r=14, t=26, b=10))
 
     f_capai = go.Figure(go.Pie(
@@ -254,12 +260,12 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     # ---------------- Tab 2: Dimensi & Subdimensi
     teta = list(df_dim["Kode Dimensi"]) + [df_dim["Kode Dimensi"].iloc[0]]
     nilai = list(df_dim["_skor"]) + [df_dim["_skor"].iloc[0]]
-    batas_r = max(5, float(np.ceil(cmax)))
+    batas_r = max(5, float(np.ceil(skor_maks)))
     f_radar = go.Figure()
     f_radar.add_trace(go.Scatterpolar(r=[target] * len(teta), theta=teta, name=f"Target {target:g}",
                                       line=dict(color=C["aksen"], dash="dash", width=1.5), mode="lines"))
     f_radar.add_trace(go.Scatterpolar(r=nilai, theta=teta, name="Skor", fill="toself",
-                                      fillcolor="rgba(44,196,176,0.18)", line=dict(color=C["teal"], width=2),
+                                      fillcolor="rgba(63,179,163,0.18)", line=dict(color=C["teal"], width=2),
                                       hovertemplate="%{theta}: %{r:.2f}<extra></extra>"))
     _legenda_atas(_gaya(f_radar, 340, polar=dict(domain=dict(x=[0.08, 0.92], y=[0.02, 0.9]),
         bgcolor="rgba(0,0,0,0)", radialaxis=dict(range=[0, batas_r], gridcolor=C["garis"], linecolor=C["garis"],
@@ -287,7 +293,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         text=[f"{v:.2f}" for v in terendah["Skor"]], textposition="outside", textfont=dict(color=C["teks"]),
         customdata=terendah["Pertanyaan"], hovertemplate="%{customdata}<br>Skor %{x:.2f}<extra></extra>"))
     f_bawah.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5))
-    _gaya(f_bawah, 300, xaxis=dict(range=[0, max(5, cmax) + 0.5]), bargap=0.35)
+    _gaya(f_bawah, 300, xaxis=dict(range=[0, max(5, skor_maks) + 0.5]), bargap=0.35)
 
     f_hist = go.Figure(go.Histogram(x=tabel["Skor"], xbins=dict(size=0.2), marker=dict(
         color=C["biru"], line=dict(color=C["panel"], width=1)), hovertemplate="Skor %{x}: %{y} butir<extra></extra>"))
@@ -297,7 +303,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
 
     hal2 = html.Div(className="grid", children=[
         _panel("Profil dimensi", "Skor tiap dimensi dibanding target.", _graf("g-radar", f_radar)),
-        _panel("Gap subdimensi", "Diurutkan dari gap terbesar; merah = di bawah target.", _graf("g-lolli", f_lolli)),
+        _panel("Gap subdimensi", "Diurutkan dari gap terbesar; oranye = di bawah target.", _graf("g-lolli", f_lolli)),
         _panel("5 butir terendah", "Prioritas perbaikan berdasarkan skor butir.", _graf("g-bawah", f_bawah)),
         _panel("Sebaran skor butir", "Berapa banyak butir di tiap rentang skor.", _graf("g-hist", f_hist)),
     ])
@@ -329,7 +335,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     partisipasi = np.clip(np.cumsum(rng.uniform(6, 16, len(minggu))), 0, 100)
     f_partisipasi = go.Figure(go.Scatter(x=minggu, y=partisipasi, mode="lines+markers", fill="tozeroy",
                                          line=dict(color=C["teal"], width=2.5),
-                                         fillcolor="rgba(44,196,176,0.12)",
+                                         fillcolor="rgba(63,179,163,0.12)",
                                          hovertemplate="%{x}: %{y:.0f}%<extra></extra>"))
     _gaya(f_partisipasi, 300, yaxis=dict(range=[0, 100], ticksuffix="%"))
 
@@ -415,7 +421,8 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                     html.Div(className="leg-bar", style={"background": "linear-gradient(to right, " +
                              ", ".join(f"{w} {p * 100:.0f}%" for p, w in SKALA) + ")"}),
                     html.Div(className="leg-angka", children=[
-                        html.Span(f"Skor {cmin:.2f} · rendah"), html.Span(f"tinggi · {cmax:.2f}")]),
+                        html.Span(f"{cmin:.2f} di bawah"), html.Span(f"target {target:g}"),
+                html.Span("di atas target")]),
                 ]),
                 html.Span(className="leg-item", children=[
                     html.I(className="leg-titik", style={"background": C["merah"]}), "Di bawah target"]),
@@ -482,9 +489,9 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                              "color": "#ffffff" if _gelap(w) else "#1b2230"})
             if pd.notna(r["Gap"]):
                 gaya.append({"if": {"row_index": i, "column_id": "Gap"},
-                             "backgroundColor": "rgba(52,195,143,0.18)" if r["Gap"] >= 0 else "rgba(224,115,94,0.20)"})
+                             "backgroundColor": GAP_CAPAI if r["Gap"] >= 0 else GAP_BAWAH})
             if r["id"] == sorot:
-                gaya.append({"if": {"row_index": i}, "backgroundColor": "#3a2f12", "color": C["teks"],
+                gaya.append({"if": {"row_index": i}, "backgroundColor": SOROT, "color": C["teks"],
                              "fontWeight": "600"})
 
         n_bawah = int((data["Gap"] < 0).sum())
