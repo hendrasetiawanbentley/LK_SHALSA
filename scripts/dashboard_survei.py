@@ -156,6 +156,12 @@ def _gelap(rgb):
     return 0.299 * r + 0.587 * g + 0.114 * b < 150
 
 
+def _bungkus_label(teks, lebar=18):
+    """Pecah nama panjang jadi beberapa baris (<br>) untuk label grafik."""
+    import textwrap
+    return "<br>".join(textwrap.wrap(str(teks), lebar))
+
+
 def _pendek(teks, n=28):
     teks = str(teks)
     return teks if len(teks) <= n else teks[:n - 1] + "…"
@@ -217,7 +223,9 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
 
     # spider web: capaian tiap dimensi terhadap target (skor / target x 100%)
     capai_pct = df_dim["_skor"] / target * 100
-    teta_c = list(df_dim["Kode Dimensi"]) + [df_dim["Kode Dimensi"].iloc[0]]
+    # label sudut: kode + nama dimensi (dipecah 2 baris agar tidak terpotong)
+    label_dim = [f"<b>{k}</b><br>{_bungkus_label(n)}" for k, n in zip(df_dim["Kode Dimensi"], df_dim["Dimensi"])]
+    teta_c = label_dim + [label_dim[0]]
     r_c = list(capai_pct) + [capai_pct.iloc[0]]
     skor_c = list(df_dim["_skor"]) + [df_dim["_skor"].iloc[0]]
     nama_c = list(df_dim["Dimensi"]) + [df_dim["Dimensi"].iloc[0]]
@@ -232,13 +240,14 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
         marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor_c], line=dict(color=C["panel"], width=1)),
         customdata=[[n, float(v)] for n, v in zip(nama_c, skor_c)],
-        hovertemplate="%{theta} · %{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
+        hovertemplate="%{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
                       "<extra></extra>"))
-    _legenda_atas(_gaya(f_capai, 360, polar=dict(
-        domain=dict(x=[0.08, 0.92], y=[0.02, 0.9]), bgcolor="rgba(0,0,0,0)",
-        radialaxis=dict(range=[bawah_c, atas_c], ticksuffix="%", gridcolor=C["garis"], linecolor=C["garis"],
+    _legenda_atas(_gaya(f_capai, 420, polar=dict(
+        domain=dict(x=[0.2, 0.8], y=[0.12, 0.84]), bgcolor="rgba(0,0,0,0)",
+        radialaxis=dict(range=[bawah_c, atas_c], ticksuffix="%", gridcolor="#ffffff", linecolor="#ffffff",
                         tickfont=dict(color=C["pudar"], size=10), angle=30, tickangle=30, dtick=20),
-        angularaxis=dict(gridcolor=C["garis"], linecolor=C["garis"], tickfont=dict(color=C["teks"])))))
+        angularaxis=dict(gridcolor="#ffffff", linecolor="#ffffff",
+                         tickfont=dict(color=C["teks"], size=11)))))
 
     kolom_tabel = [
         dict(name="Q", id="Q"), dict(name="Subdimensi", id="Subdimensi"),
