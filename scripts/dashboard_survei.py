@@ -241,8 +241,8 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         customdata=[[n, float(v)] for n, v in zip(nama_c, skor_c)],
         hovertemplate="%{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
                       "<extra></extra>"))
-    _legenda_atas(_gaya(f_capai, 420, polar=dict(
-        domain=dict(x=[0.2, 0.8], y=[0.12, 0.84]), bgcolor="rgba(0,0,0,0)",
+    _legenda_atas(_gaya(f_capai, 620, polar=dict(
+        domain=dict(x=[0.15, 0.85], y=[0.08, 0.9]), bgcolor="rgba(0,0,0,0)",
         # hanya lingkaran 100% (= target) yang dinyalakan sebagai garis target
         radialaxis=dict(range=[bawah_c, atas_c], tickvals=[100], ticktext=[f"100% · target {target:g}"],
                         gridcolor="#ffffff", gridwidth=2, showline=False,
