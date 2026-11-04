@@ -13,7 +13,8 @@ Untuk berhenti: klik tombol stop (kotak merah) di console Spyder, atau Ctrl+C.
 
 Isi tab:
   1. Ringkasan Skor        -> sunburst + tabel pertanyaan (terhubung), gap per dimensi, capaian target
-  2. Dimensi & Subdimensi  -> radar, peringkat gap subdimensi, 5 butir terendah, sebaran skor butir
+  2. Analisis Deskriptif   -> kesimpulan & profil responden, tabel statistik deskriptif (+ Cronbach's alpha),
+                              sebaran jawaban Likert, sebaran skor responden, rata-rata per kelompok (perlu df_score)
   3. Responden             -> CONTOH (data dikira-kira), menunggu data responden
   4. Tren & Prioritas      -> sebagian CONTOH; gauge & matriks memakai skor asli
 
@@ -103,6 +104,20 @@ body { margin: 0; background: %(bg)s; color: %(teks)s; font-family: %(font)s; }
 .pilihan > label:has(input:checked) * { color: %(teks)s; }
 .pilihan input { display: none; }
 .pilihan .dash-options-list-option-wrapper { display: none; }   /* panel selebar halaman */
+.simpulan { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 7px; font-size: 14px;
+            line-height: 1.55; }
+.simpulan b { color: %(teks)s; }
+.simpulan li::marker { color: %(aksen)s; }
+.profil { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
+.profil-baris { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.profil-baris .nm { font-size: 13px; font-weight: 600; }
+.tumpuk { display: flex; height: 28px; border-radius: 6px; overflow: hidden; }
+.tumpuk span { display: flex; align-items: center; justify-content: center; font-size: 11.5px; color: #0b1220;
+               font-weight: 600; white-space: nowrap; overflow: hidden; }
+.leg-profil { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: %(pudar)s; }
+.leg-profil i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; }
+.kosong { font-size: 13px; color: %(pudar)s; padding: 18px; border: 1px dashed %(garis)s; border-radius: 8px; }
+@media (max-width: 1100px) { .profil { grid-template-columns: 1fr; } }
 .halaman { display: none; }
 .halaman.on { display: block; }
 @media (max-width: 1100px) {
@@ -116,7 +131,7 @@ INDEX = """<!DOCTYPE html>
 <html><head>{%metas%}<title>Dasbor Skor Survei</title>{%favicon%}{%css%}<style>""" + CSS + """</style></head>
 <body>{%app_entry%}<footer>{%config%}{%scripts%}{%renderer%}</footer></body></html>"""
 
-TAB = [("t1", "◉", "Ringkasan Skor"), ("t2", "▤", "Dimensi & Subdimensi"),
+TAB = [("t1", "◉", "Ringkasan Skor"), ("t2", "▤", "Analisis Deskriptif"),
        ("t3", "◍", "Responden"), ("t4", "↗", "Tren & Prioritas")]
 
 
@@ -204,6 +219,16 @@ def _cocokkan_kolom_q(kolom_score, df_butir):
         if re.match(r"^[Qq]?\d", awal) and _kunci_q(awal) in kunci_ke_dim:
             peta[c] = kunci_ke_dim[_kunci_q(awal)]
     return peta
+
+
+def _cronbach_alpha(df):
+    """Cronbach's alpha untuk sekumpulan kolom butir (baris dengan nilai kosong dibuang)."""
+    df = df.dropna()
+    k = df.shape[1]
+    if k < 2 or len(df) < 2:
+        return np.nan
+    var_total = df.sum(axis=1).var(ddof=1)
+    return np.nan if var_total == 0 else k / (k - 1) * (1 - df.var(ddof=1).sum() / var_total)
 
 
 def _pendek(teks, n=28):
@@ -408,56 +433,214 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                _graf("g-gapdim", f_gapdim), lebar=True),
     ])
 
-    # ---------------- Tab 2: Dimensi & Subdimensi
-    teta = list(df_dim["Kode Dimensi"]) + [df_dim["Kode Dimensi"].iloc[0]]
-    nilai = list(df_dim["_skor"]) + [df_dim["_skor"].iloc[0]]
-    batas_r = max(5, float(np.ceil(cmax)))
-    f_radar = go.Figure()
-    f_radar.add_trace(go.Scatterpolar(r=[target] * len(teta), theta=teta, name=f"Target {target:g}",
-                                      line=dict(color=C["aksen"], dash="dash", width=1.5), mode="lines"))
-    f_radar.add_trace(go.Scatterpolar(r=nilai, theta=teta, name="Skor", fill="toself",
-                                      fillcolor="rgba(44,196,176,0.18)", line=dict(color=C["teal"], width=2),
-                                      hovertemplate="%{theta}: %{r:.2f}<extra></extra>"))
-    _legenda_atas(_gaya(f_radar, 340, polar=dict(domain=dict(x=[0.08, 0.92], y=[0.02, 0.9]),
-        bgcolor="rgba(0,0,0,0)", radialaxis=dict(range=[0, batas_r], gridcolor=C["garis"], linecolor=C["garis"],
-                                                 tickfont=dict(color=C["pudar"])),
-        angularaxis=dict(gridcolor=C["garis"], linecolor=C["garis"], tickfont=dict(color=C["teks"])))))
+    # ---------------- Tab 2: Analisis Deskriptif (dihitung dari df_score)
+    batas_r = max(5, float(np.ceil(cmax)))      # dipakai juga oleh gauge di tab 4
+    WARNA_PROFIL = [C["biru"], C["teal"], C["aksen"], C["ungu"], C["merah"], C["hijau"], "#5fd0e6", "#f472b6"]
 
-    s_urut = df_sub.assign(gap=df_sub["_skor"] - target).sort_values("gap", ascending=False)
-    label_s = s_urut["Kode Subdimensi"] + " · " + s_urut["Subdimensi"].map(_pendek)
-    garis_x, garis_y = [], []
-    for g, lb in zip(s_urut["gap"], label_s):
-        garis_x += [0, g, None]
-        garis_y += [lb, lb, None]
-    f_lolli = go.Figure([
-        go.Scatter(x=garis_x, y=garis_y, mode="lines", line=dict(color=C["garis"], width=3), hoverinfo="skip"),
-        go.Scatter(x=s_urut["gap"], y=label_s, mode="markers",
-                   marker=dict(size=11, color=[C["hijau"] if g >= 0 else C["merah"] for g in s_urut["gap"]]),
-                   hovertemplate="%{y}<br>Gap %{x:+.2f}<extra></extra>")])
-    f_lolli.add_vline(x=0, line=dict(color=C["aksen"], dash="dash", width=1.5))
-    _gaya(f_lolli, max(320, 26 * len(s_urut) + 40))
+    if skor_resp is None:
+        hal2 = html.Div(className="grid", children=[_panel(
+            "Analisis deskriptif", "Tab ini membutuhkan data responden.",
+            html.Div("Jalankan jalankan_dashboard(..., df_score=df_score) agar kesimpulan responden, profil responden, "
+                     "dan statistik deskriptif dihitung dari sheet Score.", className="kosong"), lebar=True)])
+    else:
+        kolom_q = [c for d in kode_dim for c in item_dim.get(d, [])]        # urut per dimensi
+        jawab = skor_resp[kolom_q]
+        n_resp = len(skor_resp)
+        n_lengkap = int(jawab.notna().all(axis=1).sum())
+        n_lurus = int((jawab.nunique(axis=1) == 1).sum())                  # jawaban sama untuk semua butir
+        skor_dim_resp = pd.DataFrame({d: jawab[item_dim[d]].mean(axis=1) for d in kode_dim if item_dim.get(d)})
+        skor_overall_resp = skor_dim_resp.mean(axis=1)
+        nilai_skala = sorted(pd.unique(jawab.stack().dropna()))
+        s_min, s_max = (nilai_skala[0], nilai_skala[-1]) if nilai_skala else (1, 5)
+        fav_batas = target                                                  # "favorable" = jawaban >= target
+        desk_q = {_kunci_q(q): t for q, t in zip(df_butir["Q"], df_butir["Deskripsi Pertanyaan"])}
 
-    terendah = tabel.nsmallest(5, "Skor").iloc[::-1]
-    f_bawah = go.Figure(go.Bar(
-        y=terendah["Q"] + " · " + terendah["Pertanyaan"].map(lambda t: _pendek(t, 40)), x=terendah["Skor"],
-        orientation="h", marker=dict(color=[_warna_skor(v, cmin, cmax) for v in terendah["Skor"]]),
-        text=[f"{v:.2f}" for v in terendah["Skor"]], textposition="outside", textfont=dict(color=C["teks"]),
-        customdata=terendah["Pertanyaan"], hovertemplate="%{customdata}<br>Skor %{x:.2f}<extra></extra>"))
-    f_bawah.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5))
-    _gaya(f_bawah, 300, xaxis=dict(range=[0, max(5, cmax) + 0.5]), bargap=0.35)
+        # --- statistik per butir & dimensi
+        baris_desk = []
+        for d, nm in zip(kode_dim, nama_dim):
+            cols = item_dim.get(d, [])
+            if not cols:
+                continue
+            sd_ = skor_dim_resp[d]
+            semua = jawab[cols].stack()
+            baris_desk.append(dict(Tipe="Dimensi", Kode=d, Uraian=nm, n=int(sd_.notna().sum()),
+                                   Rata=sd_.mean(), Median=sd_.median(), SD=sd_.std(), Min=sd_.min(), Maks=sd_.max(),
+                                   Fav=(semua >= fav_batas).mean() * 100, Unfav=(semua <= 2).mean() * 100,
+                                   Alpha=_cronbach_alpha(jawab[cols])))
+            for c in cols:
+                v = jawab[c].dropna()
+                baris_desk.append(dict(Tipe="Butir", Kode=c, Uraian=_pendek(desk_q.get(_kunci_q(c), ""), 70), n=len(v),
+                                       Rata=v.mean(), Median=v.median(), SD=v.std(), Min=v.min(), Maks=v.max(),
+                                       Fav=(v >= fav_batas).mean() * 100, Unfav=(v <= 2).mean() * 100, Alpha=np.nan))
+        desk = pd.DataFrame(baris_desk)
+        desk_butir = desk[desk["Tipe"] == "Butir"]
+        desk_dim = desk[desk["Tipe"] == "Dimensi"]
 
-    f_hist = go.Figure(go.Histogram(x=tabel["Skor"], xbins=dict(size=0.2), marker=dict(
-        color=C["biru"], line=dict(color=C["panel"], width=1)), hovertemplate="Skor %{x}: %{y} butir<extra></extra>"))
-    f_hist.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5),
-                     annotation=dict(text=f"target {target:g}", font=dict(color=C["aksen"])))
-    _gaya(f_hist, 300, bargap=0.05, yaxis=dict(dtick=1, title=dict(text="jumlah butir", font=dict(color=C["pudar"]))))
+        # --- kesimpulan responden (kalimat otomatis)
+        def _terbesar(k):
+            vc = skor_resp[k].fillna("(kosong)").astype(str).value_counts()
+            return f"{vc.index[0]} ({vc.iloc[0] / n_resp:.0%})"
 
-    hal2 = html.Div(className="grid", children=[
-        _panel("Profil dimensi", "Skor tiap dimensi dibanding target.", _graf("g-radar", f_radar)),
-        _panel("Gap subdimensi", "Diurutkan dari gap terbesar; merah = di bawah target.", _graf("g-lolli", f_lolli)),
-        _panel("5 butir terendah", "Prioritas perbaikan berdasarkan skor butir.", _graf("g-bawah", f_bawah)),
-        _panel("Sebaran skor butir", "Berapa banyak butir di tiap rentang skor.", _graf("g-hist", f_hist)),
-    ])
+        kel_terendah = None
+        for k in grup_tersedia:
+            rata = skor_overall_resp.groupby(skor_resp[k].fillna("(kosong)").astype(str)).agg(["mean", "count"])
+            rata = rata[rata["count"] >= 30]
+            if len(rata) and (kel_terendah is None or rata["mean"].min() < kel_terendah[2]):
+                kel_terendah = (k, rata["mean"].idxmin(), rata["mean"].min(), int(rata.loc[rata["mean"].idxmin(), "count"]))
+
+        d_hi = desk_dim.loc[desk_dim["Rata"].idxmax()]
+        d_lo = desk_dim.loc[desk_dim["Rata"].idxmin()]
+        q_hi = desk_butir.loc[desk_butir["Rata"].idxmax()]
+        q_lo = desk_butir.loc[desk_butir["Rata"].idxmin()]
+        rata_all = skor_overall_resp.mean()
+        fav_all = (jawab.stack() >= fav_batas).mean()
+        alpha_ok = desk_dim["Alpha"].dropna()
+        poin = [
+            [html.B(f"{n_resp:,}".replace(",", ".") + " responden"),
+             f" mengisi survei; {n_lengkap / n_resp:.0%} menjawab seluruh {len(kolom_q)} butir."],
+            ["Mayoritas responden: " + ", ".join(f"{k} {_terbesar(k)}" for k in grup_tersedia) + "."]
+            if grup_tersedia else "Kolom kelompok responden tidak ditemukan.",
+            ["Rata-rata skor keseluruhan ", html.B(f"{rata_all:.2f}"), f" pada skala {s_min:g}–{s_max:g} ",
+             f"(gap {rata_all - target:+.2f} terhadap target {target:g}); ", html.B(f"{fav_all:.0%}"),
+             f" jawaban bernilai ≥ {target:g}."],
+            ["Dimensi tertinggi ", html.B(f"{d_hi['Kode']} {d_hi['Uraian']} ({d_hi['Rata']:.2f})"),
+             ", terendah ", html.B(f"{d_lo['Kode']} {d_lo['Uraian']} ({d_lo['Rata']:.2f})"), "."],
+            ["Butir terendah ", html.B(f"{q_lo['Kode']} ({q_lo['Rata']:.2f})"), f": {q_lo['Uraian']}. "
+             "Butir tertinggi ", html.B(f"{q_hi['Kode']} ({q_hi['Rata']:.2f})"), "."],
+        ]
+        if kel_terendah:
+            k, v, m, n = kel_terendah
+            poin.append(["Kelompok dengan skor terendah (n ≥ 30): ", html.B(f"{v}"), f" pada {k} ",
+                         f"(rata-rata {m:.2f}, n={n})."])
+        poin.append([f"Reliabilitas dimensi (Cronbach's α) {alpha_ok.min():.2f}–{alpha_ok.max():.2f}"
+                     if len(alpha_ok) else "Reliabilitas belum dapat dihitung",
+                     "; α ≥ 0,70 berarti butir dalam satu dimensi konsisten."])
+        if n_lurus:
+            poin.append([f"{n_lurus} responden ({n_lurus / n_resp:.1%}) memberi jawaban yang sama untuk semua butir "
+                         "(straightlining); pertimbangkan untuk diperiksa."])
+        komp_simpulan = html.Ul([html.Li(p) for p in poin], className="simpulan")
+
+        # --- profil responden (bar bertumpuk 100%)
+        def _profil(k):
+            vc = skor_resp[k].fillna("(kosong)").astype(str).value_counts()
+            seg, leg = [], []
+            for i, (v, n) in enumerate(vc.items()):
+                w = WARNA_PROFIL[i % len(WARNA_PROFIL)]
+                pc = n / n_resp * 100
+                seg.append(html.Span(f"{pc:.0f}%" if pc >= 7 else "", title=f"{v}: {n} ({pc:.1f}%)",
+                                     style={"width": f"{pc}%", "background": w}))
+                leg.append(html.Span([html.I(style={"background": w}), f"{v} (n={n})"]))
+            return html.Div(className="profil-baris", children=[
+                html.Span(k, className="nm"), html.Div(seg, className="tumpuk"), html.Div(leg, className="leg-profil")])
+        komp_profil = html.Div([_profil(k) for k in grup_tersedia], className="profil") if grup_tersedia else \
+            html.Div("Kolom Lokasi / Fungsi Satuan Kerja / Kel Jabatan / Generasi tidak ditemukan di df_score.",
+                     className="kosong")
+
+        # --- tabel statistik deskriptif
+        f2 = Format(precision=2, scheme=Scheme.fixed)
+        f0 = Format(precision=0, scheme=Scheme.fixed)
+        kolom_desk = [dict(name="Kode", id="Kode"), dict(name="Dimensi / butir", id="Uraian"),
+                      dict(name="n", id="n", type="numeric"),
+                      dict(name="Rata-rata", id="Rata", type="numeric", format=f2),
+                      dict(name="Median", id="Median", type="numeric", format=Format(precision=1, scheme=Scheme.fixed)),
+                      dict(name="SD", id="SD", type="numeric", format=f2),
+                      dict(name="Min", id="Min", type="numeric", format=Format(precision=1, scheme=Scheme.fixed)),
+                      dict(name="Maks", id="Maks", type="numeric", format=Format(precision=1, scheme=Scheme.fixed)),
+                      dict(name=f"% ≥ {target:g}", id="Fav", type="numeric", format=f0),
+                      dict(name="% ≤ 2", id="Unfav", type="numeric", format=f0),
+                      dict(name="α", id="Alpha", type="numeric", format=f2)]
+        gaya_desk = [{"if": {"filter_query": '{Tipe} = "Dimensi"'}, "backgroundColor": C["panel2"], "fontWeight": "700"}]
+        for i, r in desk.iterrows():
+            w = _warna_skor(r["Rata"], cmin, cmax)
+            gaya_desk.append({"if": {"row_index": i, "column_id": "Rata"}, "backgroundColor": w,
+                              "color": "#ffffff" if _gelap(w) else "#1b2230"})
+        gaya_desk.append({"if": {"filter_query": "{Alpha} < 0.7", "column_id": "Alpha"}, "color": C["merah"]})
+        komp_desk = dash_table.DataTable(
+            columns=kolom_desk, data=desk.to_dict("records"), page_action="none",
+            style_table={"overflowX": "auto"},
+            style_header={"backgroundColor": C["panel2"], "color": C["teks"], "fontWeight": "600",
+                          "border": f"1px solid {C['garis']}", "fontFamily": FONT, "fontSize": "12px"},
+            style_cell={"backgroundColor": C["panel"], "color": C["teks"], "border": f"1px solid {C['garis']}",
+                        "fontFamily": FONT, "fontSize": "13px", "textAlign": "right", "padding": "6px 8px",
+                        "whiteSpace": "normal", "height": "auto"},
+            style_cell_conditional=[{"if": {"column_id": "Kode"}, "textAlign": "left", "width": "60px"},
+                                    {"if": {"column_id": "Uraian"}, "textAlign": "left", "minWidth": "240px"}],
+            style_data_conditional=gaya_desk)
+
+        # --- sebaran jawaban (diverging Likert) per butir
+        label_likert = (["Sangat tidak setuju", "Tidak setuju", "Netral", "Setuju", "Sangat setuju"]
+                        if list(nilai_skala) == [1, 2, 3, 4, 5] else [f"{v:g}" for v in nilai_skala])
+        tengah = (s_min + s_max) / 2
+        warna_lk = (LIKERT if len(nilai_skala) == 5 else
+                    sample_colorscale([[0, LIKERT[0]], [0.5, LIKERT[2]], [1, LIKERT[4]]],
+                                      list(np.linspace(0, 1, max(len(nilai_skala), 2)))))
+        persen = {v: [(jawab[c] == v).sum() / max(jawab[c].notna().sum(), 1) * 100 for c in kolom_q]
+                  for v in nilai_skala}
+        dim_kolom = {c: d for d in kode_dim for c in item_dim.get(d, [])}
+        y_lk = [f"{c} · {dim_kolom[c]}" for c in kolom_q]
+        # urutan trace menentukan tumpukan: sisi kiri ditumpuk dari netral ke "sangat tidak setuju",
+        # sisi kanan dari netral ke "sangat setuju"
+        urutan = ([(i, -1) for i in reversed(range(len(nilai_skala))) if nilai_skala[i] <= tengah] +
+                  [(i, 1) for i in range(len(nilai_skala)) if nilai_skala[i] >= tengah])
+        f_likert2 = go.Figure()
+        for i, t in urutan:
+            v = nilai_skala[i]
+            sebagian = 0.5 if v == tengah else 1
+            f_likert2.add_trace(go.Bar(
+                y=y_lk, x=[t * p * sebagian for p in persen[v]], orientation="h", name=label_likert[i],
+                legendrank=i, showlegend=not (v == tengah and t == -1), marker=dict(color=warna_lk[i]),
+                customdata=persen[v], hovertemplate="%{y}<br>" + label_likert[i] + ": %{customdata:.0f}%<extra></extra>"))
+        tik = list(range(-80, 101, 20))
+        _legenda_atas(_gaya(f_likert2, 70 + 26 * len(kolom_q), barmode="relative", bargap=0.25,
+                            xaxis=dict(tickvals=tik, ticktext=[f"{abs(t)}%" for t in tik], zerolinecolor=C["pudar"]),
+                            yaxis=dict(autorange="reversed", tickfont=dict(color=C["teks"]))))
+        f_likert2.update_layout(legend=dict(traceorder="normal"))
+
+        # --- sebaran skor keseluruhan per responden
+        f_sebaran = go.Figure(go.Histogram(
+            x=skor_overall_resp, xbins=dict(size=0.25), marker=dict(color=C["biru"], line=dict(color=C["panel"], width=1)),
+            hovertemplate="skor %{x}: %{y} responden<extra></extra>"))
+        f_sebaran.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5),
+                            annotation=dict(text=f"target {target:g}", font=dict(color=C["aksen"])))
+        f_sebaran.add_vline(x=rata_all, line=dict(color=C["teks"], dash="dot", width=1),
+                            annotation=dict(text=f"rata-rata {rata_all:.2f}", font=dict(color=C["pudar"]),
+                                            yanchor="top", y=0.9, yref="paper"))
+        _gaya(f_sebaran, 320, bargap=0.05, margin=dict(l=10, r=14, t=26, b=10),
+              xaxis=dict(title=dict(text="skor keseluruhan responden", font=dict(color=C["pudar"]))),
+              yaxis=dict(title=dict(text="jumlah responden", font=dict(color=C["pudar"]))))
+
+        # --- rata-rata skor keseluruhan per kelompok
+        y_k, x_k, n_k, w_k = [], [], [], []
+        for gi, k in enumerate(grup_tersedia):
+            rata = skor_overall_resp.groupby(skor_resp[k].fillna("(kosong)").astype(str)).agg(["mean", "count"])
+            for v, r in rata.sort_values("mean", ascending=False).iterrows():
+                y_k.append(f"{k} · {v}")
+                x_k.append(r["mean"])
+                n_k.append(int(r["count"]))
+                w_k.append(WARNA_PROFIL[gi % len(WARNA_PROFIL)])
+        f_kel = go.Figure(go.Bar(
+            y=y_k, x=x_k, orientation="h", marker=dict(color=w_k), customdata=n_k,
+            text=[f"{v:.2f} · n={n}" for v, n in zip(x_k, n_k)], textposition="outside", textfont=dict(color=C["teks"]),
+            hovertemplate="%{y}<br>rata-rata %{x:.2f} · n=%{customdata}<extra></extra>"))
+        f_kel.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5))
+        _gaya(f_kel, max(320, 30 * len(y_k) + 40), bargap=0.3,
+              xaxis=dict(range=[0, max(s_max, target) + 0.9]),
+              yaxis=dict(autorange="reversed", tickfont=dict(color=C["teks"])))
+
+        hal2 = html.Div(className="grid", children=[
+            _panel("Kesimpulan responden", "Ringkasan otomatis dari sheet Score.", komp_simpulan, lebar=True),
+            _panel("Profil responden", "Komposisi responden per kelompok. Bandingkan dengan komposisi pegawai sebenarnya.",
+                   komp_profil, lebar=True),
+            _panel("Statistik deskriptif per dimensi dan butir",
+                   f"Skor dimensi = rata-rata butirnya per responden. % ≥ {target:g} = persen jawaban mencapai target; "
+                   "% ≤ 2 = persen jawaban tidak setuju. α = Cronbach's alpha (merah bila < 0,70).",
+                   komp_desk, lebar=True),
+            _panel("Sebaran jawaban per butir", "Kiri = tidak setuju, kanan = setuju; netral dibagi di tengah.",
+                   _graf("g-likert2", f_likert2), lebar=True),
+            _panel("Sebaran skor responden", "Distribusi skor keseluruhan tiap responden.", _graf("g-sebaran", f_sebaran)),
+            _panel("Rata-rata per kelompok", f"Skor keseluruhan rata-rata tiap kelompok; garis putus-putus = target {target:g}.",
+                   _graf("g-kel", f_kel)),
+        ])
 
     # ---------------- Tab 3: Responden (data contoh)
     unit = ["Kantor Pusat", "Wilayah I", "Wilayah II", "Wilayah III", "Wilayah IV", "Wilayah V"]
