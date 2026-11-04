@@ -215,13 +215,30 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     _gaya(f_gapdim, 300, xaxis=dict(range=[0, max(5, cmax) + 0.6]), bargap=0.35,
           margin=dict(l=10, r=14, t=26, b=10))
 
-    f_capai = go.Figure(go.Pie(
-        labels=["Tercapai", "Di bawah target"], values=[n_capai, n_butir - n_capai], hole=0.68, sort=False,
-        marker=dict(colors=[C["hijau"], C["merah"]], line=dict(color=C["panel"], width=3)),
-        textinfo="none", hovertemplate="%{label}: %{value} butir<extra></extra>"))
-    f_capai.add_annotation(text=f"<b>{n_capai}/{n_butir}</b><br><span style='font-size:12px'>butir tercapai</span>",
-                           showarrow=False, font=dict(size=24, color=C["teks"]))
-    _legenda_atas(_gaya(f_capai, 300))
+    # spider web: capaian tiap dimensi terhadap target (skor / target x 100%)
+    capai_pct = df_dim["_skor"] / target * 100
+    teta_c = list(df_dim["Kode Dimensi"]) + [df_dim["Kode Dimensi"].iloc[0]]
+    r_c = list(capai_pct) + [capai_pct.iloc[0]]
+    skor_c = list(df_dim["_skor"]) + [df_dim["_skor"].iloc[0]]
+    nama_c = list(df_dim["Dimensi"]) + [df_dim["Dimensi"].iloc[0]]
+    bawah_c = max(0, np.floor((capai_pct.min() - 15) / 10) * 10)      # mulai di bawah capaian terendah
+    atas_c = max(110, np.ceil((capai_pct.max() + 5) / 10) * 10)       # selalu tampak garis 100%
+    f_capai = go.Figure()
+    f_capai.add_trace(go.Scatterpolar(
+        r=[100] * len(teta_c), theta=teta_c, name=f"Target {target:g} (100%)", mode="lines",
+        line=dict(color=C["aksen"], dash="dash", width=1.5), hoverinfo="skip"))
+    f_capai.add_trace(go.Scatterpolar(
+        r=r_c, theta=teta_c, name="Capaian", mode="lines+markers", fill="toself",
+        fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
+        marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor_c], line=dict(color=C["panel"], width=1)),
+        customdata=np.stack([nama_c, skor_c], axis=1),
+        hovertemplate="%{theta} · %{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
+                      "<extra></extra>"))
+    _legenda_atas(_gaya(f_capai, 360, polar=dict(
+        domain=dict(x=[0.08, 0.92], y=[0.02, 0.9]), bgcolor="rgba(0,0,0,0)",
+        radialaxis=dict(range=[bawah_c, atas_c], ticksuffix="%", gridcolor=C["garis"], linecolor=C["garis"],
+                        tickfont=dict(color=C["pudar"], size=10), angle=30, tickangle=30, dtick=20),
+        angularaxis=dict(gridcolor=C["garis"], linecolor=C["garis"], tickfont=dict(color=C["teks"])))))
 
     kolom_tabel = [
         dict(name="Q", id="Q"), dict(name="Subdimensi", id="Subdimensi"),
@@ -253,7 +270,9 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                "Ikut berubah sesuai pilihan di peta skor.", komp_tabel),
         _panel("Skor per dimensi", f"Garis putus-putus = target {target:g}; angka dalam kurung = gap.",
                _graf("g-gapdim", f_gapdim)),
-        _panel("Capaian target", f"Jumlah butir dengan skor ≥ {target:g}.", _graf("g-capai", f_capai)),
+        _panel("Capaian target per dimensi",
+               f"Skor ÷ target {target:g} × 100%. Garis putus-putus = 100% (target tercapai). "
+               f"{n_capai}/{n_butir} butir sudah ≥ target.", _graf("g-capai", f_capai)),
     ])
 
     # ---------------- Tab 2: Dimensi & Subdimensi
