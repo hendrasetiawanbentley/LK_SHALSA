@@ -233,9 +233,6 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     atas_c = max(110, np.ceil((capai_pct.max() + 5) / 10) * 10)       # selalu tampak garis 100%
     f_capai = go.Figure()
     f_capai.add_trace(go.Scatterpolar(
-        r=[100] * len(teta_c), theta=teta_c, name=f"Target {target:g} (100%)", mode="lines",
-        line=dict(color=C["aksen"], dash="dash", width=1.5), hoverinfo="skip"))
-    f_capai.add_trace(go.Scatterpolar(
         r=r_c, theta=teta_c, name="Capaian", mode="lines+markers", fill="toself",
         fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
         marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor_c], line=dict(color=C["panel"], width=1)),
@@ -244,9 +241,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                       "<extra></extra>"))
     _legenda_atas(_gaya(f_capai, 420, polar=dict(
         domain=dict(x=[0.2, 0.8], y=[0.12, 0.84]), bgcolor="rgba(0,0,0,0)",
-        radialaxis=dict(range=[bawah_c, atas_c], ticksuffix="%", gridcolor="#ffffff", linecolor="#ffffff",
-                        tickfont=dict(color=C["pudar"], size=10), angle=30, tickangle=30, dtick=20),
-        angularaxis=dict(gridcolor="#ffffff", linecolor="#ffffff",
+        # hanya lingkaran 100% (= target) yang dinyalakan sebagai garis target
+        radialaxis=dict(range=[bawah_c, atas_c], tickvals=[100], ticktext=[f"100% · target {target:g}"],
+                        gridcolor="#ffffff", gridwidth=2, showline=False,
+                        tickfont=dict(color=C["teks"], size=10), angle=30, tickangle=30),
+        angularaxis=dict(gridcolor="rgba(255,255,255,0.25)", linecolor="rgba(255,255,255,0.25)",
                          tickfont=dict(color=C["teks"], size=11)))))
 
     kolom_tabel = [
@@ -280,7 +279,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         _panel("Skor per dimensi", f"Garis putus-putus = target {target:g}; angka dalam kurung = gap.",
                _graf("g-gapdim", f_gapdim)),
         _panel("Capaian target per dimensi",
-               f"Skor ÷ target {target:g} × 100%. Garis putus-putus = 100% (target tercapai). "
+               f"Skor ÷ target {target:g} × 100%. Lingkaran putih = 100% (target tercapai). "
                f"{n_capai}/{n_butir} butir sudah ≥ target.", _graf("g-capai", f_capai)),
     ])
 
