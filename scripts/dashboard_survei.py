@@ -283,12 +283,21 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
               f"(dari {df_butir['Q'].nunique()} butir).")
         if item:
             sc[item] = sc[item].apply(pd.to_numeric, errors="coerce")
-            skor_resp = sc
             item_dim = {d: [c for c in item if q_ke_dim[c] == d] for d in kode_dim}
-            grup_tersedia = [k for k in kolom_grup if k in sc.columns]
-            hilang = [k for k in kolom_grup if k not in sc.columns]
+            # cocokkan nama kolom kelompok tanpa peduli huruf besar/kecil & spasi berlebih
+            norm = lambda t: " ".join(str(t).split()).lower()
+            kolom_norm = {norm(c): c for c in sc.columns}
+            for k in kolom_grup:
+                asli = kolom_norm.get(norm(k))
+                if asli is not None:
+                    sc = sc.rename(columns={asli: k})
+                    grup_tersedia.append(k)
+            skor_resp = sc
+            hilang = [k for k in kolom_grup if k not in grup_tersedia]
+            print(f"Spider per kelompok: kolom kelompok ditemukan = {grup_tersedia}")
             if hilang:
-                print("Info: kolom kelompok tidak ada di df_score:", hilang)
+                print("  Tidak ditemukan di df_score:", hilang, "| kolom non-pertanyaan yang ada:",
+                      [c for c in sc.columns if c not in q_ke_dim])
         else:
             print("PERINGATAN: nama kolom pertanyaan di df_score tidak cocok dengan kolom Q di Map_Butir; "
                   "pilihan kelompok pada spider web dinonaktifkan.")
