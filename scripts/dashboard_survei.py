@@ -32,6 +32,7 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, State, ctx, dash_table, dcc, html
 from dash.dash_table.Format import Format, Scheme, Sign
 from plotly.colors import sample_colorscale
+from plotly.subplots import make_subplots
 
 from sunburst_treemap_survei import _rapikan, susun_hierarki
 
@@ -776,26 +777,33 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                                     {"if": {"filter_query": '{Bentuk} contains "Bimodal"', "column_id": "Bentuk"},
                                      "color": C["aksen"], "fontWeight": "600"}])
 
-        def fig_heat(grup):
-            label_q = [f"{c} · {dim_kolom[c]}" for c in kolom_q]
-            if grup not in grup_tersedia:          # Overall: % responden per pilihan jawaban
-                z = [[persen[v][j] for v in nilai_skala] for j in range(len(kolom_q))]
-                fig = go.Figure(go.Heatmap(
-                    z=z, x=label_likert, y=label_q, colorscale=[[0, C["panel2"]], [1, C["teal"]]], xgap=2, ygap=2,
-                    text=[[f"{v:.0f}%" for v in r] for r in z], texttemplate="%{text}",
-                    textfont=dict(size=11, color=C["teks"]), hovertemplate="%{y}<br>%{x}: %{z:.1f}%<extra></extra>",
-                    colorbar=dict(thickness=10, outlinewidth=0, ticksuffix="%", tickfont=dict(color=C["pudar"]))))
-            else:                                  # per kelompok: rata-rata tiap butir
-                g, urut = _kelompok(grup)
-                z = [[jawab.loc[g == v, c].mean() for v in urut] for c in kolom_q]
-                fig = go.Figure(go.Heatmap(
-                    z=z, x=urut, y=label_q, colorscale=SKALA, zmin=cmin, zmax=cmax, xgap=2, ygap=2,
-                    text=[[f"{v:.2f}" for v in r] for r in z], texttemplate="%{text}", textfont=dict(size=11),
-                    hovertemplate="%{y}<br>%{x}: rata-rata %{z:.2f}<extra></extra>",
-                    colorbar=dict(thickness=10, outlinewidth=0, tickfont=dict(color=C["pudar"]))))
-            _gaya(fig, max(360, 24 * len(kolom_q) + 60), margin=dict(l=10, r=14, t=10, b=10),
-                  yaxis=dict(autorange="reversed", tickfont=dict(color=C["teks"], size=11)),
-                  xaxis=dict(side="top", tickfont=dict(color=C["teks"])))
+        def fig_korelasi(grup):
+            """Matriks korelasi Spearman antar dimensi (segitiga bawah); satu matriks per kelompok."""
+            g, urut = _kelompok(grup)
+            urut = urut[:4]                                   # maksimal 4 matriks berdampingan
+            label = [c if c != "Keseluruhan" else "Total" for c in kolom_skor_resp]
+            fig = make_subplots(rows=1, cols=len(urut), horizontal_spacing=0.06,
+                                subplot_titles=[f"{v} (n={(g == v).sum()})" for v in urut] if len(urut) > 1 else None)
+            for j, v in enumerate(urut, start=1):
+                r = skor_semua[g == v].corr(method="spearman").values
+                z = [[r[a][b] if b <= a else None for b in range(len(label))] for a in range(len(label))]
+                teks = [[f"{r[a][b]:.2f}" if b < a else ("" if b > a else "1") for b in range(len(label))]
+                        for a in range(len(label))]
+                fig.add_trace(go.Heatmap(
+                    z=z, x=label, y=label, zmin=-1, zmax=1, zmid=0, coloraxis="coloraxis", xgap=2, ygap=2,
+                    text=teks, texttemplate="%{text}", textfont=dict(size=12 if len(urut) == 1 else 10),
+                    hovertemplate=f"{v}<br>" + "%{y} × %{x}: r = %{z:.2f}<extra></extra>"), row=1, col=j)
+                fig.update_yaxes(autorange="reversed", row=1, col=j, showticklabels=(j == 1),
+                                 tickfont=dict(color=C["teks"]))
+                fig.update_xaxes(row=1, col=j, tickfont=dict(color=C["teks"]), tickangle=0)
+            _gaya(fig, 420 if len(urut) == 1 else 380, margin=dict(l=10, r=14, t=40 if len(urut) > 1 else 10, b=10),
+                  coloraxis=dict(colorscale=[[0, C["merah"]], [0.5, C["panel2"]], [1, C["teal"]]], cmin=-1, cmax=1,
+                                 colorbar=dict(title=dict(text="r", side="top"), thickness=10, outlinewidth=0,
+                                               tickfont=dict(color=C["pudar"]))))
+            for anot in fig.layout.annotations:
+                anot.font = dict(size=12, color=C["teks"])
+            fig.update_xaxes(showgrid=False)
+            fig.update_yaxes(showgrid=False)
             return fig
 
         def fig_scatter(grup, kx, ky):
@@ -876,9 +884,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
             _panel("Distribusi skor per dimensi (box plot)",
                    "Kotak = Q1–Q3 (50% responden di tengah), garis = median, garis putus = rata-rata, "
                    "ujung garis = rentang tanpa pencilan.", _graf("g-box", fig_box("__overall__")), lebar=True),
-            _panel("Heatmap butir",
-                   "Overall: % responden per pilihan jawaban. Per kelompok: rata-rata tiap butir per kelompok.",
-                   _graf("g-heat2", fig_heat("__overall__")), lebar=True),
+            _panel("Matriks korelasi antar dimensi",
+                   "Korelasi Spearman antar skor dimensi responden. r ≥ 0,70 = kuat, 0,40–0,69 = sedang, < 0,40 = lemah. "
+                   "Dimensi yang berkorelasi kuat cenderung naik-turun bersama; perbaikan pada satu dimensi "
+                   "kemungkinan ikut mengangkat dimensi pasangannya.",
+                   _graf("g-heat2", fig_korelasi("__overall__")), lebar=True),
             _panel("Scatter plot skor responden",
                    "Satu titik = satu responden (sedikit digeser agar tidak bertumpuk). Pilih dimensi untuk sumbu X "
                    "dan Y; garis = tren linear per kelompok, r = korelasi.",
@@ -1088,7 +1098,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                       Input("desk-grup", "value"))
         def ganti_deskriptif(grup):
             data, gaya = tabel_lima(grup)
-            return data, gaya, fig_box(grup), fig_hist(grup), fig_heat(grup), tabel_dist(grup)
+            return data, gaya, fig_box(grup), fig_hist(grup), fig_korelasi(grup), tabel_dist(grup)
 
         @app.callback(Output("g-scatter", "figure"),
                       Input("desk-grup", "value"), Input("sc-x", "value"), Input("sc-y", "value"))
