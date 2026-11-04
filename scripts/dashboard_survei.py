@@ -177,6 +177,35 @@ def _bungkus_label(teks, lebar=18):
     return "<br>".join(textwrap.wrap(str(teks), lebar))
 
 
+def _kunci_q(teks):
+    """Normalisasi kode butir: 'Q01a' / 'q1a' / ' Q 01A ' -> 'Q1A' (abaikan spasi, huruf besar/kecil, nol di depan)."""
+    import re
+    t = re.sub(r"\s+", "", str(teks)).upper()
+    m = re.match(r"^(Q?)0*(\d+)([A-Z]?)", t)
+    return f"Q{m.group(2)}{m.group(3)}" if m else t
+
+
+def _cocokkan_kolom_q(kolom_score, df_butir):
+    """
+    Petakan kolom df_score -> Kode Dimensi berdasarkan kolom Q di Map_Butir.
+    Cocok bila sama persis, atau sama setelah dinormalisasi (Q1 = Q01, q01a = Q01a),
+    atau kolom diawali kode Q diikuti spasi/titik (mis. 'Q01a. Sejauh mana ...').
+    """
+    import re
+    peta = {}
+    q_ke_dim = dict(zip(df_butir["Q"].astype(str).str.strip(), df_butir["Kode Dimensi"]))
+    kunci_ke_dim = {_kunci_q(q): d for q, d in q_ke_dim.items()}
+    for c in kolom_score:
+        c_str = str(c).strip()
+        if c_str in q_ke_dim:
+            peta[c] = q_ke_dim[c_str]
+            continue
+        awal = re.split(r"[\s.:\-_)]", c_str, maxsplit=1)[0]   # 'Q01a. Sejauh...' -> 'Q01a'
+        if re.match(r"^[Qq]?\d", awal) and _kunci_q(awal) in kunci_ke_dim:
+            peta[c] = kunci_ke_dim[_kunci_q(awal)]
+    return peta
+
+
 def _pendek(teks, n=28):
     teks = str(teks)
     return teks if len(teks) <= n else teks[:n - 1] + "…"
@@ -248,8 +277,10 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     if df_score is not None:
         sc = df_score.copy()
         sc.columns = [str(c).strip() for c in sc.columns]
-        q_ke_dim = dict(zip(df_butir["Q"], df_butir["Kode Dimensi"]))
-        item = [c for c in sc.columns if c in q_ke_dim]
+        q_ke_dim = _cocokkan_kolom_q(sc.columns, df_butir)
+        item = list(q_ke_dim)
+        print(f"Spider per kelompok: {len(item)} kolom pertanyaan di df_score cocok dengan Map_Butir "
+              f"(dari {df_butir['Q'].nunique()} butir).")
         if item:
             sc[item] = sc[item].apply(pd.to_numeric, errors="coerce")
             skor_resp = sc
@@ -261,6 +292,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         else:
             print("PERINGATAN: nama kolom pertanyaan di df_score tidak cocok dengan kolom Q di Map_Butir; "
                   "pilihan kelompok pada spider web dinonaktifkan.")
+            print("  Contoh Q di Map_Butir :", list(df_butir["Q"].head(5)))
+            print("  Kolom df_score        :", list(sc.columns[:12]), "...")
+    else:
+        print("Info: df_score tidak diberikan -> spider web hanya Overall. "
+              "Panggil jalankan_dashboard(..., df_score=df_score) untuk pilihan per kelompok.")
 
     def _skor_dim(df):
         """Rata-rata per butir lalu per dimensi -> Series indeks kode dimensi."""
