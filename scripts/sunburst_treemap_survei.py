@@ -9,6 +9,7 @@ Simpan file ini di folder yang sama dengan .py utama, lalu:
     fig = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat")
 
 Hasilnya satu halaman: sunburst di kiri, treemap di kanan, satu skala warna.
+Keduanya terhubung: klik di sunburst -> treemap ikut zoom (dan sebaliknya).
 
 Kolom yang dipakai:
   Map_Dimensi    : Kode Dimensi, Dimensi, Pusat, Daerah, Selisih
@@ -19,14 +20,16 @@ Warna tiap irisan diambil langsung dari skor di sheet level masing-masing.
 Luas irisan = jumlah butir.
 """
 
+import tempfile
 import textwrap
+import webbrowser
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-__all__ = ["buat_grafik", "susun_hierarki"]
+__all__ = ["buat_grafik", "susun_hierarki", "simpan_html"]
 
 PILIHAN_SKOR = ("Pusat", "Daerah", "Selisih")
 
@@ -115,14 +118,15 @@ def _sumbu_warna(h, skor):
 
 
 def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
-                tampilkan=True, simpan_ke=None, renderer="browser", tinggi=780):
+                tampilkan=True, simpan_ke=None, tinggi=780):
     """
     Satu halaman: sunburst (kiri) + treemap (kanan).
 
     skor      : "Pusat", "Daerah", atau "Selisih"
-    tampilkan : True -> buka grafik (default di browser, cocok untuk Spyder)
-    simpan_ke : folder untuk menyimpan .html (None = tidak disimpan)
-    renderer  : renderer Plotly, mis. "browser" atau "svg"
+    tampilkan : True -> buka halaman di browser
+    simpan_ke : folder untuk menyimpan .html (None = file sementara saja)
+
+    Klik di sunburst membuat treemap ikut zoom ke bagian yang sama, dan sebaliknya.
 
     Mengembalikan satu figure Plotly.
     """
@@ -135,11 +139,12 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
 
     fig = make_subplots(rows=1, cols=2, column_widths=[0.45, 0.55], horizontal_spacing=0.03,
                         specs=[[{"type": "domain"}, {"type": "domain"}]],
-                        subplot_titles=("Sunburst · klik irisan untuk zoom",
-                                        "Treemap · klik kotak untuk zoom"))
+                        subplot_titles=("Sunburst · klik irisan untuk memilih",
+                                        "Treemap · ikut pilihan sunburst (klik tengah sunburst untuk kembali)"))
     fig.add_trace(go.Sunburst(labels=h["label"], insidetextorientation="radial", **umum), 1, 1)
     fig.add_trace(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3), root=dict(color=LATAR),
-                             pathbar=dict(visible=True, textfont=dict(color=TEKS)), **umum), 1, 2)
+                             pathbar=dict(visible=False), **umum), 1, 2)
+    fig.update_traces(textfont_size=15, selector=dict(type="treemap"))   # diperkecil otomatis bila sempit
 
     fig.update_layout(
         title=dict(text=f"<b>Skor Hasil Survei</b> · warna = skor {skor}", x=0.01,
@@ -155,12 +160,38 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
     for judul in fig.layout.annotations:   # judul kecil di atas tiap grafik
         judul.font = dict(size=13, color="#6b7675", family=FONT)
 
+    path = simpan_html(fig, skor, simpan_ke)
     if tampilkan:
-        fig.show(renderer=renderer)
-    if simpan_ke is not None:
+        webbrowser.open(path.resolve().as_uri())
+    return fig
+
+
+# JavaScript yang menghubungkan kedua grafik: klik di sunburst -> treemap ikut
+# zoom ke dimensi/subdimensi yang sama (dan sebaliknya), jadi teks pertanyaan
+# panjang di treemap selalu mengikuti pilihan di sunburst.
+JS_SINKRON = """
+var gd = document.getElementById('{plot_id}');
+function sinkron(e) {
+    var lvl = e.nextLevel;
+    if (lvl === undefined) { return false; }   // klik butir (daun): tidak ada zoom
+    if (gd.data[0].ids.indexOf(lvl) < 0) { lvl = ''; }   // kembali ke tampilan penuh
+    Plotly.restyle(gd, {level: [lvl, lvl]}, [0, 1]);
+    return false;                              // ganti zoom bawaan dengan zoom bersama
+}
+gd.on('plotly_sunburstclick', sinkron);
+gd.on('plotly_treemapclick', sinkron);
+"""
+
+
+def simpan_html(fig, skor, simpan_ke=None):
+    """Tulis figure ke .html dengan sunburst & treemap yang saling terhubung."""
+    if simpan_ke is None:
+        folder = Path(tempfile.gettempdir())
+    else:
         folder = Path(simpan_ke)
         folder.mkdir(parents=True, exist_ok=True)
-        path = folder / f"sunburst_treemap_{skor}.html"
-        fig.write_html(path)
+    path = folder / f"sunburst_treemap_{skor}.html"
+    fig.write_html(path, post_script=JS_SINKRON, config={"displaylogo": False})
+    if simpan_ke is not None:
         print("Tersimpan:", path)
-    return fig
+    return path
