@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Modul sunburst & treemap Dimensi -> Subdimensi -> Butir (Q).
+Modul sunburst + treemap Dimensi -> Subdimensi -> Butir (Q) dalam SATU halaman.
 
-Dipanggil dari .py utama yang sudah memuat df_map_dimensi, df_map_subdimensi,
-dan df_map_butir. Simpan file ini di folder yang sama dengan .py utama, lalu:
+Simpan file ini di folder yang sama dengan .py utama, lalu:
 
     from sunburst_treemap_survei import buat_grafik
 
-    fig_sun, fig_tree = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat")
+    fig = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat")
+
+Hasilnya satu halaman: sunburst di kiri, treemap di kanan, satu skala warna.
 
 Kolom yang dipakai:
   Map_Dimensi    : Kode Dimensi, Dimensi, Pusat, Daerah, Selisih
@@ -23,15 +24,24 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.io as pio
+from plotly.subplots import make_subplots
 
-__all__ = ["buat_grafik", "buat_sunburst", "buat_treemap", "susun_hierarki"]
+__all__ = ["buat_grafik", "susun_hierarki"]
 
 PILIHAN_SKOR = ("Pusat", "Daerah", "Selisih")
 
+# Palet lembut (tidak menyilaukan): koral -> pasir -> sage -> hijau teal
+SKALA_SKOR = [[0.00, "#e4876f"], [0.35, "#f3cf96"], [0.65, "#b5d3a6"], [1.00, "#5c9f8c"]]
+# Untuk Selisih: koral (negatif) <- krem (0) -> biru baja (positif)
+SKALA_SELISIH = [[0.00, "#d9826b"], [0.50, "#f6f1e7"], [1.00, "#5f8fb3"]]
+
+LATAR = "#fbfaf7"
+TEKS = "#33403f"
+GARIS = "#ffffff"
+FONT = "Segoe UI, Helvetica, Arial, sans-serif"
+
 
 def _bungkus(teks, lebar=50):
-    """Pecah teks panjang jadi beberapa baris untuk hover/label."""
     if pd.isna(teks):
         return ""
     return "<br>".join(textwrap.wrap(str(teks), lebar))
@@ -66,14 +76,13 @@ def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"
         for k in PILIHAN_SKOR:
             df[k] = pd.to_numeric(df[k], errors="coerce")
 
-    # jumlah butir per subdimensi & dimensi (untuk luas irisan)
     n_sub = df_butir.groupby("Kode Subdimensi").size()
     n_dim = df_butir.groupby("Kode Dimensi").size()
 
     baris = []
     for _, r in df_dim.iterrows():
         kd = r["Kode Dimensi"]
-        baris.append(dict(id=f"D:{kd}", parent="", label=f"{kd}<br>{_bungkus(r['Dimensi'], 18)}",
+        baris.append(dict(id=f"D:{kd}", parent="", label=f"<b>{kd}</b><br>{_bungkus(r['Dimensi'], 18)}",
                           value=int(n_dim.get(kd, 0)), warna=r[skor],
                           hover=_hover(f"{kd} · {r['Dimensi']}", r)))
     for _, r in df_sub.iterrows():
@@ -84,76 +93,74 @@ def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"
     for _, r in df_butir.iterrows():
         q, ks = r["Q"], r["Kode Subdimensi"]
         baris.append(dict(id=f"Q:{ks}:{q}", parent=f"S:{ks}", label=q, value=1, warna=r[skor],
-                          label_panjang=f"<b>{q}</b><br>{_bungkus(r['Deskripsi Pertanyaan'], 30)}",
+                          label_panjang=f"<b>{q}</b><br>{_bungkus(r['Deskripsi Pertanyaan'], 24)}",
                           hover=_hover(q, r, r["Deskripsi Pertanyaan"])))
 
     h = pd.DataFrame(baris)
     h["label_panjang"] = h["label_panjang"].fillna(h["label"])
-
-    # buang subdimensi/dimensi tanpa butir (luas 0 bikin Plotly error)
     h = h[h["value"] > 0].reset_index(drop=True)
 
-    # peringatan bila ada kode yang tidak cocok antar sheet
     yatim = set(h["parent"]) - set(h["id"]) - {""}
     if yatim:
         print("PERINGATAN: kode induk tidak ditemukan di sheet atasnya:", sorted(yatim))
     return h
 
 
-def _trace_umum(h, skor):
-    if skor == "Selisih":   # diverging, 0 di tengah
-        skala = dict(colorscale="RdBu", cmid=0)
-    else:
-        skala = dict(colorscale="RdYlGn", cmin=h["warna"].min(), cmax=h["warna"].max())
-    marker = dict(colors=h["warna"], line=dict(color="white", width=1.5),
-                  showscale=True, colorbar=dict(title=skor), **skala)
-    return dict(ids=h["id"], parents=h["parent"], values=h["value"], branchvalues="total",
-                hovertext=h["hover"], hoverinfo="text", marker=marker)
-
-
-def buat_sunburst(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat", tinggi=800):
-    """Kembalikan figure sunburst (belum ditampilkan)."""
-    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
-    fig = go.Figure(go.Sunburst(labels=h["label"], insidetextorientation="radial",
-                                **_trace_umum(h, skor)))
-    fig.update_layout(title=f"Sunburst Skor Survei: {skor}  (klik irisan untuk zoom)",
-                      margin=dict(t=60, l=10, r=10, b=10), height=tinggi)
-    return fig
-
-
-def buat_treemap(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat", tinggi=800):
-    """Kembalikan figure treemap (belum ditampilkan)."""
-    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
-    fig = go.Figure(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3),
-                               pathbar=dict(visible=True), **_trace_umum(h, skor)))
-    fig.update_layout(title=f"Treemap Skor Survei: {skor}  (klik kotak untuk zoom)",
-                      margin=dict(t=60, l=10, r=10, b=10), height=tinggi)
-    return fig
+def _sumbu_warna(h, skor):
+    """Satu skala warna dipakai bersama oleh sunburst & treemap."""
+    if skor == "Selisih":
+        batas = max(abs(h["warna"].min()), abs(h["warna"].max())) or 1
+        return dict(colorscale=SKALA_SELISIH, cmin=-batas, cmax=batas)
+    return dict(colorscale=SKALA_SKOR, cmin=h["warna"].min(), cmax=h["warna"].max())
 
 
 def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
-                tampilkan=True, simpan_ke=None, renderer="browser"):
+                tampilkan=True, simpan_ke=None, renderer="browser", tinggi=780):
     """
-    Buat sunburst + treemap sekaligus.
+    Satu halaman: sunburst (kiri) + treemap (kanan).
 
     skor      : "Pusat", "Daerah", atau "Selisih"
     tampilkan : True -> buka grafik (default di browser, cocok untuk Spyder)
     simpan_ke : folder untuk menyimpan .html (None = tidak disimpan)
-    renderer  : renderer Plotly, mis. "browser" atau "svg" (gambar statis di Plots pane)
+    renderer  : renderer Plotly, mis. "browser" atau "svg"
 
-    Mengembalikan (fig_sunburst, fig_treemap).
+    Mengembalikan satu figure Plotly.
     """
-    fig_sun = buat_sunburst(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
-    fig_tree = buat_treemap(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+
+    umum = dict(ids=h["id"], parents=h["parent"], values=h["value"], branchvalues="total",
+                hovertext=h["hover"], hoverinfo="text",
+                marker=dict(colors=h["warna"], coloraxis="coloraxis", line=dict(color=GARIS, width=1.5)),
+                textfont=dict(color=TEKS, family=FONT))
+
+    fig = make_subplots(rows=1, cols=2, column_widths=[0.45, 0.55], horizontal_spacing=0.03,
+                        specs=[[{"type": "domain"}, {"type": "domain"}]],
+                        subplot_titles=("Sunburst · klik irisan untuk zoom",
+                                        "Treemap · klik kotak untuk zoom"))
+    fig.add_trace(go.Sunburst(labels=h["label"], insidetextorientation="radial", **umum), 1, 1)
+    fig.add_trace(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3), root=dict(color=LATAR),
+                             pathbar=dict(visible=True, textfont=dict(color=TEKS)), **umum), 1, 2)
+
+    fig.update_layout(
+        title=dict(text=f"<b>Skor Hasil Survei</b> · warna = skor {skor}", x=0.01,
+                   font=dict(size=20, color=TEKS, family=FONT)),
+        coloraxis=dict(**_sumbu_warna(h, skor),
+                       colorbar=dict(title=dict(text=skor, font=dict(color=TEKS)), thickness=12, len=0.6,
+                                     outlinewidth=0, tickfont=dict(color=TEKS))),
+        paper_bgcolor=LATAR, plot_bgcolor=LATAR,
+        font=dict(family=FONT, color=TEKS),
+        hoverlabel=dict(bgcolor="white", bordercolor="#d8d4cc", font=dict(color=TEKS, family=FONT)),
+        margin=dict(t=90, l=20, r=20, b=20), height=tinggi,
+    )
+    for judul in fig.layout.annotations:   # judul kecil di atas tiap grafik
+        judul.font = dict(size=13, color="#6b7675", family=FONT)
 
     if tampilkan:
-        fig_sun.show(renderer=renderer)
-        fig_tree.show(renderer=renderer)
+        fig.show(renderer=renderer)
     if simpan_ke is not None:
         folder = Path(simpan_ke)
         folder.mkdir(parents=True, exist_ok=True)
-        for nama, fig in [("sunburst", fig_sun), ("treemap", fig_tree)]:
-            path = folder / f"{nama}_{skor}.html"
-            fig.write_html(path)
-            print("Tersimpan:", path)
-    return fig_sun, fig_tree
+        path = folder / f"sunburst_treemap_{skor}.html"
+        fig.write_html(path)
+        print("Tersimpan:", path)
+    return fig
