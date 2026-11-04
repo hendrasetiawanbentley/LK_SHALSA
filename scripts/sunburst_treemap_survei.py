@@ -20,6 +20,7 @@ Warna tiap irisan diambil langsung dari skor di sheet level masing-masing.
 Luas irisan = jumlah butir.
 """
 
+import os
 import tempfile
 import textwrap
 import webbrowser
@@ -29,7 +30,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-__all__ = ["buat_grafik", "susun_hierarki", "simpan_html"]
+__all__ = ["buat_grafik", "susun_hierarki", "simpan_html", "buka_html"]
 
 PILIHAN_SKOR = ("Pusat", "Daerah", "Selisih")
 
@@ -161,9 +162,23 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
         judul.font = dict(size=13, color="#6b7675", family=FONT)
 
     path = simpan_html(fig, skor, simpan_ke)
+    print("Halaman grafik:", path.resolve())
     if tampilkan:
-        webbrowser.open(path.resolve().as_uri())
+        buka_html(path)
     return fig
+
+
+def buka_html(path):
+    """Buka file .html di browser default (Windows: seperti double-click)."""
+    path = Path(path).resolve()
+    try:
+        if hasattr(os, "startfile"):      # Windows
+            os.startfile(str(path))
+            return
+    except OSError:
+        pass
+    if not webbrowser.open(path.as_uri()):
+        print("Browser tidak terbuka otomatis. Buka file di atas secara manual (double-click).")
 
 
 # JavaScript yang menghubungkan kedua grafik: klik di sunburst -> treemap ikut
@@ -192,6 +207,4 @@ def simpan_html(fig, skor, simpan_ke=None):
         folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"sunburst_treemap_{skor}.html"
     fig.write_html(path, post_script=JS_SINKRON, config={"displaylogo": False})
-    if simpan_ke is not None:
-        print("Tersimpan:", path)
     return path
