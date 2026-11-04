@@ -231,7 +231,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         r=r_c, theta=teta_c, name="Capaian", mode="lines+markers", fill="toself",
         fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
         marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor_c], line=dict(color=C["panel"], width=1)),
-        customdata=np.stack([nama_c, skor_c], axis=1),
+        customdata=[[n, float(v)] for n, v in zip(nama_c, skor_c)],
         hovertemplate="%{theta} · %{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
                       "<extra></extra>"))
     _legenda_atas(_gaya(f_capai, 360, polar=dict(
