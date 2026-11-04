@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Sunburst & Treemap Dimensi -> Subdimensi -> Butir (Q) dari file Skor Hasil Survei.
+Modul sunburst & treemap Dimensi -> Subdimensi -> Butir (Q).
 
-Kolom yang dipakai (sesuai file Anda):
-  Map_Dimensi    : Kode Dimensi, Dimensi, Jumlah Subdimensi, Pusat, Daerah, Selisih
-  Map_Subdimensi : Kode Subdimensi, Subdimensi, Kode Dimensi, Dimensi,
-                   Deskripsi Pertanyaan, Jumlah Butir, Pusat, Daerah, Selisih
-  Map_Butir      : Q, Kode Subdimensi, Subdimensi, Kode Dimensi, Dimensi,
-                   Deskripsi Pertanyaan, Pusat, Daerah, Selisih
+Dipanggil dari .py utama yang sudah memuat df_map_dimensi, df_map_subdimensi,
+dan df_map_butir. Simpan file ini di folder yang sama dengan .py utama, lalu:
 
-Warna tiap irisan diambil LANGSUNG dari skor di sheet masing-masing level
-(dimensi dari Map_Dimensi, subdimensi dari Map_Subdimensi, butir dari Map_Butir),
-bukan dihitung ulang. Luas irisan = jumlah butir.
+    from sunburst_treemap_survei import buat_grafik
 
-Cara pakai di Spyder:
-  1. Ubah PATH_EXCEL dan SKOR (Pusat / Daerah / Selisih).
-  2. Tekan F5. Grafik terbuka di browser dan juga disimpan sebagai file .html.
-  Jika df_map_dimensi, df_map_subdimensi, df_map_butir sudah ada di Variable
-  Explorer, cukup panggil: buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, "Pusat")
+    fig_sun, fig_tree = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat")
+
+Kolom yang dipakai:
+  Map_Dimensi    : Kode Dimensi, Dimensi, Pusat, Daerah, Selisih
+  Map_Subdimensi : Kode Subdimensi, Subdimensi, Kode Dimensi, Deskripsi Pertanyaan, Pusat, Daerah, Selisih
+  Map_Butir      : Q, Kode Subdimensi, Kode Dimensi, Deskripsi Pertanyaan, Pusat, Daerah, Selisih
+
+Warna tiap irisan diambil langsung dari skor di sheet level masing-masing.
+Luas irisan = jumlah butir.
 """
 
 import textwrap
@@ -27,11 +25,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as pio
 
-# ---------------------------------------------------------------------------
-PATH_EXCEL = Path(r"C:\Users\NamaAnda\Documents\Skor Hasil Survei.xlsx")
-SKOR = "Pusat"          # pilih: "Pusat", "Daerah", atau "Selisih"
-pio.renderers.default = "browser"   # agar grafik tampil dari Spyder
-# ---------------------------------------------------------------------------
+__all__ = ["buat_grafik", "buat_sunburst", "buat_treemap", "susun_hierarki"]
+
+PILIHAN_SKOR = ("Pusat", "Daerah", "Selisih")
 
 
 def _bungkus(teks, lebar=50):
@@ -47,7 +43,7 @@ def _fmt(x):
 
 def _hover(judul, row, deskripsi=None):
     teks = f"<b>{judul}</b>"
-    if deskripsi:
+    if deskripsi is not None and not pd.isna(deskripsi):
         teks += f"<br>{_bungkus(deskripsi)}"
     teks += (f"<br><br>Pusat   : {_fmt(row['Pusat'])}"
              f"<br>Daerah  : {_fmt(row['Daerah'])}"
@@ -55,15 +51,19 @@ def _hover(judul, row, deskripsi=None):
     return teks
 
 
-def susun_hierarki(df_dim, df_sub, df_butir, skor="Pusat"):
-    """Gabungkan 3 sheet jadi satu tabel ids/parents/values/warna untuk Plotly."""
-    df_dim, df_sub, df_butir = df_dim.copy(), df_sub.copy(), df_butir.copy()
+def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"):
+    """Gabungkan 3 DataFrame jadi satu tabel ids/parents/values/warna untuk Plotly."""
+    if skor not in PILIHAN_SKOR:
+        raise ValueError(f"skor harus salah satu dari {PILIHAN_SKOR}, bukan {skor!r}")
+
+    df_dim, df_sub, df_butir = df_map_dimensi.copy(), df_map_subdimensi.copy(), df_map_butir.copy()
     for df, kolom in [(df_dim, ["Kode Dimensi"]),
                       (df_sub, ["Kode Subdimensi", "Kode Dimensi"]),
                       (df_butir, ["Q", "Kode Subdimensi", "Kode Dimensi"])]:
+        df.columns = [str(c).strip() for c in df.columns]
         for k in kolom:
             df[k] = df[k].astype(str).str.strip()
-        for k in ["Pusat", "Daerah", "Selisih"]:
+        for k in PILIHAN_SKOR:
             df[k] = pd.to_numeric(df[k], errors="coerce")
 
     # jumlah butir per subdimensi & dimensi (untuk luas irisan)
@@ -100,44 +100,60 @@ def susun_hierarki(df_dim, df_sub, df_butir, skor="Pusat"):
     return h
 
 
-def _skala(skor, warna):
+def _trace_umum(h, skor):
     if skor == "Selisih":   # diverging, 0 di tengah
-        return dict(colorscale="RdBu", cmid=0)
-    return dict(colorscale="RdYlGn", cmin=warna.min(), cmax=warna.max())
-
-
-def buat_grafik(df_dim, df_sub, df_butir, skor="Pusat", simpan=True):
-    h = susun_hierarki(df_dim, df_sub, df_butir, skor)
+        skala = dict(colorscale="RdBu", cmid=0)
+    else:
+        skala = dict(colorscale="RdYlGn", cmin=h["warna"].min(), cmax=h["warna"].max())
     marker = dict(colors=h["warna"], line=dict(color="white", width=1.5),
-                  showscale=True, colorbar=dict(title=skor), **_skala(skor, h["warna"]))
-    umum = dict(ids=h["id"], parents=h["parent"], values=h["value"], branchvalues="total",
+                  showscale=True, colorbar=dict(title=skor), **skala)
+    return dict(ids=h["id"], parents=h["parent"], values=h["value"], branchvalues="total",
                 hovertext=h["hover"], hoverinfo="text", marker=marker)
 
-    fig_sun = go.Figure(go.Sunburst(labels=h["label"], insidetextorientation="radial",
-                                    maxdepth=3, **umum))
-    fig_sun.update_layout(title=f"Sunburst Skor Survei: {skor}  (klik irisan untuk zoom)",
-                          margin=dict(t=60, l=10, r=10, b=10), height=800)
 
-    fig_tree = go.Figure(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3),
-                                    pathbar=dict(visible=True), **umum))
-    fig_tree.update_layout(title=f"Treemap Skor Survei: {skor}  (klik kotak untuk zoom)",
-                           margin=dict(t=60, l=10, r=10, b=10), height=800)
+def buat_sunburst(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat", tinggi=800):
+    """Kembalikan figure sunburst (belum ditampilkan)."""
+    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+    fig = go.Figure(go.Sunburst(labels=h["label"], insidetextorientation="radial",
+                                **_trace_umum(h, skor)))
+    fig.update_layout(title=f"Sunburst Skor Survei: {skor}  (klik irisan untuk zoom)",
+                      margin=dict(t=60, l=10, r=10, b=10), height=tinggi)
+    return fig
 
-    fig_sun.show()
-    fig_tree.show()
-    if simpan:
-        fig_sun.write_html(f"sunburst_{skor}.html")
-        fig_tree.write_html(f"treemap_{skor}.html")
-        print(f"Tersimpan: sunburst_{skor}.html dan treemap_{skor}.html")
+
+def buat_treemap(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat", tinggi=800):
+    """Kembalikan figure treemap (belum ditampilkan)."""
+    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+    fig = go.Figure(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3),
+                               pathbar=dict(visible=True), **_trace_umum(h, skor)))
+    fig.update_layout(title=f"Treemap Skor Survei: {skor}  (klik kotak untuk zoom)",
+                      margin=dict(t=60, l=10, r=10, b=10), height=tinggi)
+    return fig
+
+
+def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
+                tampilkan=True, simpan_ke=None, renderer="browser"):
+    """
+    Buat sunburst + treemap sekaligus.
+
+    skor      : "Pusat", "Daerah", atau "Selisih"
+    tampilkan : True -> buka grafik (default di browser, cocok untuk Spyder)
+    simpan_ke : folder untuk menyimpan .html (None = tidak disimpan)
+    renderer  : renderer Plotly, mis. "browser" atau "svg" (gambar statis di Plots pane)
+
+    Mengembalikan (fig_sunburst, fig_treemap).
+    """
+    fig_sun = buat_sunburst(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+    fig_tree = buat_treemap(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+
+    if tampilkan:
+        fig_sun.show(renderer=renderer)
+        fig_tree.show(renderer=renderer)
+    if simpan_ke is not None:
+        folder = Path(simpan_ke)
+        folder.mkdir(parents=True, exist_ok=True)
+        for nama, fig in [("sunburst", fig_sun), ("treemap", fig_tree)]:
+            path = folder / f"{nama}_{skor}.html"
+            fig.write_html(path)
+            print("Tersimpan:", path)
     return fig_sun, fig_tree
-
-
-if __name__ == "__main__":
-    dfs = pd.read_excel(PATH_EXCEL, sheet_name=["Map_Dimensi", "Map_Subdimensi", "Map_Butir"])
-    for df in dfs.values():
-        df.columns = [str(c).strip() for c in df.columns]
-    df_map_dimensi = dfs["Map_Dimensi"]
-    df_map_subdimensi = dfs["Map_Subdimensi"]
-    df_map_butir = dfs["Map_Butir"]
-
-    fig_sun, fig_tree = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, SKOR)
