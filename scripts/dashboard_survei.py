@@ -646,32 +646,135 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                                 xaxis=dict(tickfont=dict(color=C["teks"]))))
             return fig
 
-        def fig_hist(grup):
-            """Sebaran skor keseluruhan sebagai garis (frequency polygon) dalam % responden per kelompok."""
+        def _kde(x, grid):
+            """Kernel density estimate Gaussian (bandwidth Silverman), tanpa scipy."""
+            x = np.asarray(x, dtype=float)
+            n = len(x)
+            if n < 2:
+                return np.zeros_like(grid)
+            sd_ = x.std(ddof=1)
+            iqr = np.subtract(*np.percentile(x, [75, 25]))
+            h = 0.9 * min(sd_, iqr / 1.34 if iqr > 0 else sd_) * n ** (-1 / 5)
+            h = h if h > 0 else 0.1
+            u = (grid[:, None] - x[None, :]) / h
+            return np.exp(-0.5 * u ** 2).sum(axis=1) / (n * h * np.sqrt(2 * np.pi))
+
+        def _bentuk(skew, kurva, grid):
+            """Interpretasi bentuk distribusi untuk Digital Culture Maturity."""
+            # puncak lokal yang cukup tinggi (>= 25% puncak tertinggi) dan terpisah >= 0,5 poin -> bimodal
+            puncak = [i for i in range(1, len(kurva) - 1) if kurva[i] >= kurva[i - 1] and kurva[i] > kurva[i + 1]
+                      and kurva[i] >= 0.25 * kurva.max()]
+            terpisah = [grid[i] for i in puncak]
+            if len(terpisah) >= 2 and max(terpisah) - min(terpisah) >= 0.5:
+                lembah = kurva[puncak[0]:puncak[-1] + 1].min()
+                rasio = lembah / min(kurva[i] for i in puncak)
+                if rasio <= 0.75:
+                    return "Bimodal: kemungkinan ada dua kelompok persepsi yang berbeda"
+                if rasio <= 0.9:
+                    return "Cenderung bimodal: ada dua puncak, periksa per kelompok (Lokasi, Jabatan, dst.)"
+            if skew <= -0.5:
+                return "Miring kiri: mayoritas skor tinggi, ada kelompok yang tertinggal"
+            if skew >= 0.5:
+                return "Miring kanan: mayoritas skor rendah, sebagian kelompok sudah maju"
+            return "Relatif simetris di sekitar pusat distribusi"
+
+        GRID = np.linspace(s_min, s_max, 241)
+        LEBAR_KELAS = 0.25
+
+        def _statistik(x):
+            x = pd.Series(x).dropna()
+            m, sd_ = x.mean(), x.std()
+            kurva = _kde(x, GRID)
+            skew = x.skew() if len(x) > 2 else 0.0
+            return dict(n=len(x), Mean=m, Median=x.median(), SD=sd_, Skew=skew,
+                        Kiri=(x < m - sd_).mean() * 100, Kanan=(x > m + sd_).mean() * 100,
+                        Capai=(x >= target).mean() * 100, Bentuk=_bentuk(skew, kurva, GRID)), kurva
+
+        def tabel_dist(grup):
             g, urut = _kelompok(grup)
-            tepi = np.arange(s_min, s_max + 0.25 + 1e-9, 0.25)                 # lebar kelas 0,25
-            tengah_kelas = (tepi[:-1] + tepi[1:]) / 2
+            baris = []
+            for v in urut:
+                st, _ = _statistik(skor_overall_resp[g == v])
+                baris.append({"Kelompok": v, **st})
+            return baris
+
+        def fig_hist(grup):
+            """Kurva distribusi skor keseluruhan: KDE + mean, median, ±1 SD, ekor kiri/kanan, target."""
+            g, urut = _kelompok(grup)
             fig = go.Figure()
+            satu = len(urut) == 1
             for i, v in enumerate(urut):
-                w = WARNA_PROFIL[i % len(WARNA_PROFIL)]
+                w = C["teal"] if satu else WARNA_PROFIL[i % len(WARNA_PROFIL)]
                 x = skor_overall_resp[g == v].dropna()
-                jumlah, _ = np.histogram(x, bins=tepi)
-                pct = jumlah / max(len(x), 1) * 100
+                st, kurva = _statistik(x)
+                y = kurva * LEBAR_KELAS * 100                # skala: % responden per rentang 0,25
+                if satu:
+                    tepi = np.arange(s_min, s_max + LEBAR_KELAS + 1e-9, LEBAR_KELAS)
+                    jml, _ = np.histogram(x, bins=tepi)
+                    fig.add_trace(go.Bar(x=(tepi[:-1] + tepi[1:]) / 2, y=jml / len(x) * 100, width=LEBAR_KELAS * 0.92,
+                                         name="Histogram", marker=dict(color=_rgba(C["biru"], 0.35)),
+                                         hovertemplate="skor %{x:.2f} ± 0,125: %{y:.1f}% responden<extra></extra>"))
+                    kiri, kanan = st["Mean"] - st["SD"], st["Mean"] + st["SD"]
+                    fig.add_vrect(x0=kiri, x1=kanan, fillcolor=_rgba(C["teks"], 0.05), line_width=0, layer="below")
+                    for cond, warna, nama in [(GRID <= kiri, C["merah"], f"Ekor kiri (< mean − 1 SD): {st['Kiri']:.0f}%"),
+                                              (GRID >= kanan, C["hijau"], f"Ekor kanan (> mean + 1 SD): {st['Kanan']:.0f}%")]:
+                        fig.add_trace(go.Scatter(x=GRID[cond], y=y[cond], mode="lines", fill="tozeroy", name=nama,
+                                                 line=dict(color=warna, width=0), fillcolor=_rgba(warna, 0.45),
+                                                 hoverinfo="skip"))
                 fig.add_trace(go.Scatter(
-                    x=tengah_kelas, y=pct, mode="lines+markers", name=f"{v} (n={len(x)})", line_shape="spline",
-                    line=dict(color=w, width=2.5), marker=dict(size=6, color=w),
-                    fill="tozeroy" if len(urut) == 1 else None, fillcolor=_rgba(w, 0.12),
-                    customdata=np.stack([tepi[:-1], tepi[1:]], axis=1),
-                    hovertemplate=v + "<br>skor %{customdata[0]:.2f}–%{customdata[1]:.2f}: %{y:.1f}% responden"
-                                      "<extra></extra>"))
+                    x=GRID, y=y, mode="lines", name=f"{v} (n={st['n']}, skew {st['Skew']:+.2f})" if not satu else "Kurva distribusi",
+                    line=dict(color=w, width=3), hovertemplate=v + "<br>skor %{x:.2f}: kepadatan %{y:.1f}%<extra></extra>"))
+                tinggi = float(y.max()) if len(y) else 1
+                # garis mean (penuh) & median (titik-titik), setinggi kurva
+                fig.add_trace(go.Scatter(x=[st["Mean"]] * 2, y=[0, tinggi * 1.05], mode="lines",
+                                         line=dict(color=w if not satu else C["teks"], width=2),
+                                         name=f"Mean {st['Mean']:.2f}" if satu else None, showlegend=satu,
+                                         hovertemplate=f"{v} · mean {st['Mean']:.2f}<extra></extra>"))
+                fig.add_trace(go.Scatter(x=[st["Median"]] * 2, y=[0, tinggi * 1.05], mode="lines",
+                                         line=dict(color=w if not satu else C["teks"], width=2, dash="dot"),
+                                         name=f"Median {st['Median']:.2f}" if satu else None, showlegend=satu,
+                                         hovertemplate=f"{v} · median {st['Median']:.2f}<extra></extra>"))
+                if satu:
+                    fig.add_annotation(
+                        xref="paper", yref="paper", x=0.01, y=0.97, xanchor="left", yanchor="top", align="left",
+                        showarrow=False, bgcolor=_rgba(C["panel2"], 0.9), bordercolor=C["garis"], borderpad=8,
+                        font=dict(size=12, color=C["teks"]),
+                        text=(f"<b>Mean</b> {st['Mean']:.2f} · <b>Median</b> {st['Median']:.2f} · <b>SD</b> {st['SD']:.2f}<br>"
+                              f"<b>Skewness</b> {st['Skew']:+.2f} · <b>≥ target</b> {st['Capai']:.0f}%<br>"
+                              f"<i>{st['Bentuk']}</i>"))
             fig.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5),
                           annotation=dict(text=f"target {target:g}", font=dict(color=C["aksen"])))
-            _legenda_atas(_gaya(fig, 360,
+            _legenda_atas(_gaya(fig, 440, bargap=0,
                                 xaxis=dict(range=[s_min, s_max], dtick=0.5,
                                            title=dict(text="skor keseluruhan responden", font=dict(color=C["pudar"]))),
                                 yaxis=dict(ticksuffix="%", rangemode="tozero",
-                                           title=dict(text="% responden", font=dict(color=C["pudar"])))))
+                                           title=dict(text="% responden per rentang 0,25", font=dict(color=C["pudar"])))))
             return fig
+
+        kolom_dist = [dict(name="Kelompok", id="Kelompok"), dict(name="n", id="n", type="numeric"),
+                      dict(name="Mean", id="Mean", type="numeric", format=f2),
+                      dict(name="Median", id="Median", type="numeric", format=f2),
+                      dict(name="SD", id="SD", type="numeric", format=f2),
+                      dict(name="Skewness", id="Skew", type="numeric",
+                           format=Format(precision=2, scheme=Scheme.fixed, sign=Sign.positive)),
+                      dict(name="% ekor kiri", id="Kiri", type="numeric", format=Format(precision=0, scheme=Scheme.fixed)),
+                      dict(name="% ekor kanan", id="Kanan", type="numeric", format=Format(precision=0, scheme=Scheme.fixed)),
+                      dict(name=f"% ≥ {target:g}", id="Capai", type="numeric", format=Format(precision=0, scheme=Scheme.fixed)),
+                      dict(name="Bentuk distribusi", id="Bentuk")]
+        komp_dist = dash_table.DataTable(
+            id="tabel-dist", columns=kolom_dist, data=tabel_dist("__overall__"), page_action="none",
+            style_table={"overflowX": "auto", "marginTop": "8px"},
+            style_header={"backgroundColor": C["panel2"], "color": C["teks"], "fontWeight": "600",
+                          "border": f"1px solid {C['garis']}", "fontFamily": FONT, "fontSize": "12px"},
+            style_cell={"backgroundColor": C["panel"], "color": C["teks"], "border": f"1px solid {C['garis']}",
+                        "fontFamily": FONT, "fontSize": "13px", "textAlign": "right", "padding": "6px 8px",
+                        "whiteSpace": "normal", "height": "auto"},
+            style_cell_conditional=[{"if": {"column_id": "Kelompok"}, "textAlign": "left"},
+                                    {"if": {"column_id": "Bentuk"}, "textAlign": "left", "minWidth": "260px"}],
+            style_data_conditional=[{"if": {"filter_query": "{Skew} <= -0.5", "column_id": "Skew"}, "color": C["merah"]},
+                                    {"if": {"filter_query": "{Skew} >= 0.5", "column_id": "Skew"}, "color": C["hijau"]},
+                                    {"if": {"filter_query": '{Bentuk} contains "Bimodal"', "column_id": "Bentuk"},
+                                     "color": C["aksen"], "fontWeight": "600"}])
 
         def fig_heat(grup):
             label_q = [f"{c} · {dim_kolom[c]}" for c in kolom_q]
@@ -765,15 +868,17 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                    "Min, Q1 (25%), Median, Q3 (75%), Maks skor responden per dimensi. Pilih Overall atau kelompok "
                    "untuk membandingkan; semua grafik di bawah ikut berubah.",
                    html.Div([kontrol_desk, komp_lima]), lebar=True),
+            _panel("Kurva distribusi skor keseluruhan",
+                   "Mean, median, SD, skewness, dan ekor kiri/kanan skor keseluruhan responden (rata-rata seluruh butir, "
+                   "sehingga hampir kontinu). Kurva = estimasi kepadatan (KDE); tafsirkan dengan hati-hati karena "
+                   "jawaban asli Likert 1–5 bersifat diskrit.",
+                   html.Div([_graf("g-hist2", fig_hist("__overall__")), komp_dist]), lebar=True),
             _panel("Distribusi skor per dimensi (box plot)",
                    "Kotak = Q1–Q3 (50% responden di tengah), garis = median, garis putus = rata-rata, "
                    "ujung garis = rentang tanpa pencilan.", _graf("g-box", fig_box("__overall__")), lebar=True),
-            _panel("Sebaran skor keseluruhan responden",
-                   "Garis = persen responden per rentang skor 0,25; persen agar kelompok dengan n berbeda tetap sebanding.",
-                   _graf("g-hist2", fig_hist("__overall__"))),
             _panel("Heatmap butir",
                    "Overall: % responden per pilihan jawaban. Per kelompok: rata-rata tiap butir per kelompok.",
-                   _graf("g-heat2", fig_heat("__overall__"))),
+                   _graf("g-heat2", fig_heat("__overall__")), lebar=True),
             _panel("Scatter plot skor responden",
                    "Satu titik = satu responden (sedikit digeser agar tidak bertumpuk). Pilih dimensi untuk sumbu X "
                    "dan Y; garis = tren linear per kelompok, r = korelasi.",
@@ -979,10 +1084,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     if skor_resp is not None:
         @app.callback(Output("tabel-lima", "data"), Output("tabel-lima", "style_data_conditional"),
                       Output("g-box", "figure"), Output("g-hist2", "figure"), Output("g-heat2", "figure"),
+                      Output("tabel-dist", "data"),
                       Input("desk-grup", "value"))
         def ganti_deskriptif(grup):
             data, gaya = tabel_lima(grup)
-            return data, gaya, fig_box(grup), fig_hist(grup), fig_heat(grup)
+            return data, gaya, fig_box(grup), fig_hist(grup), fig_heat(grup), tabel_dist(grup)
 
         @app.callback(Output("g-scatter", "figure"),
                       Input("desk-grup", "value"), Input("sc-x", "value"), Input("sc-y", "value"))
