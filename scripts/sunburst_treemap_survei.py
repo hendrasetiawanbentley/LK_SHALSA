@@ -34,8 +34,9 @@ from plotly.subplots import make_subplots
 
 __all__ = ["buat_grafik", "susun_hierarki"]
 
-# Palet lembut berpusat di target: koral (di bawah) -> krem (= target) -> hijau teal (di atas)
-SKALA = [[0.00, "#d9765e"], [0.25, "#eba98f"], [0.50, "#f6efdc"], [0.75, "#a9d0b0"], [1.00, "#4f9a83"]]
+# Palet merah bata yang diredam (tidak menyilaukan):
+# gelap = skor terendah (gap terbesar), sangat muda = mendekati / mencapai target
+SKALA = [[0.00, "#8c3b33"], [0.30, "#b8604f"], [0.60, "#dc9a86"], [0.85, "#f1cfc2"], [1.00, "#faf0ea"]]
 
 LATAR = "#fbfaf7"
 TEKS = "#33403f"
@@ -44,7 +45,7 @@ GARIS = "#ffffff"
 FONT = "Segoe UI, Helvetica, Arial, sans-serif"
 BARIS_A, BARIS_B, BARIS_SOROT = "#ffffff", "#f5f3ee", "#fde9c4"
 KEPALA_TABEL = "#e9ede9"
-GAP_MINUS, GAP_PLUS = "#f6d3c8", "#d3e8d9"
+GAP_MINUS, GAP_PLUS = "#f3d6cc", "#e3ece4"   # merah muda = di bawah target, hijau pucat = tercapai
 
 
 def _bungkus(teks, lebar=50):
@@ -69,6 +70,15 @@ def _siapkan_skor(df, kolom_skor, nama_sheet):
     else:
         raise KeyError(f"Kolom {kolom_skor!r} tidak ada di {nama_sheet}. Kolom tersedia: {list(df.columns)}")
     return df
+
+
+def _gelap(warna):
+    """True bila warna latar cukup gelap sehingga teks sebaiknya putih."""
+    if warna.startswith("#"):
+        r, g, b = (int(warna[i:i + 2], 16) for i in (1, 3, 5))
+    else:  # format "rgb(r, g, b)"
+        r, g, b = (float(v) for v in warna[warna.index("(") + 1:-1].split(",")[:3])
+    return 0.299 * r + 0.587 * g + 0.114 * b < 150
 
 
 def _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir, kolom_skor):
@@ -142,12 +152,13 @@ def _data_tabel(df_sub, df_butir, h, target, cmin, cmax):
         else:
             w_skor = sample_colorscale(SKALA, [min(max((skor - cmin) / rentang, 0), 1)])[0]
             w_gap = GAP_PLUS if gap >= 0 else GAP_MINUS
+        teks_skor = "#ffffff" if _gelap(w_skor) else TEKS
         rows.append(dict(
             id=f"Q:{r['Kode Subdimensi']}:{r['Q']}",
             dim=f"D:{r['Kode Dimensi']}", sub=f"S:{r['Kode Subdimensi']}",
             sel=[r["Q"], f"{r['Kode Subdimensi']} · {nama_sub.get(r['Kode Subdimensi'], '')}",
                  str(r["Deskripsi Pertanyaan"]), _fmt(skor), _fmt(gap, tanda=True)],
-            warna={"3": w_skor, "4": w_gap}))
+            warna={"3": w_skor, "4": w_gap}, teks={"3": teks_skor}))
 
     judul = dict(zip(h["id"], h["judul"]))
     nodes = {"": dict(judul="Semua pertanyaan", idx=list(range(len(rows))))}
@@ -164,7 +175,7 @@ var D = __DATA__;
 function isiTabel(node, sorot) {
     var n = D.nodes[node] || D.nodes[''];
     var r = n.idx.map(function (i) { return D.rows[i]; });
-    var nilai = [], warna = [];
+    var nilai = [], warna = [], teks = [];
     for (var c = 0; c < D.ncol; c++) {
         nilai.push(r.map(function (x) { return x.sel[c]; }));
         warna.push(r.map(function (x, k) {
@@ -172,9 +183,10 @@ function isiTabel(node, sorot) {
             if (x.warna[c]) { return x.warna[c]; }
             return k % 2 ? D.barisB : D.barisA;
         }));
+        teks.push(r.map(function (x) { return (x.id !== sorot && x.teks[c]) || D.teks; }));
     }
     var dibawah = r.filter(function (x) { return x.sel[4].charAt(0) === '-' && x.sel[4] !== '-'; }).length;
-    Plotly.restyle(gd, {'cells.values': [nilai], 'cells.fill.color': [warna]}, [1]);
+    Plotly.restyle(gd, {'cells.values': [nilai], 'cells.fill.color': [warna], 'cells.font.color': [teks]}, [1]);
     Plotly.relayout(gd, {'annotations[1].text': 'Daftar pertanyaan · <b>' + n.judul + '</b> (' +
         r.length + ' butir, ' + dibawah + ' di bawah target)'});
 }
@@ -207,9 +219,12 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4,
     df_dim, df_sub, df_butir = _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir, kolom_skor)
     h = susun_hierarki(df_dim, df_sub, df_butir, target)
 
-    # skala warna simetris di sekitar target, supaya krem = tepat di target
-    jarak = max(abs(h["warna"].max() - target), abs(h["warna"].min() - target)) or 0.5
-    cmin, cmax = target - jarak, target + jarak
+    # skala warna dari skor terendah sampai target (atau skor tertinggi bila di atas target),
+    # supaya perbedaan antar-skor tetap terlihat walau hampir semua di bawah target
+    cmin = h["warna"].min()
+    cmax = max(target, h["warna"].max())
+    if cmax - cmin < 0.1:
+        cmin = cmax - 0.5
     rows, nodes = _data_tabel(df_sub, df_butir, h, target, cmin, cmax)
 
     kolom = ["Q", "Subdimensi", "Pertanyaan", "Skor", f"Gap (vs {target:g})"]
@@ -222,7 +237,7 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4,
         ids=h["id"], parents=h["parent"], values=h["value"], labels=h["label"], branchvalues="total",
         hovertext=h["hover"], hoverinfo="text", insidetextorientation="radial",
         marker=dict(colors=h["warna"], coloraxis="coloraxis", line=dict(color=GARIS, width=1.5)),
-        textfont=dict(color=TEKS, family=FONT)), 1, 1)
+        textfont=dict(family=FONT)), 1, 1)   # warna teks otomatis putih/hitam sesuai latar
     fig.add_trace(go.Table(
         columnwidth=[0.55, 1.6, 4.4, 0.75, 0.95],
         header=dict(values=[f"<b>{k}</b>" for k in kolom], fill_color=KEPALA_TABEL,
@@ -235,7 +250,7 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4,
         title=dict(text=f"<b>Skor Hasil Survei</b> · skor {kolom_skor.lower()} · target {target:g}",
                    x=0.01, font=dict(size=20, color=TEKS, family=FONT)),
         coloraxis=dict(colorscale=SKALA, cmin=cmin, cmax=cmax,
-                       colorbar=dict(title=dict(text=f"Skor (krem = target {target:g})", font=dict(color=TEKS),
+                       colorbar=dict(title=dict(text=f"Skor (makin gelap = makin jauh di bawah target {target:g})", font=dict(color=TEKS),
                                                 side="top"),
                                      orientation="h", x=0.21, xanchor="center", y=-0.02, yanchor="top",
                                      thickness=10, len=0.3, outlinewidth=0, tickfont=dict(color=TEKS))),
@@ -247,7 +262,7 @@ def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4,
     for judul in fig.layout.annotations:
         judul.font = dict(size=13, color=TEKS_PUDAR, family=FONT)
 
-    data_js = dict(rows=rows, nodes=nodes, ncol=len(kolom),
+    data_js = dict(rows=rows, nodes=nodes, ncol=len(kolom), teks=TEKS,
                    barisA=BARIS_A, barisB=BARIS_B, sorot=BARIS_SOROT)
     js = JS_TABEL.replace("__DATA__", json.dumps(data_js, ensure_ascii=False))
 
