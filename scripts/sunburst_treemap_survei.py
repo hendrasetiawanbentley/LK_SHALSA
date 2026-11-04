@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Modul sunburst + treemap Dimensi -> Subdimensi -> Butir (Q) dalam SATU halaman.
+Sunburst Dimensi -> Subdimensi -> Butir (Q) + tabel daftar pertanyaan, satu halaman.
 
 Simpan file ini di folder yang sama dengan .py utama, lalu:
 
@@ -8,41 +8,42 @@ Simpan file ini di folder yang sama dengan .py utama, lalu:
 
     fig = buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat")
 
-Hasilnya satu halaman: sunburst di kiri, treemap di kanan, satu skala warna.
-Keduanya terhubung: klik di sunburst -> treemap ikut zoom (dan sebaliknya).
+Kiri : sunburst (klik irisan untuk zoom, klik tengah untuk kembali).
+Kanan: tabel pertanyaan yang ikut berubah sesuai pilihan di sunburst
+       - klik dimensi    -> semua pertanyaan di dimensi itu
+       - klik subdimensi -> pertanyaan di subdimensi itu
+       - klik butir (Q)  -> pertanyaan subdimensinya, butir itu disorot
 
 Kolom yang dipakai:
   Map_Dimensi    : Kode Dimensi, Dimensi, Pusat, Daerah, Selisih
   Map_Subdimensi : Kode Subdimensi, Subdimensi, Kode Dimensi, Deskripsi Pertanyaan, Pusat, Daerah, Selisih
   Map_Butir      : Q, Kode Subdimensi, Kode Dimensi, Deskripsi Pertanyaan, Pusat, Daerah, Selisih
-
-Warna tiap irisan diambil langsung dari skor di sheet level masing-masing.
-Luas irisan = jumlah butir.
 """
 
-import os
-import tempfile
+import json
 import textwrap
-import webbrowser
-from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.colors import sample_colorscale
 from plotly.subplots import make_subplots
 
-__all__ = ["buat_grafik", "susun_hierarki", "simpan_html", "buka_html"]
+__all__ = ["buat_grafik", "susun_hierarki"]
 
 PILIHAN_SKOR = ("Pusat", "Daerah", "Selisih")
 
-# Palet lembut (tidak menyilaukan): koral -> pasir -> sage -> hijau teal
+# Palet lembut: koral -> pasir -> sage -> hijau teal
 SKALA_SKOR = [[0.00, "#e4876f"], [0.35, "#f3cf96"], [0.65, "#b5d3a6"], [1.00, "#5c9f8c"]]
-# Untuk Selisih: koral (negatif) <- krem (0) -> biru baja (positif)
+# Selisih: koral (negatif) <- krem (0) -> biru baja (positif)
 SKALA_SELISIH = [[0.00, "#d9826b"], [0.50, "#f6f1e7"], [1.00, "#5f8fb3"]]
 
 LATAR = "#fbfaf7"
 TEKS = "#33403f"
+TEKS_PUDAR = "#6b7675"
 GARIS = "#ffffff"
 FONT = "Segoe UI, Helvetica, Arial, sans-serif"
+BARIS_A, BARIS_B, BARIS_SOROT = "#ffffff", "#f5f3ee", "#fde9c4"
+KEPALA_TABEL = "#e9ede9"
 
 
 def _bungkus(teks, lebar=50):
@@ -65,11 +66,7 @@ def _hover(judul, row, deskripsi=None):
     return teks
 
 
-def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"):
-    """Gabungkan 3 DataFrame jadi satu tabel ids/parents/values/warna untuk Plotly."""
-    if skor not in PILIHAN_SKOR:
-        raise ValueError(f"skor harus salah satu dari {PILIHAN_SKOR}, bukan {skor!r}")
-
+def _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir):
     df_dim, df_sub, df_butir = df_map_dimensi.copy(), df_map_subdimensi.copy(), df_map_butir.copy()
     for df, kolom in [(df_dim, ["Kode Dimensi"]),
                       (df_sub, ["Kode Subdimensi", "Kode Dimensi"]),
@@ -79,7 +76,11 @@ def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"
             df[k] = df[k].astype(str).str.strip()
         for k in PILIHAN_SKOR:
             df[k] = pd.to_numeric(df[k], errors="coerce")
+    return df_dim, df_sub, df_butir
 
+
+def susun_hierarki(df_dim, df_sub, df_butir, skor="Pusat"):
+    """Tabel ids/parents/values/warna untuk sunburst (DataFrame sudah dirapikan)."""
     n_sub = df_butir.groupby("Kode Subdimensi").size()
     n_dim = df_butir.groupby("Kode Dimensi").size()
 
@@ -88,20 +89,19 @@ def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"
         kd = r["Kode Dimensi"]
         baris.append(dict(id=f"D:{kd}", parent="", label=f"<b>{kd}</b><br>{_bungkus(r['Dimensi'], 18)}",
                           value=int(n_dim.get(kd, 0)), warna=r[skor],
-                          hover=_hover(f"{kd} · {r['Dimensi']}", r)))
+                          judul=f"{kd} · {r['Dimensi']}", hover=_hover(f"{kd} · {r['Dimensi']}", r)))
     for _, r in df_sub.iterrows():
         ks, kd = r["Kode Subdimensi"], r["Kode Dimensi"]
         baris.append(dict(id=f"S:{ks}", parent=f"D:{kd}", label=f"{ks}<br>{_bungkus(r['Subdimensi'], 18)}",
                           value=int(n_sub.get(ks, 0)), warna=r[skor],
+                          judul=f"{ks} · {r['Subdimensi']}",
                           hover=_hover(f"{ks} · {r['Subdimensi']}", r, r.get("Deskripsi Pertanyaan"))))
     for _, r in df_butir.iterrows():
         q, ks = r["Q"], r["Kode Subdimensi"]
         baris.append(dict(id=f"Q:{ks}:{q}", parent=f"S:{ks}", label=q, value=1, warna=r[skor],
-                          label_panjang=f"<b>{q}</b><br>{_bungkus(r['Deskripsi Pertanyaan'], 24)}",
-                          hover=_hover(q, r, r["Deskripsi Pertanyaan"])))
+                          judul=q, hover=_hover(q, r, r["Deskripsi Pertanyaan"])))
 
     h = pd.DataFrame(baris)
-    h["label_panjang"] = h["label_panjang"].fillna(h["label"])
     h = h[h["value"] > 0].reset_index(drop=True)
 
     yatim = set(h["parent"]) - set(h["id"]) - {""}
@@ -110,101 +110,132 @@ def susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat"
     return h
 
 
-def _sumbu_warna(h, skor):
-    """Satu skala warna dipakai bersama oleh sunburst & treemap."""
+def _skala(h, skor):
     if skor == "Selisih":
         batas = max(abs(h["warna"].min()), abs(h["warna"].max())) or 1
-        return dict(colorscale=SKALA_SELISIH, cmin=-batas, cmax=batas)
-    return dict(colorscale=SKALA_SKOR, cmin=h["warna"].min(), cmax=h["warna"].max())
+        return SKALA_SELISIH, -batas, batas
+    return SKALA_SKOR, h["warna"].min(), h["warna"].max()
+
+
+def _data_tabel(df_sub, df_butir, h, skor, skala, cmin, cmax):
+    """Baris tabel + indeks baris untuk tiap node sunburst (dipakai oleh JavaScript)."""
+    nama_sub = dict(zip(df_sub["Kode Subdimensi"], df_sub["Subdimensi"]))
+    rentang = (cmax - cmin) or 1
+
+    rows = []
+    for _, r in df_butir.iterrows():
+        nilai = r[skor]
+        warna = BARIS_A if pd.isna(nilai) else \
+            sample_colorscale(skala, [min(max((nilai - cmin) / rentang, 0), 1)])[0]
+        rows.append(dict(
+            id=f"Q:{r['Kode Subdimensi']}:{r['Q']}",
+            dim=f"D:{r['Kode Dimensi']}", sub=f"S:{r['Kode Subdimensi']}",
+            sel=[r["Q"], f"{r['Kode Subdimensi']} · {nama_sub.get(r['Kode Subdimensi'], '')}",
+                 str(r["Deskripsi Pertanyaan"]), _fmt(r["Pusat"]), _fmt(r["Daerah"]), _fmt(r["Selisih"])],
+            warna=warna))
+
+    judul = dict(zip(h["id"], h["judul"]))
+    nodes = {"": dict(judul="Semua pertanyaan", idx=list(range(len(rows))))}
+    for i, r in enumerate(rows):
+        for kunci in (r["dim"], r["sub"]):
+            nodes.setdefault(kunci, dict(judul=judul.get(kunci, kunci), idx=[]))["idx"].append(i)
+    return rows, nodes
+
+
+# JavaScript: klik sunburst -> tabel diganti dengan pertanyaan dari bagian yang diklik.
+JS_TABEL = """
+var gd = document.getElementById('{plot_id}');
+var D = __DATA__;
+function isiTabel(node, sorot) {
+    var n = D.nodes[node] || D.nodes[''];
+    var r = n.idx.map(function (i) { return D.rows[i]; });
+    var nilai = [], warna = [];
+    for (var c = 0; c < D.ncol; c++) {
+        nilai.push(r.map(function (x) { return x.sel[c]; }));
+        warna.push(r.map(function (x, k) {
+            if (x.id === sorot) { return D.sorot; }
+            if (c === D.kolomSkor) { return x.warna; }
+            return k % 2 ? D.barisB : D.barisA;
+        }));
+    }
+    Plotly.restyle(gd, {'cells.values': [nilai], 'cells.fill.color': [warna]}, [1]);
+    Plotly.relayout(gd, {'annotations[1].text': 'Daftar pertanyaan · <b>' + n.judul + '</b> (' + r.length + ' butir)'});
+}
+gd.on('plotly_sunburstclick', function (e) {
+    var pt = e.points[0], lvl = e.nextLevel;
+    if (lvl === undefined) {               // klik butir: tampilkan subdimensinya, sorot butir itu
+        var row = D.rows.filter(function (x) { return x.id === pt.id; })[0];
+        if (row) { isiTabel(row.sub, row.id); }
+        return false;
+    }
+    if (!(lvl in D.nodes)) { lvl = ''; }   // kembali ke tampilan penuh
+    Plotly.restyle(gd, {level: [lvl]}, [0]);
+    isiTabel(lvl, null);
+    return false;
+});
+isiTabel('', null);
+"""
 
 
 def buat_grafik(df_map_dimensi, df_map_subdimensi, df_map_butir, skor="Pusat",
-                tampilkan=True, simpan_ke=None, tinggi=780):
+                tampilkan=True, simpan_ke=None, tinggi=800):
     """
-    Satu halaman: sunburst (kiri) + treemap (kanan).
+    Satu halaman: sunburst (kiri) + tabel daftar pertanyaan (kanan) yang saling terhubung.
 
-    skor      : "Pusat", "Daerah", atau "Selisih"
-    tampilkan : True -> buka halaman di browser
-    simpan_ke : folder untuk menyimpan .html (None = file sementara saja)
-
-    Klik di sunburst membuat treemap ikut zoom ke bagian yang sama, dan sebaliknya.
-
-    Mengembalikan satu figure Plotly.
+    skor      : "Pusat", "Daerah", atau "Selisih" (warna sunburst & kolom skor di tabel)
+    tampilkan : True -> langsung buka di browser
+    simpan_ke : opsional, path file .html bila ingin menyimpan (mis. "grafik.html")
     """
-    h = susun_hierarki(df_map_dimensi, df_map_subdimensi, df_map_butir, skor)
+    if skor not in PILIHAN_SKOR:
+        raise ValueError(f"skor harus salah satu dari {PILIHAN_SKOR}, bukan {skor!r}")
 
-    umum = dict(ids=h["id"], parents=h["parent"], values=h["value"], branchvalues="total",
-                hovertext=h["hover"], hoverinfo="text",
-                marker=dict(colors=h["warna"], coloraxis="coloraxis", line=dict(color=GARIS, width=1.5)),
-                textfont=dict(color=TEKS, family=FONT))
+    df_dim, df_sub, df_butir = _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir)
+    h = susun_hierarki(df_dim, df_sub, df_butir, skor)
+    skala, cmin, cmax = _skala(h, skor)
+    rows, nodes = _data_tabel(df_sub, df_butir, h, skor, skala, cmin, cmax)
 
-    fig = make_subplots(rows=1, cols=2, column_widths=[0.45, 0.55], horizontal_spacing=0.03,
-                        specs=[[{"type": "domain"}, {"type": "domain"}]],
-                        subplot_titles=("Sunburst · klik irisan untuk memilih",
-                                        "Treemap · ikut pilihan sunburst (klik tengah sunburst untuk kembali)"))
-    fig.add_trace(go.Sunburst(labels=h["label"], insidetextorientation="radial", **umum), 1, 1)
-    fig.add_trace(go.Treemap(labels=h["label_panjang"], tiling=dict(pad=3), root=dict(color=LATAR),
-                             pathbar=dict(visible=False), **umum), 1, 2)
-    fig.update_traces(textfont_size=15, selector=dict(type="treemap"))   # diperkecil otomatis bila sempit
+    kolom = ["Q", "Subdimensi", "Pertanyaan", "Pusat", "Daerah", "Selisih"]
+    kolom_skor = kolom.index(skor)
+
+    fig = make_subplots(rows=1, cols=2, column_widths=[0.42, 0.58], horizontal_spacing=0.06,
+                        specs=[[{"type": "domain"}, {"type": "table"}]],
+                        subplot_titles=("Klik irisan untuk memilih · klik tengah untuk kembali",
+                                        "Daftar pertanyaan"))
+    fig.add_trace(go.Sunburst(
+        ids=h["id"], parents=h["parent"], values=h["value"], labels=h["label"], branchvalues="total",
+        hovertext=h["hover"], hoverinfo="text", insidetextorientation="radial",
+        marker=dict(colors=h["warna"], coloraxis="coloraxis", line=dict(color=GARIS, width=1.5)),
+        textfont=dict(color=TEKS, family=FONT)), 1, 1)
+    fig.add_trace(go.Table(
+        columnwidth=[0.55, 1.5, 4.2, 0.75, 0.75, 0.75],
+        header=dict(values=[f"<b>{k}</b>" for k in kolom], fill_color=KEPALA_TABEL,
+                    font=dict(color=TEKS, size=13, family=FONT), align="left", height=32,
+                    line_color=GARIS),
+        cells=dict(values=[[] for _ in kolom], fill_color=BARIS_A, line_color=GARIS,
+                   font=dict(color=TEKS, size=13, family=FONT), align="left", height=30)), 1, 2)
 
     fig.update_layout(
         title=dict(text=f"<b>Skor Hasil Survei</b> · warna = skor {skor}", x=0.01,
                    font=dict(size=20, color=TEKS, family=FONT)),
-        coloraxis=dict(**_sumbu_warna(h, skor),
-                       colorbar=dict(title=dict(text=skor, font=dict(color=TEKS)), thickness=12, len=0.6,
+        coloraxis=dict(colorscale=skala, cmin=cmin, cmax=cmax,
+                       colorbar=dict(title=dict(text=skor, font=dict(color=TEKS), side="top"), orientation="h",
+                                     x=0.21, xanchor="center", y=-0.02, yanchor="top", thickness=10, len=0.3,
                                      outlinewidth=0, tickfont=dict(color=TEKS))),
         paper_bgcolor=LATAR, plot_bgcolor=LATAR,
         font=dict(family=FONT, color=TEKS),
         hoverlabel=dict(bgcolor="white", bordercolor="#d8d4cc", font=dict(color=TEKS, family=FONT)),
-        margin=dict(t=90, l=20, r=20, b=20), height=tinggi,
+        margin=dict(t=90, l=20, r=20, b=70), height=tinggi,
     )
-    for judul in fig.layout.annotations:   # judul kecil di atas tiap grafik
-        judul.font = dict(size=13, color="#6b7675", family=FONT)
+    for judul in fig.layout.annotations:
+        judul.font = dict(size=13, color=TEKS_PUDAR, family=FONT)
 
-    path = simpan_html(fig, skor, simpan_ke)
-    print("Halaman grafik:", path.resolve())
+    data_js = dict(rows=rows, nodes=nodes, ncol=len(kolom), kolomSkor=kolom_skor,
+                   barisA=BARIS_A, barisB=BARIS_B, sorot=BARIS_SOROT)
+    js = JS_TABEL.replace("__DATA__", json.dumps(data_js, ensure_ascii=False))
+
     if tampilkan:
-        buka_html(path)
+        fig.show(renderer="browser", post_script=js, config={"displaylogo": False})
+    if simpan_ke is not None:
+        fig.write_html(simpan_ke, post_script=js, config={"displaylogo": False})
+        print("Tersimpan:", simpan_ke)
     return fig
-
-
-def buka_html(path):
-    """Buka file .html di browser default (Windows: seperti double-click)."""
-    path = Path(path).resolve()
-    try:
-        if hasattr(os, "startfile"):      # Windows
-            os.startfile(str(path))
-            return
-    except OSError:
-        pass
-    if not webbrowser.open(path.as_uri()):
-        print("Browser tidak terbuka otomatis. Buka file di atas secara manual (double-click).")
-
-
-# JavaScript yang menghubungkan kedua grafik: klik di sunburst -> treemap ikut
-# zoom ke dimensi/subdimensi yang sama (dan sebaliknya), jadi teks pertanyaan
-# panjang di treemap selalu mengikuti pilihan di sunburst.
-JS_SINKRON = """
-var gd = document.getElementById('{plot_id}');
-function sinkron(e) {
-    var lvl = e.nextLevel;
-    if (lvl === undefined) { return false; }   // klik butir (daun): tidak ada zoom
-    if (gd.data[0].ids.indexOf(lvl) < 0) { lvl = ''; }   // kembali ke tampilan penuh
-    Plotly.restyle(gd, {level: [lvl, lvl]}, [0, 1]);
-    return false;                              // ganti zoom bawaan dengan zoom bersama
-}
-gd.on('plotly_sunburstclick', sinkron);
-gd.on('plotly_treemapclick', sinkron);
-"""
-
-
-def simpan_html(fig, skor, simpan_ke=None):
-    """Tulis figure ke .html dengan sunburst & treemap yang saling terhubung."""
-    if simpan_ke is None:
-        folder = Path(tempfile.gettempdir())
-    else:
-        folder = Path(simpan_ke)
-        folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"sunburst_treemap_{skor}.html"
-    fig.write_html(path, post_script=JS_SINKRON, config={"displaylogo": False})
-    return path
