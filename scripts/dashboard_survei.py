@@ -647,20 +647,30 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
             return fig
 
         def fig_hist(grup):
+            """Sebaran skor keseluruhan sebagai garis (frequency polygon) dalam % responden per kelompok."""
             g, urut = _kelompok(grup)
+            tepi = np.arange(s_min, s_max + 0.25 + 1e-9, 0.25)                 # lebar kelas 0,25
+            tengah_kelas = (tepi[:-1] + tepi[1:]) / 2
             fig = go.Figure()
             for i, v in enumerate(urut):
                 w = WARNA_PROFIL[i % len(WARNA_PROFIL)]
-                fig.add_trace(go.Histogram(
-                    x=skor_overall_resp[g == v], name=v, histnorm="percent", xbins=dict(size=0.25),
-                    marker=dict(color=w, line=dict(color=C["panel"], width=1)),
-                    opacity=0.9,
-                    hovertemplate=v + "<br>skor %{x}: %{y:.1f}% responden<extra></extra>"))
+                x = skor_overall_resp[g == v].dropna()
+                jumlah, _ = np.histogram(x, bins=tepi)
+                pct = jumlah / max(len(x), 1) * 100
+                fig.add_trace(go.Scatter(
+                    x=tengah_kelas, y=pct, mode="lines+markers", name=f"{v} (n={len(x)})", line_shape="spline",
+                    line=dict(color=w, width=2.5), marker=dict(size=6, color=w),
+                    fill="tozeroy" if len(urut) == 1 else None, fillcolor=_rgba(w, 0.12),
+                    customdata=np.stack([tepi[:-1], tepi[1:]], axis=1),
+                    hovertemplate=v + "<br>skor %{customdata[0]:.2f}–%{customdata[1]:.2f}: %{y:.1f}% responden"
+                                      "<extra></extra>"))
             fig.add_vline(x=target, line=dict(color=C["aksen"], dash="dash", width=1.5),
                           annotation=dict(text=f"target {target:g}", font=dict(color=C["aksen"])))
-            _legenda_atas(_gaya(fig, 360, barmode="group", bargap=0.12, bargroupgap=0.05,
-                                xaxis=dict(title=dict(text="skor keseluruhan responden", font=dict(color=C["pudar"]))),
-                                yaxis=dict(ticksuffix="%", title=dict(text="% responden", font=dict(color=C["pudar"])))))
+            _legenda_atas(_gaya(fig, 360,
+                                xaxis=dict(range=[s_min, s_max], dtick=0.5,
+                                           title=dict(text="skor keseluruhan responden", font=dict(color=C["pudar"]))),
+                                yaxis=dict(ticksuffix="%", rangemode="tozero",
+                                           title=dict(text="% responden", font=dict(color=C["pudar"])))))
             return fig
 
         def fig_heat(grup):
@@ -759,7 +769,7 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                    "Kotak = Q1–Q3 (50% responden di tengah), garis = median, garis putus = rata-rata, "
                    "ujung garis = rentang tanpa pencilan.", _graf("g-box", fig_box("__overall__")), lebar=True),
             _panel("Sebaran skor keseluruhan responden",
-                   "Histogram dalam persen agar kelompok dengan n berbeda tetap sebanding.",
+                   "Garis = persen responden per rentang skor 0,25; persen agar kelompok dengan n berbeda tetap sebanding.",
                    _graf("g-hist2", fig_hist("__overall__"))),
             _panel("Heatmap butir",
                    "Overall: % responden per pilihan jawaban. Per kelompok: rata-rata tiap butir per kelompok.",
