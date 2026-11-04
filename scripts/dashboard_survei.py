@@ -23,6 +23,7 @@ Panel berlabel "Data contoh" masih memakai angka perkiraan.
 Perlu paket dash:  pip install dash
 """
 
+import math
 import threading
 import webbrowser
 
@@ -838,6 +839,166 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
             return dcc.RadioItems(id=id_, value=nilai, inline=True, className="pilihan",
                                   inputClassName="pilihan-input", labelClassName="pilihan-label", options=opsi)
 
+        # --- regresi berganda (OLS, numpy) -------------------------------------------------------
+        def _dummy(kolom_grup_ada):
+            """Dummy kelompok; referensi = kategori terbesar tiap kolom."""
+            X, ref = pd.DataFrame(index=skor_resp.index), {}
+            for k in kolom_grup_ada:
+                vals = skor_resp[k].fillna("(kosong)").astype(str)
+                urutan = list(vals.value_counts().index)
+                ref[k] = urutan[0]
+                for v in urutan[1:]:
+                    X[f"{k}: {v}"] = (vals == v).astype(float)
+            return X, ref
+
+        def _ols(y, X, standar):
+            """OLS dengan intersep. Kolom di `standar` (dan y bila 'y' ada di sana) di-z-score -> beta terstandar."""
+            data = pd.concat([y.rename("_y"), X], axis=1).dropna()
+            for c in standar:
+                sd_ = data[c].std()
+                data[c] = (data[c] - data[c].mean()) / sd_ if sd_ > 0 else 0.0
+            nama = [c for c in data.columns if c != "_y"]
+            Xm = np.column_stack([np.ones(len(data)), data[nama].values])
+            yv = data["_y"].values
+            n, k = Xm.shape
+            b, *_ = np.linalg.lstsq(Xm, yv, rcond=None)
+            resid = yv - Xm @ b
+            ss_res, ss_tot = resid @ resid, ((yv - yv.mean()) ** 2).sum()
+            s2 = ss_res / max(n - k, 1)
+            se = np.sqrt(np.clip(np.diag(s2 * np.linalg.pinv(Xm.T @ Xm)), 0, None))
+            hasil = []
+            for j, c in enumerate(nama, start=1):
+                t = b[j] / se[j] if se[j] > 0 else 0.0
+                hasil.append(dict(var=c, Koef=b[j], Bawah=b[j] - 1.96 * se[j], Atas=b[j] + 1.96 * se[j],
+                                  p=math.erfc(abs(t) / math.sqrt(2))))
+            r2 = 1 - ss_res / ss_tot if ss_tot > 0 else np.nan
+            return hasil, r2, 1 - (1 - r2) * (n - 1) / max(n - k, 1), n
+
+        def _vif(X):
+            hasil = {}
+            for c in X.columns:
+                lain = X.drop(columns=c)
+                _, r2, _, _ = _ols(X[c], lain, [])
+                hasil[c] = 1 / (1 - r2) if r2 < 1 else np.inf
+            return hasil
+
+        def regresi(mode):
+            """Kembalikan (baris tabel, teks ringkasan, label koefisien)."""
+            dummies, ref = _dummy(grup_tersedia)
+            teks_ref = "; ".join(f"{k} = {v}" for k, v in ref.items())
+            dims_ada = [d for d in kode_dim if d in skor_semua.columns]
+            baris = []
+            if mode == "__maturity__":
+                r2s = []
+                for d in dims_ada:
+                    lain = [x for x in dims_ada if x != d]
+                    y = skor_semua[lain].mean(axis=1).rename("Maturity")
+                    hasil, r2, _, n = _ols(y, pd.concat([skor_semua[[d]], dummies], axis=1), ["_y", d])
+                    h = next(x for x in hasil if x["var"] == d)
+                    baris.append(dict(Prediktor=LABEL_DIM[d], **{k: h[k] for k in ("Koef", "Bawah", "Atas", "p")},
+                                      VIF=np.nan, R2=r2))
+                    r2s.append(r2)
+                ringkas = (f"Satu model per dimensi: Y = maturity dari 5 dimensi lainnya; X = dimensi tersebut + kontrol "
+                           f"kelompok responden. Koefisien = β terstandar (SD maturity per 1 SD skor dimensi). "
+                           f"n = {n}; R² per model {min(r2s):.2f}–{max(r2s):.2f}.")
+                label = "β terstandar"
+            elif mode == "__grup__":
+                hasil, r2, adj, n = _ols(skor_semua["Keseluruhan"], dummies, [])
+                for h in hasil:
+                    baris.append(dict(Prediktor=h["var"], **{k: h[k] for k in ("Koef", "Bawah", "Atas", "p")},
+                                      VIF=np.nan, R2=np.nan))
+                ringkas = (f"Y = maturity (skor keseluruhan); X = kelompok responden. Koefisien = selisih skor dibanding "
+                           f"kelompok referensi ({teks_ref}), setelah memperhitungkan kelompok lain. "
+                           f"n = {n}; R² = {r2:.2f}; adj. R² = {adj:.2f}.")
+                label = "selisih skor vs referensi"
+            else:
+                lain = [x for x in dims_ada if x != mode]
+                X = skor_semua[lain]
+                hasil, r2, adj, n = _ols(skor_semua[mode], X, ["_y"] + lain)
+                vif = _vif(X.dropna())
+                for h in hasil:
+                    baris.append(dict(Prediktor=LABEL_DIM[h["var"]], **{k: h[k] for k in ("Koef", "Bawah", "Atas", "p")},
+                                      VIF=vif.get(h["var"], np.nan), R2=np.nan))
+                maks_vif = max(vif.values()) if vif else 0
+                ringkas = (f"Y = {LABEL_DIM[mode]}; X = 5 dimensi lainnya. Koefisien = β terstandar. "
+                           f"n = {n}; R² = {r2:.2f}; adj. R² = {adj:.2f}."
+                           + (f" VIF tertinggi {maks_vif:.1f} (> 5): antar dimensi sangat berkorelasi, sehingga β tiap "
+                              f"dimensi kurang stabil; baca bersama matriks korelasi." if maks_vif > 5 else ""))
+                label = "β terstandar"
+            baris.sort(key=lambda r: r["Koef"], reverse=True)
+            sig = [r for r in baris if r["p"] < 0.05]
+            if sig:
+                top = max(sig, key=lambda r: abs(r["Koef"]))
+                ringkas += f" Paling terkait: {top['Prediktor']} (koefisien {top['Koef']:+.2f}, p {_fmt_p(top['p'])})."
+            else:
+                ringkas += " Tidak ada prediktor yang signifikan pada p < 0,05."
+            return baris, ringkas, label
+
+        def _fmt_p(p):
+            return "< 0,001" if p < 0.001 else f"= {p:.3f}".replace(".", ",")
+
+        def fig_regresi(mode):
+            baris, _, label = regresi(mode)
+            baris = list(reversed(baris))                       # terbesar di atas
+            warna = [(C["teal"] if r["Koef"] > 0 else C["merah"]) if r["p"] < 0.05 else C["pudar"] for r in baris]
+            fig = go.Figure(go.Scatter(
+                x=[r["Koef"] for r in baris], y=[r["Prediktor"] for r in baris], mode="markers",
+                marker=dict(size=12, color=warna, line=dict(color=C["panel"], width=1)),
+                error_x=dict(type="data", symmetric=False, array=[r["Atas"] - r["Koef"] for r in baris],
+                             arrayminus=[r["Koef"] - r["Bawah"] for r in baris], color=C["pudar"], thickness=1.5, width=4),
+                customdata=[[r["Bawah"], r["Atas"], r["p"]] for r in baris],
+                hovertemplate="%{y}<br>koefisien %{x:+.3f}<br>95% CI %{customdata[0]:+.3f} s.d. %{customdata[1]:+.3f}"
+                              "<br>p = %{customdata[2]:.4f}<extra></extra>"))
+            fig.add_vline(x=0, line=dict(color=C["teks"], width=1))
+            _gaya(fig, max(300, 46 * len(baris) + 60),
+                  xaxis=dict(title=dict(text=f"{label} (titik = estimasi, garis = 95% CI)", font=dict(color=C["pudar"]))),
+                  yaxis=dict(tickfont=dict(color=C["teks"])))
+            return fig
+
+        def tabel_regresi(mode):
+            baris, ringkas, _ = regresi(mode)
+            for r in baris:
+                r["Sig"] = "ya" if r["p"] < 0.05 else "tidak"
+                r["P"] = _fmt_p(r["p"]).replace("= ", "")
+            return baris, ringkas
+
+        opsi_reg = ([{"label": "Maturity ← tiap dimensi", "value": "__maturity__"}] +
+                    ([{"label": "Maturity ← kelompok responden", "value": "__grup__"}] if grup_tersedia else []) +
+                    [{"label": f"{d} ← dimensi lain", "value": d} for d in kode_dim if d in skor_semua.columns])
+        kolom_reg = [dict(name="Prediktor", id="Prediktor"),
+                     dict(name="Koefisien", id="Koef", type="numeric",
+                          format=Format(precision=3, scheme=Scheme.fixed, sign=Sign.positive)),
+                     dict(name="95% CI bawah", id="Bawah", type="numeric",
+                          format=Format(precision=3, scheme=Scheme.fixed, sign=Sign.positive)),
+                     dict(name="95% CI atas", id="Atas", type="numeric",
+                          format=Format(precision=3, scheme=Scheme.fixed, sign=Sign.positive)),
+                     dict(name="p", id="P"), dict(name="Signifikan", id="Sig"),
+                     dict(name="VIF", id="VIF", type="numeric", format=Format(precision=1, scheme=Scheme.fixed)),
+                     dict(name="R² model", id="R2", type="numeric", format=f2)]
+        data_reg, ringkas_reg = tabel_regresi("__maturity__")
+        komp_reg = html.Div([
+            html.Div(className="kontrol", children=[
+                html.Span("Variabel terikat (Y) ← prediktor (X)", className="kontrol-lbl"),
+                _chip("reg-y", opsi_reg, "__maturity__")]),
+            html.P(ringkas_reg, id="reg-info", className="ket", style={"fontSize": "13px", "color": C["teks"]}),
+            _graf("g-reg", fig_regresi("__maturity__")),
+            dash_table.DataTable(
+                id="tabel-reg", columns=kolom_reg, data=data_reg, page_action="none",
+                style_table={"overflowX": "auto", "marginTop": "8px"},
+                style_header={"backgroundColor": C["panel2"], "color": C["teks"], "fontWeight": "600",
+                              "border": f"1px solid {C['garis']}", "fontFamily": FONT, "fontSize": "12px"},
+                style_cell={"backgroundColor": C["panel"], "color": C["teks"], "border": f"1px solid {C['garis']}",
+                            "fontFamily": FONT, "fontSize": "13px", "textAlign": "right", "padding": "6px 8px"},
+                style_cell_conditional=[{"if": {"column_id": "Prediktor"}, "textAlign": "left", "minWidth": "220px"},
+                                        {"if": {"column_id": "Sig"}, "textAlign": "center"}],
+                style_data_conditional=[
+                    {"if": {"filter_query": '{Sig} = "ya" && {Koef} > 0', "column_id": "Koef"}, "color": C["teal"],
+                     "fontWeight": "700"},
+                    {"if": {"filter_query": '{Sig} = "ya" && {Koef} < 0', "column_id": "Koef"}, "color": C["merah"],
+                     "fontWeight": "700"},
+                    {"if": {"filter_query": "{VIF} > 5", "column_id": "VIF"}, "color": C["aksen"], "fontWeight": "700"}]),
+        ])
+
         opsi_grup = [{"label": "Overall", "value": "__overall__"}] + [{"label": k, "value": k} for k in grup_tersedia]
         opsi_dim = [{"label": c, "value": c} for c in kolom_skor_resp]
         kolom_lima = [dict(name="Kelompok", id="Kelompok"), dict(name="Dimensi", id="Dimensi"),
@@ -894,9 +1055,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                    "dan Y; garis = tren linear per kelompok, r = korelasi.",
                    html.Div([kontrol_sc, _graf("g-scatter", fig_scatter("__overall__", kolom_skor_resp[0], "Keseluruhan"))]),
                    lebar=True),
-            _panel("Statistik deskriptif per dimensi dan butir (seluruh responden)",
-                   f"Skor dimensi = rata-rata butirnya per responden. % ≥ {target:g} = persen jawaban mencapai target; "
-                   "% ≤ 2 = persen jawaban tidak setuju.", komp_desk, lebar=True),
+            _panel("Regresi berganda: dimensi yang paling terkait dengan maturity",
+                   "Maturity (skor keseluruhan) adalah rata-rata D1–D6, sehingga tidak diregresikan langsung pada D1–D6 "
+                   "(hasilnya pasti R² = 1). Pilih model di bawah. Titik berwarna = signifikan (p < 0,05): "
+                   "hijau positif, merah negatif; abu-abu = tidak signifikan. Seluruh responden.",
+                   komp_reg, lebar=True),
             _panel("Sebaran jawaban per butir", "Kiri = tidak setuju, kanan = setuju; netral dibagi di tengah.",
                    _graf("g-likert2", f_likert2), lebar=True),
         ])
@@ -1099,6 +1262,12 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         def ganti_deskriptif(grup):
             data, gaya = tabel_lima(grup)
             return data, gaya, fig_box(grup), fig_hist(grup), fig_korelasi(grup), tabel_dist(grup)
+
+        @app.callback(Output("g-reg", "figure"), Output("tabel-reg", "data"), Output("reg-info", "children"),
+                      Input("reg-y", "value"))
+        def ganti_regresi(mode):
+            data, ringkas = tabel_regresi(mode)
+            return fig_regresi(mode), data, ringkas
 
         @app.callback(Output("g-scatter", "figure"),
                       Input("desk-grup", "value"), Input("sc-x", "value"), Input("sc-y", "value"))
