@@ -6,7 +6,7 @@ Simpan file ini di folder yang sama dengan sunburst_treemap_survei.py dan .py ut
 
     from dashboard_survei import jalankan_dashboard
 
-    jalankan_dashboard(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4)
+    jalankan_dashboard(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, df_score=df_score)
 
 Browser terbuka otomatis ke http://127.0.0.1:8050
 Untuk berhenti: klik tombol stop (kotak merah) di console Spyder, atau Ctrl+C.
@@ -45,6 +45,9 @@ FONT = "Segoe UI, Inter, Helvetica, Arial, sans-serif"
 SKALA = [[0.00, "#4a120c"], [0.20, "#7f2418"], [0.40, "#b5432c"], [0.60, "#dd7a5c"],
          [0.80, "#f3b9a1"], [1.00, "#fff3ec"]]
 LIKERT = ["#c45f48", "#e39a7f", "#5d6b82", "#6fb7c9", "#2cc4b0"]
+# kolom di df_score yang bisa dipilih untuk spider web per kelompok
+KOLOM_GRUP = ["Lokasi", "Fungsi Satuan Kerja", "Kel Jabatan", "Generasi"]
+WARNA_GRUP = ["#4c8dff", "#2cc4b0", "#f59e0b", "#9b8cff", "#f472b6", "#5fd0e6", "#a3e635", "#f2b49c"]
 
 CSS = """
 * { box-sizing: border-box; }
@@ -89,7 +92,17 @@ body { margin: 0; background: %(bg)s; color: %(teks)s; font-family: %(font)s; }
 .panel .ket { font-size: 12px; color: %(pudar)s; margin: 3px 0 6px; }
 .badge { font-size: 10px; letter-spacing: .04em; text-transform: none; padding: 2px 8px; border-radius: 99px;
          background: #2b2412; color: #f5c45e; font-weight: 600; }
-.panel.lebar { grid-column: 1 / -1; }   /* panel selebar halaman */
+.panel.lebar { grid-column: 1 / -1; }
+.kontrol { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 8px; }
+.pilihan { display: flex; flex-wrap: wrap; gap: 6px; }
+.pilihan > label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; cursor: pointer;
+                   border: 1px solid %(garis)s; border-radius: 99px; font-size: 12.5px; color: %(pudar)s;
+                   background: %(panel2)s; margin: 0; }
+.pilihan > label:hover { color: %(teks)s; }
+.pilihan > label:has(input:checked) { border-color: %(aksen)s; color: %(teks)s; background: #2b2412; }
+.pilihan > label:has(input:checked) * { color: %(teks)s; }
+.pilihan input { display: none; }
+.pilihan .dash-options-list-option-wrapper { display: none; }   /* panel selebar halaman */
 .halaman { display: none; }
 .halaman.on { display: block; }
 @media (max-width: 1100px) {
@@ -170,7 +183,8 @@ def _pendek(teks, n=28):
 
 
 # --------------------------------------------------------------------------- aplikasi
-def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_skor="Keseluruhan"):
+def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_skor="Keseluruhan",
+             df_score=None, kolom_grup=KOLOM_GRUP):
     df_dim, df_sub, df_butir = _rapikan(df_map_dimensi, df_map_subdimensi, df_map_butir, kolom_skor)
     h = susun_hierarki(df_dim, df_sub, df_butir, target)
     # skala warna direntangkan dari skor terendah sampai skor tertinggi yang ada,
@@ -223,32 +237,95 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
     _gaya(f_gapdim, 300, xaxis=dict(range=[0, max(5, cmax) + 0.6]), bargap=0.35,
           margin=dict(l=10, r=14, t=26, b=10))
 
-    # spider web: capaian tiap dimensi terhadap target (skor / target x 100%)
-    capai_pct = df_dim["_skor"] / target * 100
+    # ---- spider web: capaian tiap dimensi terhadap target (skor / target x 100%)
+    kode_dim = list(df_dim["Kode Dimensi"])
+    nama_dim = list(df_dim["Dimensi"])
     # label sudut: kode + nama dimensi (dipecah 2 baris agar tidak terpotong)
-    label_dim = [f"<b>{k}</b><br>{_bungkus_label(n)}" for k, n in zip(df_dim["Kode Dimensi"], df_dim["Dimensi"])]
-    teta_c = label_dim + [label_dim[0]]
-    r_c = list(capai_pct) + [capai_pct.iloc[0]]
-    skor_c = list(df_dim["_skor"]) + [df_dim["_skor"].iloc[0]]
-    nama_c = list(df_dim["Dimensi"]) + [df_dim["Dimensi"].iloc[0]]
-    bawah_c = max(0, np.floor((capai_pct.min() - 15) / 10) * 10)      # mulai di bawah capaian terendah
-    atas_c = max(110, np.ceil((capai_pct.max() + 5) / 10) * 10)       # selalu tampak garis 100%
-    f_capai = go.Figure()
-    f_capai.add_trace(go.Scatterpolar(
-        r=r_c, theta=teta_c, name="Capaian", mode="lines+markers", fill="toself",
-        fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
-        marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor_c], line=dict(color=C["panel"], width=1)),
-        customdata=[[n, float(v)] for n, v in zip(nama_c, skor_c)],
-        hovertemplate="%{customdata[0]}<br>Skor %{customdata[1]:.2f} · capaian %{r:.1f}% dari target"
-                      "<extra></extra>"))
-    _legenda_atas(_gaya(f_capai, 620, polar=dict(
-        domain=dict(x=[0.15, 0.85], y=[0.08, 0.9]), bgcolor="rgba(0,0,0,0)",
-        # hanya lingkaran 100% (= target) yang dinyalakan sebagai garis target
-        radialaxis=dict(range=[bawah_c, atas_c], tickvals=[100], ticktext=[f"100% · target {target:g}"],
-                        gridcolor="#ffffff", gridwidth=2, showline=False,
-                        tickfont=dict(color=C["teks"], size=10), angle=30, tickangle=30),
-        angularaxis=dict(gridcolor="rgba(255,255,255,0.25)", linecolor="rgba(255,255,255,0.25)",
-                         tickfont=dict(color=C["teks"], size=11)))))
+    label_dim = [f"<b>{k}</b><br>{_bungkus_label(n)}" for k, n in zip(kode_dim, nama_dim)]
+
+    # data responden untuk spider per kelompok (Lokasi, Fungsi Satuan Kerja, ...)
+    skor_resp, item_dim, grup_tersedia = None, {}, []
+    if df_score is not None:
+        sc = df_score.copy()
+        sc.columns = [str(c).strip() for c in sc.columns]
+        q_ke_dim = dict(zip(df_butir["Q"], df_butir["Kode Dimensi"]))
+        item = [c for c in sc.columns if c in q_ke_dim]
+        if item:
+            sc[item] = sc[item].apply(pd.to_numeric, errors="coerce")
+            skor_resp = sc
+            item_dim = {d: [c for c in item if q_ke_dim[c] == d] for d in kode_dim}
+            grup_tersedia = [k for k in kolom_grup if k in sc.columns]
+            hilang = [k for k in kolom_grup if k not in sc.columns]
+            if hilang:
+                print("Info: kolom kelompok tidak ada di df_score:", hilang)
+        else:
+            print("PERINGATAN: nama kolom pertanyaan di df_score tidak cocok dengan kolom Q di Map_Butir; "
+                  "pilihan kelompok pada spider web dinonaktifkan.")
+
+    def _skor_dim(df):
+        """Rata-rata per butir lalu per dimensi -> Series indeks kode dimensi."""
+        rata_item = df[[c for cols in item_dim.values() for c in cols]].mean()
+        return pd.Series({d: rata_item[cols].mean() if cols else np.nan for d, cols in item_dim.items()})
+
+    def _skor_per_grup(kolom):
+        """Baris = nilai kelompok, kolom = kode dimensi + n (jumlah responden)."""
+        nilai = skor_resp[kolom].fillna("(kosong)").astype(str)
+        hasil = {v: _skor_dim(skor_resp[nilai == v]) for v in nilai.unique()}
+        tabel_g = pd.DataFrame(hasil).T
+        tabel_g["n"] = nilai.value_counts()
+        return tabel_g.sort_values("n", ascending=False)
+
+    cache_grup = {k: _skor_per_grup(k) for k in grup_tersedia}
+    overall_resp = _skor_dim(skor_resp) if skor_resp is not None else None
+
+    def spider_capai(seri):
+        """seri: list dict(nama, skor[list per dimensi], warna, n, utama, dash)."""
+        semua = [v / target * 100 for sr in seri for v in sr["skor"] if pd.notna(v)]
+        bawah = max(0, np.floor((min(semua) - 15) / 10) * 10)       # mulai di bawah capaian terendah
+        atas = max(110, np.ceil((max(semua) + 5) / 10) * 10)        # selalu tampak lingkaran 100%
+        teta = label_dim + [label_dim[0]]
+        nama = nama_dim + [nama_dim[0]]
+        fig = go.Figure()
+        for sr in seri:
+            skor = list(sr["skor"]) + [sr["skor"][0]]
+            pct = [v / target * 100 if pd.notna(v) else None for v in skor]
+            info = f" · n={sr['n']}" if sr.get("n") else ""
+            data = [[nm, float(v) if pd.notna(v) else None] for nm, v in zip(nama, skor)]
+            hover = (f"<b>{sr['nama']}</b>{info}<br>" + "%{customdata[0]}<br>Skor %{customdata[1]:.2f} · "
+                     "capaian %{r:.1f}% dari target<extra></extra>")
+            if sr.get("utama"):      # overall: area terisi + titik bergradasi
+                fig.add_trace(go.Scatterpolar(
+                    r=pct, theta=teta, name=sr["nama"], mode="lines+markers", fill="toself",
+                    fillcolor="rgba(224,115,94,0.25)", line=dict(color=C["merah"], width=2),
+                    marker=dict(size=9, color=[_warna_skor(v, cmin, cmax) for v in skor],
+                                line=dict(color=C["panel"], width=1)),
+                    customdata=data, hovertemplate=hover))
+            else:                    # kelompok: garis saja, warna berbeda tiap kelompok
+                fig.add_trace(go.Scatterpolar(
+                    r=pct, theta=teta, name=sr["nama"] + info, mode="lines+markers",
+                    line=dict(color=sr["warna"], width=2.2, dash=sr.get("dash", "solid")),
+                    marker=dict(size=7, color=sr["warna"]), customdata=data, hovertemplate=hover))
+        _legenda_atas(_gaya(fig, 620, polar=dict(
+            domain=dict(x=[0.15, 0.85], y=[0.08, 0.9]), bgcolor="rgba(0,0,0,0)",
+            # hanya lingkaran 100% (= target) yang dinyalakan sebagai garis target
+            radialaxis=dict(range=[bawah, atas], tickvals=[100], ticktext=[f"100% · target {target:g}"],
+                            gridcolor="#ffffff", gridwidth=2, showline=False,
+                            tickfont=dict(color=C["teks"], size=10), angle=30, tickangle=30),
+            angularaxis=dict(gridcolor="rgba(255,255,255,0.25)", linecolor="rgba(255,255,255,0.25)",
+                             tickfont=dict(color=C["teks"], size=11)))))
+        return fig
+
+    seri_overall = dict(nama="Overall", skor=list(df_dim["_skor"]), utama=True)
+    f_capai = spider_capai([seri_overall])
+
+    kontrol_spider = html.Div(className="kontrol", children=[
+        dcc.RadioItems(id="spider-grup", value="__overall__", inline=True, className="pilihan",
+                       inputClassName="pilihan-input", labelClassName="pilihan-label",
+                       options=[{"label": "Overall", "value": "__overall__"}] +
+                               [{"label": k, "value": k} for k in grup_tersedia]),
+        dcc.Checklist(id="spider-nilai", options=[], value=[], inline=True, className="pilihan",
+                      inputClassName="pilihan-input", labelClassName="pilihan-label"),
+    ])
 
     kolom_tabel = [
         dict(name="Q", id="Q"), dict(name="Subdimensi", id="Subdimensi"),
@@ -280,7 +357,8 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
                "Ikut berubah sesuai pilihan di peta skor.", komp_tabel),
         _panel("Capaian target per dimensi",
                f"Skor ÷ target {target:g} × 100%. Lingkaran putih = 100% (target tercapai). "
-               f"{n_capai}/{n_butir} butir sudah ≥ target.", _graf("g-capai", f_capai), lebar=True),
+               f"{n_capai}/{n_butir} butir sudah ≥ target. Pilih Overall atau bandingkan per kelompok.",
+               html.Div([kontrol_spider, _graf("g-capai", f_capai)]), lebar=True),
         _panel("Skor per dimensi", f"Garis putus-putus = target {target:g}; angka dalam kurung = gap.",
                _graf("g-gapdim", f_gapdim), lebar=True),
     ])
@@ -526,13 +604,41 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         judul = f"Daftar pertanyaan · {nama} ({len(data)} butir, {n_bawah} di bawah target)"
         return data.to_dict("records"), gaya, judul, level
 
+    @app.callback(Output("spider-nilai", "options"), Output("spider-nilai", "value"),
+                  Output("spider-nilai", "style"), Input("spider-grup", "value"))
+    def isi_pilihan_nilai(grup):
+        if grup not in cache_grup:
+            return [], [], {"display": "none"}
+        tabel_g = cache_grup[grup]
+        opsi = [{"label": f"{v} (n={int(n)})", "value": v} for v, n in tabel_g["n"].items()]
+        return opsi, list(tabel_g.index[:4]), {}      # default: 4 kelompok terbesar
+
+    @app.callback(Output("g-capai", "figure"), Input("spider-grup", "value"), Input("spider-nilai", "value"))
+    def ganti_spider(grup, nilai):
+        if grup not in cache_grup or not nilai:
+            return spider_capai([seri_overall])
+        tabel_g = cache_grup[grup]
+        seri = [dict(nama="Overall", skor=list(overall_resp[kode_dim]), warna="rgba(231,237,246,0.7)", dash="dot")]
+        for i, v in enumerate([v for v in nilai if v in tabel_g.index]):
+            seri.append(dict(nama=str(v), skor=list(tabel_g.loc[v, kode_dim]),
+                             warna=WARNA_GRUP[i % len(WARNA_GRUP)], n=int(tabel_g.loc[v, "n"])))
+        return spider_capai(seri)
+
     return app
 
 
 def jalankan_dashboard(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4,
-                       kolom_skor="Keseluruhan", port=8050, buka_browser=True):
-    """Bangun dan jalankan dasbor. Hentikan dengan tombol stop di console Spyder (atau Ctrl+C)."""
-    app = buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target, kolom_skor)
+                       kolom_skor="Keseluruhan", port=8050, buka_browser=True,
+                       df_score=None, kolom_grup=KOLOM_GRUP):
+    """
+    Bangun dan jalankan dasbor. Hentikan dengan tombol stop di console Spyder (atau Ctrl+C).
+
+    df_score   : data jawaban per responden (sheet Score). Bila diisi, spider web bisa dipilih
+                 per Lokasi / Fungsi Satuan Kerja / Kel Jabatan / Generasi.
+    kolom_grup : nama kolom kelompok di df_score yang ditampilkan sebagai pilihan.
+    """
+    app = buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target, kolom_skor,
+                   df_score=df_score, kolom_grup=kolom_grup)
     alamat = f"http://127.0.0.1:{port}"
     print(f"Dasbor berjalan di {alamat}  (hentikan dengan tombol stop / Ctrl+C)")
     if buka_browser:
