@@ -89,6 +89,7 @@ body { margin: 0; background: %(bg)s; color: %(teks)s; font-family: %(font)s; }
 .panel .ket { font-size: 12px; color: %(pudar)s; margin: 3px 0 6px; }
 .badge { font-size: 10px; letter-spacing: .04em; text-transform: none; padding: 2px 8px; border-radius: 99px;
          background: #2b2412; color: #f5c45e; font-weight: 600; }
+.panel.lebar { grid-column: 1 / -1; }   /* panel selebar halaman */
 .halaman { display: none; }
 .halaman.on { display: block; }
 @media (max-width: 1100px) {
@@ -134,9 +135,10 @@ def _graf(id_, fig):
                      config={"displayModeBar": False, "responsive": True})
 
 
-def _panel(judul, ket, isi, contoh=False):
+def _panel(judul, ket, isi, contoh=False, lebar=False):
     kepala = [judul] + ([html.Span("Data contoh", className="badge")] if contoh else [])
-    return html.Div(className="panel", children=[html.H3(kepala), html.P(ket, className="ket"), isi])
+    return html.Div(className="panel lebar" if lebar else "panel",
+                    children=[html.H3(kepala), html.P(ket, className="ket"), isi])
 
 
 def _kpi(lbl, val, sub, warna=None):
@@ -276,11 +278,11 @@ def buat_app(df_map_dimensi, df_map_subdimensi, df_map_butir, target=4, kolom_sk
         _panel("Peta skor", "Klik dimensi / subdimensi untuk zoom; klik tengah untuk kembali.", _graf("sunburst", f_sun)),
         _panel(html.Span("Daftar pertanyaan", id="judul-tabel"),
                "Ikut berubah sesuai pilihan di peta skor.", komp_tabel),
-        _panel("Skor per dimensi", f"Garis putus-putus = target {target:g}; angka dalam kurung = gap.",
-               _graf("g-gapdim", f_gapdim)),
         _panel("Capaian target per dimensi",
                f"Skor ÷ target {target:g} × 100%. Lingkaran putih = 100% (target tercapai). "
-               f"{n_capai}/{n_butir} butir sudah ≥ target.", _graf("g-capai", f_capai)),
+               f"{n_capai}/{n_butir} butir sudah ≥ target.", _graf("g-capai", f_capai), lebar=True),
+        _panel("Skor per dimensi", f"Garis putus-putus = target {target:g}; angka dalam kurung = gap.",
+               _graf("g-gapdim", f_gapdim), lebar=True),
     ])
 
     # ---------------- Tab 2: Dimensi & Subdimensi
